@@ -1,0 +1,174 @@
+---
+- name: Create Docker resource for MariaDB
+  vars:
+    service_name: "mariadb"
+    service: "{{ mariadb_services[service_name] }}"
+    volumes: >-
+      {% set volumes = [] -%}
+      {% for volume in service['volumes'] -%}
+        {% if volume -%}
+          {% if volume[0] != '/' and volume.split(':') | length == 2 -%}
+            {% set elem = volume ~ ':rw' -%}
+            {{ volumes.append(elem) -}}
+          {% else -%}
+            {{ volumes.append(volume) -}}
+          {% endif -%}
+        {% endif -%}
+      {% endfor -%}
+      {{ volumes | map('regex_replace', '(.*)', '-v \1') | join(' ') -}}
+    kolla_environment:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      KOLLA_SERVICE_NAME: "{{ service_name }}"
+    pacemaker_environment:
+      PCMK_remote_port: "{{ service.pacemaker.remote_port }}"
+      PCMK_authkey_location: "{{ mariadb_pacemaker_authkey_destination }}"
+      PCMK_logfile: "{{ service.pacemaker.logfile }}"
+    service_environment: >-
+      {% set service_environment = [] -%}
+      {% for key, value in kolla_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {% for key, value in pacemaker_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {{ service_environment | map('regex_replace', '(.*)', '-e \1') | join(' ') -}}
+    meta:
+      remote-node: "{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+      remote-port: "{{ service.pacemaker.remote_port }}"
+      remote-addr: "{{ 'api' | kolla_address(item) }}"
+      remote-connect-timeout: "30s"
+    cgroup_parent: "{{ '--cgroup-parent=' ~ service['dimensions']['cgroup_parent'] if 'cgroup_parent' in service['dimensions'] else '' }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_resource
+    name: "c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    type: primitive
+    agent: "ocf:heartbeat:docker"
+    parameter:
+      image: "{{ service.image }}"
+      name: "{{ service_name }}"
+      allow_pull: "true"
+      run_opts: "--user=root -h {{ service_name }}-{{ groups[service_name].index(item) + 1 }} --net=host {{ service_environment }} {{ volumes }} {{ cgroup_parent }} --label service-component={{ service_name }}"
+      run_cmd: "kolla_start"
+      monitor_cmd: "/usr/bin/true"
+      force_kill: "false"
+      reuse: "1"
+    operation: "{{ service.pacemaker.resource.container.operation }}"
+    meta: "{{ meta | combine(service.pacemaker.resource.container.meta) }}"
+  loop: "{{ groups[service_name] }}"
+
+- name: Define Pacemaker node for the MariaDB container
+  vars:
+    service_name: "mariadb"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_node
+    name: "mariadb-{{ groups[service_name].index(item) + 1 }}"
+    type: "remote"
+  loop: "{{ groups[service_name] }}"
+
+- name: Restrict the MariaDB container location
+  vars:
+    service_name: "mariadb"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    resource: "c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "100: {{ hostvars[item]['ansible_nodename'] }}"
+  loop: "{{ groups[service_name] }}"
+
+- name: Construct WSREP connection string and cluster host map variable
+  vars:
+    service_name: "mariadb"
+  set_fact:
+    cluster_host_map: >-
+      {% set cluster_host_map = [] -%}
+      {% for host in groups[service_name] -%}
+        {% set elem = service_name ~ '-' ~ (groups[service_name].index(host) + 1) ~ ':' ~ 'api' | kolla_address(host) | put_address_in_context('url') -%}
+        {{ cluster_host_map.append(elem) -}}
+      {% endfor -%}
+      {{ cluster_host_map | join(';') -}}
+    cluster_address: >-
+      {% set cluster_address = [] -%}
+      {% for host in groups[service_name] -%}
+        {% set elem = 'api' | kolla_address(host) | put_address_in_context('url') ~ ':' ~ mariadb_wsrep_port -%}
+        {{ cluster_address.append(elem) -}}
+      {% endfor -%}
+        {{ cluster_address | join(',') -}}
+  run_once: True
+
+- name: Create Galera resource
+  vars:
+    service_name: "mariadb"
+    service: "{{ mariadb_services[service_name] }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "p_{{ service_name }}"
+    type: primitive
+    agent: "ocf:heartbeat:galera"
+    parameter:
+      wsrep_cluster_address: "gcomm://{{ cluster_address }}"
+      cluster_host_map: "{{ cluster_host_map }}"
+      socket: "/run/mysql/mysql.sock"
+      log: ""
+      additional_parameters: "--syslog"
+      check_passwd: "{{ database_password }}"
+    operation: "{{ service.pacemaker.resource.galera.operation }}"
+    meta: "{{ service.pacemaker.resource.galera.meta }}"
+
+
+- name: Create master/slave resource for Galera
+  vars:
+    service_name: "mariadb"
+    nodes: "{{ groups[service_name] | length }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "ms_mariadb"
+    type: ms
+    agent: "p_mariadb"
+    meta:
+      master-max: "{{ nodes }}"
+      clone-max: "{{ nodes }}"
+
+- name: Put MariaDB role for its hosting container node
+  vars:
+    service_name: "mariadb"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    attribute: "{{ service_name }}-role"
+    value: "true"
+  loop: "{{ groups[service_name] }}"
+
+- name: Restrict MariaDB instance location
+  vars:
+    service_name: "mariadb"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ service_name }}"
+    resource: "ms_{{ service_name }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "rule 100: {{ service_name }}-role eq true"
+  loop: "{{ groups[service_name] }}"

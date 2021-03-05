@@ -1,0 +1,172 @@
+---
+- name: Remove conflicting packages
+  become: yes
+  package:
+    name: "{{ packages_to_be_removed }}"
+    state: absent
+
+#- name: Ensure the firewall is running
+#  become: yes
+#  service:
+#    name: firewalld
+#    enabled: yes
+#    state: started
+
+#- name: Enable firewall for tftp and http
+#  become: yes
+#  firewalld:
+#    service: "{{ item[0] }}"
+#    permanent: yes
+#    state: enabled
+#    zone: "{{ item[1] }}"
+#  with_nested:
+#      - [ 'http', 'tftp' ]
+#      - [ 'internal', 'public' ]
+
+#- name: Reload firewall
+#  become: yes
+#  command: firewall-cmd --reload
+
+- name: Install cobbler and dependencies
+  become: yes
+  zypper:
+    name: "{{ cobbler_packages }}"
+    state: latest
+    disable_gpg_check: yes
+
+- name: Ensure cobblerd service override dir
+  become: yes
+  file:
+    name: /etc/systemd/system/cobblerd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create cobblerd service override
+  become: yes
+  template:
+    src: ../templates/cobblerd.service.override.j2
+    dest: /etc/systemd/system/cobblerd.service.d/override.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: Reload systemd configuration
+
+- name: Ensure Cobbler's tftp system directories exists
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{tftp_dir}}/grub/system"
+    - "{{tftp_dir}}/grub/system_link"
+
+- name: Stopping and disabling tftpd service
+  become: yes
+  service:
+    name: tftp
+    state: stopped
+    enabled: no
+
+- name: Install dnsmasq
+  become: yes
+  package:
+    name: dnsmasq
+    state: latest
+
+- name: Add localhost ip in cobbler.conf
+  become: yes
+  replace:
+    path: /etc/cobbler/cobbler.conf
+    regexp: 'localhost'
+    replace: '127.0.0.1'
+
+- name: Set default passwd for cobbler
+  become: yes
+  set_fact: cobbler_default_passwd= "{{ item }}"
+  with_password: /tmp/cobbler_setup  encrypt=sha512_crypt
+
+- name: Remove temp file
+  file:
+    path: /tmp/cobbler_setup
+    state: absent
+    recurse: no
+
+- name: Adding cobbler settings file
+  become: yes
+  template: src=../templates/settings.j2 dest=/etc/cobbler/settings
+
+- name: Add dnsmasq related paramters
+  become: yes
+  replace:
+    path: /etc/cobbler/modules.conf
+    regexp: '^module = {{ item }}$'
+    replace: 'module = managers.dnsmasq'
+  with_items:
+  - managers.isc
+  - managers.bind
+
+- name: Generate the tftp file for xinetd
+  become: yes
+  template:
+    src: ../templates/xinetd.tftp.j2
+    dest: /etc/xinetd.d/tftp
+
+- name: Create bootloader directory
+  become: yes
+  file:
+    path: /var/lib/cobbler/loaders
+    state: directory
+    mode: 0755
+
+- name: Copy UEFI loaders to cobbler loaders dir
+  become: yes
+  copy:
+    follow: yes
+    force: yes
+    src: "{{ item.src }}"
+    dest: /var/lib/cobbler/loaders/{{ item.filename }}
+  with_items: "{{ uefi_bootloader_sources }}"
+
+- name: Ensure syslinux loaders as links in cobbler loaders dir
+  become: yes
+  file:
+   state: link
+   path:  /var/lib/cobbler/loaders/{{ item.filename }}
+   src: "{{ item.src }}"
+  with_items: "{{ legacy_bootloader_sources }}"
+
+- name:  Adding cobbler dnsmasq template
+  become: yes
+  template: src=../templates/cobbler.dnsmasq.template.j2 dest=/etc/cobbler/dnsmasq.template
+
+- name:  Modify cobbler pxelinux template
+  become: yes
+  lineinfile:
+    path: /etc/cobbler/boot_loader_conf/pxesystem.template
+    regexp: 'ipappend '
+    line: '        ipappend 3'
+
+- name: Enable and restart services
+  become: yes
+  service: name={{ item }} state=restarted enabled=yes
+  loop:
+  - cobblerd
+  - xinetd
+
+- name: Cobbler sync
+  become: yes
+  cobbler_sync:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+
+- name: Enable and restart dnsmasq
+  become: yes
+  service:
+    name: dnsmasq
+    state: restarted
+    enabled: yes

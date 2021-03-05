@@ -1,0 +1,10 @@
+---
+config_directory: "/etc/cee"
+scheduler_base_dir: "/tmp"
+scheduler_agent_port: 9044
+scheduler_db_poll: 60
+scheduler_service_name: "scheduler-agent"
+scheduler_db_schema: "scheduler_schema"
+scheduler_db_user: "scheduler_db_user"
+scheduler_db_host: "{{ lcm_network.vip }}"
+scheduler_db_port: "{{ database_port }}"

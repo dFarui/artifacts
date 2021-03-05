@@ -1,0 +1,24 @@
+# default: off
+# description: The tftp server serves files using the trivial file transfer \
+#       protocol.  The tftp protocol is often used to boot diskless \
+#       workstations, download configuration files to network-aware printers, \
+#       and to start the installation process for some operating systems.
+{% if host_server_ip_addr | ipv6 %}
+{% set flag = 'IPv6' %}
+{% else %}
+{% set flag = 'IPv4' %}
+{% endif %}
+service tftp
+{
+        disable                 = no
+        socket_type             = dgram
+        protocol                = udp
+        wait                    = yes
+        user                    = root
+        server                  = /usr/sbin/in.tftpd
+        server_args             = -u tftp -B 1380 -vvvv -s {{ tftp_dir }}
+        per_source              = 11
+        cps                     = 100 2
+        flags                   = {{ flag }}
+        port                    = 69
+}

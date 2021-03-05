@@ -1,0 +1,32 @@
+---
+# FIXME: Introduce resource status query functions to the Pacemaker module
+- name: Wait for RabbitMQ instances to be in a running state
+  vars:
+    resource_name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  shell: 'docker exec pacemaker crm resource status {{ resource_name }} | grep -Ec "^resource {{ resource_name }} is running on:"'
+  register: result
+  until: groups['rabbitmq'] | length | string in result.stdout
+  ignore_errors: True
+  changed_when: False
+  retries: 12
+  delay: 5
+  when:
+    - kolla_action != "config"
+
+- name: Ensure that RabbitMQ master exist
+  vars:
+    resource_name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  shell: "docker exec pacemaker crm resource status {{ resource_name }} | grep -Ec '^resource {{ resource_name }} is running on: .+ Master$'"
+  register: result
+  until: "'1' in result.stdout"
+  changed_when: False
+  retries: 12
+  delay: 5
+  when:
+    - kolla_action != "config"

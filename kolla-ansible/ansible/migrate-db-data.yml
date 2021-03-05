@@ -1,0 +1,60 @@
+---
+- hosts: lcm_hosts
+  tasks:
+    - include_vars: roles/cee-lcm/defaults/main.yml
+    - name: Create LCM database on LCM cluster
+      delegate_to: localhost
+      run_once: True
+      become: True
+      mysql_db:
+        login_host: "{{ lcm_api_internal_vip_address }}"
+        login_port: "{{ database_port }}"
+        login_user: "{{ database_user }}"
+        login_password: "{{ database_password }}"
+        name: "{{ lcm_database }}"
+
+    - name: Create LCM database user and setting permissions on lcm cluster
+      become: True
+      run_once: True
+      delegate_to: localhost
+      mysql_user:
+        login_host: "{{ lcm_api_internal_vip_address }}"
+        login_port: "{{ database_port }}"
+        login_user: "{{ database_user }}"
+        login_password: "{{database_password }}"
+        name: "{{ lcm_database_user }}"
+        password: "{{ lcm_database_password }}"
+        host: "%"
+        priv: "{{ lcm_database }}.*:ALL"
+        append_privs: "yes"
+
+    - name: Create the backup of LCM database
+      become: True
+      run_once: True
+      delegate_to: localhost
+      mysql_db:
+        state: dump
+        name: "{{ lcm_database }}"
+        login_unix_socket: "{{ mysql_socket }}"
+        target: /tmp/{{ lcm_database }}.sql
+
+    - name: Dump the data to the databse on LCM cluster
+      become: True
+      delegate_to: localhost
+      run_once: True
+      mysql_db:
+        login_host: "{{ lcm_api_internal_vip_address }}"
+        login_port: "{{ database_port }}"
+        login_user: "{{ database_user }}"
+        login_password: "{{ database_password }}"
+        name: "{{ lcm_database }}"
+        state: import
+        target: /tmp/{{ lcm_database }}.sql
+
+    - name: Delete the DB backup file
+      become: True
+      run_once: True
+      delegate_to: localhost
+      file:
+        state: absent
+        path: /tmp/{{ lcm_database }}.sql

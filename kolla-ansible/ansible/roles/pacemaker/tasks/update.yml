@@ -1,0 +1,16 @@
+---
+- include_tasks: gather_group_facts.yml
+
+- include_tasks: config.yml
+
+- include_tasks: firewall.yml
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- include_tasks: cluster_config.yml
+
+- include_tasks: virtualip.yml
+  when: not (enable_keepalived | bool)
+
+- include_tasks: healthcheck.yml

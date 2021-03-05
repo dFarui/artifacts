@@ -1,0 +1,40 @@
+# ----------------------------------------------------- #
+# Configuration file for the Watchmen Consumer Service. #
+# ----------------------------------------------------- #
+
+[DEFAULT]
+
+# Path to the logging configuration file
+logging_conf={{ watchmen_consumer_logging_conf }}
+
+# A URL representing the database connection and its full configuration
+database_connection={{ watchmen_database_connection }}
+
+# Sending intervall (in seconds) of the eriAlarmHeartBeat SNMP Heartbeat trap
+snmp_heartbeat_interval={{ watchmen_consumer_snmp_heartbeat_interval }}
+
+# Number of SNMP-trap sender processes
+snmp_trap_sender_worker_number={{ watchmen_consumer_snmp_trap_sender_worker_number }}
+
+# Period time of obsolete alarm checking in seconds
+watchmen_alarm_gc_check_period={{ watchmen_consumer_alarm_gc_check_period }}
+
+# Keep alarms of non responding components for this amount of seconds
+watchmen_keep_alarms_timeout={{ watchmen_consumer_keep_alarms_timeout }}
+
+# Delay in seconds of AAL synchronization after startup
+watchmen_startup_aal_synchronization_delay={{ watchmen_consumer_startup_aal_synchronization_delay }}
+
+# List of tenant ids with full access to the Watchmen Events (alarms, alerts)
+watchmen_full_access_tenants={{ get_admin_project_id_result.project.id }}
+
+# The AMQP server name for Target
+messaging_server_name={{ watchmen_consumer_ampq_target_name }}
+
+# The AMQP topic name for Target
+messaging_topic_name={{ watchmen_consumer_ampq_topic_name }}
+
+# The RabbitMQ transport URL
+transport_url = {{ watchmen_rabbitmq_transport_url }}
+
+{% include 'rabbitmq_tls.conf.j2' %}

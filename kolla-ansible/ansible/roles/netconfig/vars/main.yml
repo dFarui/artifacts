@@ -1,0 +1,27 @@
+---
+env:
+ RUNLEVEL: 1
+
+routing_table_file : '/etc/iproute2/rt_tables'
+routing_table_marker : 'deployer'
+routing_table_id_start : 101
+
+# Network Variables specific to Suse
+
+network_pkgs:
+  - python3-selinux
+  - iputils
+
+openvswitch_packages:
+  - openvswitch
+
+linuxbridge_packages:
+  - iputils
+
+net_path: "/etc/sysconfig/network"
+
+dpdk_enabled: "{{ 'True' if ( dpdk_devices is defined and dpdk_devices.openvswitch is defined ) else 'False' }}"
+dpdk_ports: "{{ dpdk_devices.openvswitch.devices if dpdk_enabled else None }}"
+
+my_ovs_bond_interfaces: "{{ my_ovs_interfaces | selectattr('bond_options', 'defined') | list }}"
+my_dpdk_bond_interfaces: "{{ my_dpdk_interfaces | selectattr('bond_options', 'defined') | list }}"

@@ -1,0 +1,11 @@
+{{ file_marker }}
+ETHERDEVICE={{ item.vlanrawdevice }}
+VLAN_ID={{ item.vlanid }}
+LINK_REQUIRED='no'
+{% if disable_lro is defined and disable_lro %}
+ETHTOOL_OPTIONS="lro off"
+{% endif %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+{% include 'if_ipinfo.j2' %}

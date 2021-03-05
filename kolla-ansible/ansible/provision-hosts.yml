@@ -1,0 +1,16 @@
+#
+# Host Operating System Configuration
+#
+---
+- import_playbook: common-provision-tasks.yml
+- import_playbook: power-cycle-hosts.yml
+- import_playbook: provision-lcm-hosts.yml
+
+#TODO
+#- include: roles/hostconfig/tasks/misc-install.yml
+
+#TODO
+- import_playbook: setup-infra-vms.yml
+  when: (cee_action is not defined) or (cee_action == "deploy")
+- import_playbook: setup-gluster.yml
+  when: (cee_action is not defined) or (cee_action == "deploy")

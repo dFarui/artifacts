@@ -1,0 +1,29 @@
+---
+- name: Check RabbitMQ cluster_status
+  run_once: True
+  become: True
+  command: >-
+      docker exec {{ project_name }}
+      rabbitmqctl cluster_status --formatter json
+  register: rabbitmq_cluster_status
+  until:
+    - rabbitmq_cluster_status.rc == 0
+    - not (([rabbitmq_services[project_name]['hostname_prefix']] | product(groups[project_name]) | map('join') | list) | difference(
+      (rabbitmq_cluster_status.stdout | from_json).running_nodes | list))
+    - not ((rabbitmq_cluster_status.stdout | from_json).running_nodes | list | difference(
+      [rabbitmq_services[project_name]['hostname_prefix']] | product(groups[project_name]) | map('join') | list))
+  retries: 30
+  delay: 5
+
+- name: Ensure RabbitMQ master exist
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  shell: >
+    docker exec pacemaker crm resource status {{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }} |
+    grep -Ec '^resource {{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }} is running on: .+ Master$'
+  register: result
+  until: "'1' in result.stdout"
+  changed_when: False
+  retries: 12
+  delay: 5

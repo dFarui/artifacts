@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+
+# kern facility
+if ($syslogfacility == 0) then {
+    set $!log_dir_name = "kernel";
+    set $!log_file_name = "kernel";
+{% if rsyslog_log_behavior.write_local_logs %}
+    call {{ rsyslog_logic.local.common_log.functions.write_to_path.rule_set.name }}
+{% endif %}
+{% if rsyslog_log_behavior.forward_logs %}
+    call {{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}
+{% endif %}
+}

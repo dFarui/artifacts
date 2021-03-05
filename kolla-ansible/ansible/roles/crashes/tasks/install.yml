@@ -1,0 +1,28 @@
+---
+- name: Install kdump
+  become: yes
+  package:
+    name: kdump
+    state: latest
+
+- name: Enable kdump
+  become: yes
+  service:
+    name: kdump
+    enabled: yes
+
+- name: Configure kdump
+  become: yes
+  notify: Restart kdump
+  lineinfile:
+    path: /etc/sysconfig/kdump
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+  - { regexp: 'KDUMP_CPUS', line: 'KDUMP_CPUS=1' }
+  - { regexp: 'KDUMP_SAVEDIR', line: 'KDUMP_SAVEDIR=file:///var/crash/kernelcrashes' }
+  - { regexp: 'KDUMP_KEEP_OLD_DUMPS', line: 'KDUMP_KEEP_OLD_DUMPS=0' }
+  - { regexp: 'KDUMP_FREE_DISK_SIZE', line: 'KDUMP_FREE_DISK_SIZE=0' }
+  - { regexp: 'KDUMP_DUMPLEVEL', line: 'KDUMP_DUMPLEVEL=31' }
+  - { regexp: 'KDUMP_VERBOSE', line: 'KDUMP_VERBOSE=7' }
+  - { regexp: 'KDUMP_DUMPFORMAT', line: 'KDUMP_DUMPFORMAT=lzo' }

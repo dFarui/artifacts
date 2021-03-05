@@ -1,0 +1,60 @@
+---
+- name: permission to write to /var/log/cee
+  become: yes
+  file:
+    path: /var/log/cee
+    state: directory
+    owner: "{{ cee_user_name }}"
+    group: "{{ cee_group_name }}"
+
+- name: Creating .ssh directory if it doesnot exist.
+  file:
+    path: ~/.ssh
+    state: directory
+    mode: '0700'
+
+- name: create ssh keys if keys doesnot exist
+  shell:
+    cmd: ssh-keygen -q -t rsa -N "" -f ~/.ssh/id_rsa
+    creates: ~/.ssh/id_rsa
+
+- name: Check whether public key is present in authorized keys
+  shell: grep -q "$(cat ~/.ssh/id_rsa.pub)" ~/.ssh/authorized_keys
+  register: check_keys
+  failed_when: false
+  changed_when: false
+
+- name: Add public key to authorized keys if not present
+  shell: |
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    chmod 0600 ~/.ssh/authorized_keys
+  when: check_keys.rc == 1
+
+- name: Check that ssh works, with no password.
+  shell: ssh -o PasswordAuthentication=no -o StrictHostKeyChecking=no localhost date >/dev/null
+  register: ssh_status
+  failed_when: false
+  changed_when: false
+
+- name: Abort at this point if ssh doesnot work
+  fail:
+    msg: ssh is not  working  without password
+  when: ssh_status.rc == 1
+
+- name: create jobs-artifacts and cee directory in /var/lib directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ cee_user_name }}"
+    group: "{{ cee_group_name }}"
+    recurse: yes
+  with_items:
+    - '/var/lib/cee'
+    - '/var/lib/jobs/artifacts'
+
+- name: Create config directory
+  become: yes
+  file:
+    path: "/etc/cee/"
+    state: directory

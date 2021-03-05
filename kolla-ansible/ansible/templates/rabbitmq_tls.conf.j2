@@ -1,0 +1,5 @@
+{% if rabbitmq_tls_enable | default | bool %}
+[oslo_messaging_rabbit]
+ssl = True
+ssl_ca_file = {{ ca_file }}
+{% endif %}

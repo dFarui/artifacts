@@ -1,0 +1,23 @@
+[DEFAULT]
+sql_conn={{ notifier_database_connection }}
+transport_url={{ notifier_rpc_transport_url }}
+logging_cfg_path=/etc/notifier/notifier-controller-logging.conf
+controller_endpoints=notifier.controller.endpoints.ControllerEndpoint
+scheduler=notifier.controller.scheduler.SimpleNodeScheduler
+scheduler_interval=1
+delta_sync_enode_time=60
+
+[rpc]
+messaging_executor_mode=threading
+messaging_server_name={{ notifier_rpc_server }}
+messaging_topic_name={{ notifier_rpc_topic }}
+
+[keystone]
+auth_url={{ notifier_keystone_auth_url }}
+auth_username={{ notifier_keystone_admin_username }}
+auth_password={{ notifier_keystone_admin_password }}
+auth_domain={{ notifier_keystone_user_domain_name }}
+auth_project={{ notifier_keystone_project_name }}
+auth_project_domain={{ notifier_keystone_domain_name }}
+service_name=notifier
+endpoint_type=public

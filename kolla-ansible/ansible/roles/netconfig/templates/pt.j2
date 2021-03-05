@@ -1,0 +1,9 @@
+BOOTPROTO=none
+STARTMODE=auto
+NM_CONTROLLED=no
+USERCTL=no
+
+PRE_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+PRE_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'

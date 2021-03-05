@@ -1,0 +1,1 @@
+domain: "{{ my_dns_config.domain | d('cee.tld') }}"

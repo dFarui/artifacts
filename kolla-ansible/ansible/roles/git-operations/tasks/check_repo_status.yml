@@ -1,0 +1,20 @@
+# Check if a git repo has all changes committed.
+# Parameters:
+#   repo: /var/lib/cee/system/<system_name>
+---
+- name: Check for uncommitted changes
+  shell: >
+    git diff-index --quiet HEAD &&
+    [ -z "$(git ls-files --others --exclude-standard)" ]
+  args:
+    chdir: "{{ repo }}"
+  register: git_result
+  failed_when: false
+  changed_when: false
+
+- name: Fail if there are uncommitted changes
+  fail:
+    msg: >
+      You have uncommitted changes in {{ repo }}. You need to review these
+      (with a "git status" command) and commit them before proceeding.
+  when: git_result is failed

@@ -1,0 +1,48 @@
+# TODO: VM redefinition does not take care of disks, like this file does not remove
+# the superfluous disk, does not create new disks and does not resize already
+# existing disks.
+
+- name: Get original domain XML of {{ vm_name }}
+  virt:
+    command: get_xml
+    name: "{{ vm_name }}"
+  register: original_domain_xml
+
+- name: Find out revision of the new and current domain XMLs
+  xml:
+    xmlstring: "{{ item }}"
+    xpath: /domain/metadata/cee:infra_vm_revision
+    content: text
+    namespaces:
+      cee: http://ericsson.com/cee/
+  register: domain_xml_revisions
+  with_items:
+    - "{{ original_domain_xml.get_xml }}"
+    - "{{ domain_xml }}"
+
+- name: Redefine domain for {{ vm_name }}
+  # virt module's "define" does not set "changed" to true if the domain exist but the
+  # new domain XML is different. So instead of checking "changed", it is advised to
+  # check the "skipped" field of the result.
+  virt:
+    command: define
+    xml: "{{ domain_xml }}"
+    autostart: "{{ autostart | default(false) }}"
+  register: domain_redefine_result
+  when: >-
+    {{ domain_xml_revisions.results |
+       map(attribute='matches') |
+       list |
+       flatten(levels=1) |
+       unique  |
+       length > 1 }} or {{ force_redefine | d(false)}}
+
+- name: Shut off {{ vm_name }} to apply domain XML changes
+  virt:
+    name: "{{ vm_name }}"
+    state: shutdown
+
+- name: Destroy {{ vm_name }} to apply domain XML changes
+  virt:
+    name: "{{ vm_name }}"
+    state: destroyed

@@ -1,0 +1,11 @@
+---
+- name: Copying over log-aggregator logrotate config file
+  vars:
+    container_name: "rsyslog_log_aggregator"
+  template:
+    src: "cee.log_aggregator.nodaily.j2"
+    dest: "{{ logrotate_cee_config_file_path }}"
+    mode: "{{ logrotate_config_file_mode }}"
+  become: true
+  when:
+    - enable_rsyslog | bool

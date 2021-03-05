@@ -1,0 +1,40 @@
+- hosts:
+   - lcm_hosts
+  become: true
+  tasks:
+   - name: Install rsync package
+     package:
+       name: rsync
+       state: latest
+   - name: Sync data stored on shared storage
+     synchronize:
+       src: "{{item.src}}"
+       dest: "{{item.dest}}"
+       rsync_opts: "{{item.rsync_opts | d(omit)}}"
+     run_once: true
+     with_items:
+      - src: /srv/www/
+        dest: /srv/www
+        rsync_opts:
+         - "--exclude=cobbler/distro_mirror/"
+      - src: /var/lib/cee/
+        dest: /var/lib/cee
+      - src: /var/lib/jobs/
+        dest: /var/lib/jobs
+      - src: /opt/cee/templates/
+        dest: /opt/cee/templates
+     tags:
+      - shared_data
+   - name: Sync data to be copied to each VM
+     synchronize:
+       src: "{{item.src}}"
+       dest: "{{item.dest}}"
+       rsync_opts: "{{item.rsync_opts | d(omit)}}"
+     with_items:
+      - src: /home/ceeinfra/
+        dest: /home/ceeinfra
+        rsync_opts:
+         - "--exclude=.ansible/"
+         - "--exclude=ceelcmrc"
+     tags:
+      - local_data

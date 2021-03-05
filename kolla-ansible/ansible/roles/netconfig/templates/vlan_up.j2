@@ -1,0 +1,10 @@
+{{ file_marker }}
+{% if item.vlanrawdevice is defined %}
+{% if disable_lro is defined and disable_lro %}
+ethtool -K {{ item.vlanrawdevice }} lro off
+{% endif %}
+{% if item.mtu is defined %}
+ip link set dev {{ item.vlanrawdevice }} mtu {{ item.vlanrawdevice_mtu }}
+ip link set dev {{ item.device }} mtu {{ item.mtu }}
+{% endif %}
+{% endif %}

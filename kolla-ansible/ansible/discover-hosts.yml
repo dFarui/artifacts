@@ -1,0 +1,83 @@
+---
+- hosts: physical_hosts:virtual_hosts:!discovered_hosts
+  serial: "{{ batch_size | default(20) }}"
+  any_errors_fatal: false
+  tags: only_power_off
+  roles:
+    - discover
+  tasks:
+    - include: roles/discover/tasks/power.yml
+      vars:
+        action: "off"
+    - include: roles/discover/tasks/cobbler-clean.yml
+
+- hosts: physical_hosts:virtual_hosts:!discovered_hosts
+  serial: "{{ batch_size | default(20) }}"
+  any_errors_fatal: false
+  vars:
+    lcm_ssh_pub_key: "{{ lookup('file', '{{ lcm_user_home }}/.ssh/id_rsa.pub') }}"
+    oobm_mac_index: "{{ ansible_play_batch.index(inventory_hostname) +  1 if (id == 'undef' and ip | ipv6) else 0}}"
+  roles:
+    - cobbler
+    - discover
+  tasks:
+    - name: Transfer nvram for PXE booting if applicable
+      command: >
+        scp -o PasswordAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        /srv/www/cee/nvram/mac_{{oobm_mac_index}}_VARS.fd
+        "[{{oobm_args['oobmAddress']}}]:/tmp/{{oobm_args['oobmExtra']['vmName']}}_VARS.fd"
+      when: oobm_mac_index | int  > 0
+
+    - name: Set the boot MAC addresses if applicable
+      oobm:
+        oobm_args: "{{ oobm_args | combine({'oobmMACIndex': oobm_mac_index }) }}"
+        setmac: True
+      when: oobm_mac_index | int  > 0
+
+    - name: Get the boot MAC addresses
+      oobm:
+        oobm_args: "{{ oobm_args }}"
+        getmac: True
+      register: macaddr
+
+    - include: roles/discover/tasks/populate_systems.yml bootmacs={{macaddr.mac}}
+    - include: roles/discover/tasks/netboot.yml
+      vars:
+        action: "enable"
+
+    - name: Ensure that the node ips are not pingable
+      become: yes
+      shell: ping -c 3 "{{ vars.ip }}"
+      register: ping
+      failed_when: ping.rc == 0
+      changed_when: false
+
+    - name: Starting discovering. Setting boot order to PXE
+      oobm:
+        oobm_args: "{{ oobm_args }}"
+        bootdev: pxe
+
+    - include: roles/discover/tasks/dnsmasq.yml
+
+    - include: roles/discover/tasks/power.yml
+      vars:
+        action: "on"
+
+    - name: Wait for ssh to come online
+      vars:
+        ansible_connection: ssh
+      wait_for_connection:
+        timeout: "{{ ssh_wait_seconds }}"
+
+    - name: Check if running discovery image
+      vars:
+        ansible_connection: ssh
+      setup:
+      failed_when: ansible_service_mgr != "sysvinit"
+
+    - name: Set boot order to local disk
+      oobm:
+        oobm_args: "{{ oobm_args | combine({'oobmMACIndex': oobm_mac_index}) }}"
+        bootdev: hdd
+
+    - include: roles/discover/tasks/cobbler-clean.yml

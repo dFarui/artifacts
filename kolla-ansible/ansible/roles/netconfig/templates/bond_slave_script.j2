@@ -1,0 +1,6 @@
+{% include 'ifscript_header.j2' %}
+{% if disable_lro is defined and disable_lro %}
+  $PRE_UP || ethtool -K {{ item.1 }} lro off || true
+{% endif %}
+  $PRE_UP || ip addr flush dev {{ item.1 }} || true
+  $POST_UP || ip link set {{ item.1 }} up || true

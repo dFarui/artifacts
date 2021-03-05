@@ -1,0 +1,29 @@
+{
+    "command": "/usr/bin/watchmen-api",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/watchmen-api.conf",
+            "dest": "/etc/watchmen/watchmen-api.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-api-logging.conf",
+            "dest": "/etc/watchmen/watchmen-api-logging.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-producer.conf",
+            "dest": "/etc/watchmen/watchmen-producer.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-extra-whitelist.yml",
+            "dest": "/etc/watchmen/watchmen-extra-whitelist.yml",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+---
+# CA of docker registry
+docker_registry_ca:
+
+docker_install_packages:
+  - docker
+  - python3-docker
+
+docker_override_path: '/etc/systemd/system/docker.service.d'
+
+docker_cgroup_parent: "container.slice"
+
+docker_custom_config: {}
+
+lcm_user: "ceeinfra"
+docker_registry_port: 5500

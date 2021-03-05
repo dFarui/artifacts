@@ -1,0 +1,33 @@
+# already integration H3C cinder , please don`t use this yml, 
+# First time to use
+---
+- include_tasks: register.yml
+  when:
+    - inventory_hostname in groups['cinder-backup']
+    - enable_h3c_storage | bool
+
+- include_tasks: config.yml
+  when:
+    - inventory_hostname in groups['cinder-volume']
+  
+#- include_tasks: prepare_work.yml
+#  when:
+#    - inventory_hostname in groups['h3c-storage']
+#    - enable_h3c_storage | bool
+#
+#- include_tasks: install_cinderplugin.yml
+#  when:
+#    - inventory_hostname in groups['cinder-volume']
+#    - enable_h3c_storage | bool
+#    - enable_cinder_volume | bool
+#
+#- include_tasks: nova_compute_iscsi.yml
+#  when:
+#    - inventory_hostname in groups['nova-compute']
+#    - enable_nova_compute | bool
+#
+#- include_tasks: cic_cinder_backup.yaml
+#  when 
+#    - inventory_hostname in groups['cinder-backup']
+#    - enable_cinder_backup | bool
+

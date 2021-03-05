@@ -1,0 +1,30 @@
+[DEFAULT]
+
+enabled_backends = onestor
+cinder_internal_tenant_project_id = {{ os_project.openstack_projects[0]['id'] }}
+cinder_internal_tenant_user_id = {{ os_user.openstack_users[0]['id'] }}
+
+[onestor]
+backend_host = cinderA
+volume_driver = cinder.volume.drivers.h3c.h3c_onestor.ONEStorISCSIDriver
+onestor_handy_ip = [{{ onestor_block_service_ip }}]
+onestor_username = {{ user }}
+onestor_password = {{ password }}
+onestor_diskpool = {{ onestor_diskpool }}
+onestor_poolname = {{ onestor_poolname }}
+onestor_nodepool = {{ onestor_nodepool }}
+onestor_block_service_ip = [{{ onestor_block_service_ip }}]
+onestor_fusion_deploy = 0
+onestor_ip_addr = [{{ cephA_address }}]
+max_over_subscription_ratio = 1.0
+reserved_percentage = 0
+volume_backend_name = {{ volume_backend_name  }}
+multiattach = True
+onestor_key_file_path = "/etc/cinder/clientkey.pem"
+onestor_cert_file_path = "/etc/cinder/client.pem"
+onestor_ca_certs_path = "/etc/cinder/ca.pem"
+onestor_ssl_two_way_auth = False
+image_volume_cache_enabled = True
+image_volume_cache_max_size_gb = 0
+image_volume_cache_max_count = 0
+

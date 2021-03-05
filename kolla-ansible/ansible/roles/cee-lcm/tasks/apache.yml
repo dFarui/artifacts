@@ -1,0 +1,31 @@
+---
+- name: Create apache configuration for /srv
+  become: yes
+  template:
+    src: ../templates/srv.conf.j2
+    dest: /etc/apache2/conf.d/srv.conf
+
+- name: Create apache configuration for cobbler
+  become: yes
+  template:
+    src: ../templates/cobbler.conf.j2
+    dest: /etc/apache2/conf.d/cobbler.conf
+
+- name: Enable Apache modules
+  become: yes
+  command: "a2enmod {{ item }}"
+  loop:
+  - proxy
+  - proxy_http
+  - version
+  - mode-probe
+  - rewrite
+  - proxy_wstunnel
+  - headers
+
+- name: Enable and restart Apache2 service
+  become: yes
+  service:
+    name=apache2
+    state=restarted
+    enabled=yes

@@ -1,0 +1,6 @@
+---
+- name: Install UMM Package
+  become: yes
+  package:
+    name: cee-umm
+    state: latest

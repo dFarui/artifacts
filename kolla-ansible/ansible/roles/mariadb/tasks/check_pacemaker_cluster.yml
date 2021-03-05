@@ -1,0 +1,29 @@
+---
+- name: Create node name mapping for {{ project_name }} using {{ ansible_play_batch | join(', ') }} node(s)
+  run_once: True
+  delegate_to: "{{ item }}"
+  shell: "docker exec {{ project_name }} crm_node -n"
+  register: resource_node_name_mapping
+  loop: "{{ groups[project_name] }}"
+  failed_when: resource_node_name_mapping.rc | bool
+
+- name: Create resource name mapping for {{ project_name }} using {{ ansible_play_batch | join(', ') }} node(s)
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: get_resource_name
+    parameter:
+      hostname: "{{ item.stdout }}"
+      name: ms_mariadb
+  register: primitive_name
+  loop: "{{ resource_node_name_mapping.results }}"
+
+- name: Check cluster resource component health
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: get_resource_status
+    name: "{{ item.stdout }}"
+  register: primitive_state
+  loop: "{{ resource_node_name_mapping.results }}"
+  failed_when: primitive_state.stdout.find("Started") == -1

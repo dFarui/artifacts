@@ -1,0 +1,44 @@
+---
+- name: "collect kernel managed physical ports"
+  set_fact:
+    available_ports: "{{ available_ports|d([]) + [item.name] }}"
+  with_items: "{{ my_port_mappings }}"
+  when: item.name not in ovs_ports
+
+# lldp only works on pyshical nodes.
+- name: "collect lldp ports"
+  set_fact:
+    portnames: "{{ portnames }},{{ item.name }}"
+    lldp_ports: "{{ lldp_ports + [item] }}"
+  loop: "{{ lldp_enabled_ports }}"
+  when: item.name in available_ports
+
+- name: Remove the leading comma from port list
+  set_fact:
+    portnames: "{{ portnames | regex_replace('^,(.*)$', '\\1') }}"
+
+- name: install lldpd package
+  zypper:
+    name: lldpd
+    state: present
+
+- name: create lldpd configure file
+  become: yes
+  vars:
+    chassisid: "{{ system_serial.stdout }}"
+    interfaces: "{{ portnames }}"
+    ports: "{{ lldp_ports }}"
+  template:
+    src: ../templates/lldpd_conf.j2
+    dest: "{{ configfile }}"
+
+- name: Enable lldpd service
+  systemd:
+    name: lldpd
+    enabled: true
+    masked: false
+
+- name: Start lldpd service
+  systemd:
+    name: lldpd
+    state: started

@@ -1,0 +1,35 @@
+#!/bin/bash
+intf=$(ip addr | grep -v inet6 | awk '/scope global/ { print $NF }')
+cidr=$(ip addr | grep -v inet6 | awk '/scope global/ {print $2}')
+gateway=$(ip route | awk '/default/ {print $3}')
+
+#Check for SLES
+if grep -qsi suse /etc/*-release
+then
+   intf=$(echo ${intf} | cut -d' ' -f1)
+   cidr=$(echo ${cidr} | cut -d' ' -f1)
+
+   cat > /etc/sysconfig/network/ifcfg-${intf} << EOF
+BOOTPROTO='static'
+BROADCAST=''
+ETHTOOL_OPTIONS=''
+IPADDR=${cidr}
+MTU=''
+REMOTE_IPADDR=''
+STARTMODE='auto'
+USERCONTROL='no'
+EOF
+
+elif grep -qsi ubuntu /etc/*-release
+
+   echo source "/etc/network/interfaces.d/*" > /etc/network/interfaces
+   echo auto lo >> /etc/network/interfaces
+   echo iface lo inet loopback >> /etc/network/interfaces
+   echo auto ${intf}  > /etc/network/interfaces.d/${intf}
+   echo iface ${intf} inet static >>  /etc/network/interfaces.d/${intf}
+   echo address ${cidr} >>  /etc/network/interfaces.d/${intf}
+   {% if enable_gateway %}
+   echo gateway ${gateway} >> /etc/network/interfaces.d/${intf}
+   {% endif %}
+
+fi

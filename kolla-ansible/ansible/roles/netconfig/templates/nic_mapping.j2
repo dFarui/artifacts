@@ -1,0 +1,17 @@
+{{ file_marker }}
+#
+{% for nic in my_port_mappings %}
+{% if nic.name is defined %}
+{% if nic.portType is defined and nic.portType == "multi-port" %}
+{% set portNum = nic.port_attributes['portNum'] %}
+#Backward compatiblity for 3 series and 4 series mlx drivers
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/{{nic.busAddress}}/*", ATTR{dev_id}=="0x{{portNum}}", ATTR{dev_port}=="{{portNum}}", NAME="{{nic.name}}"{{run_directive[0]|default('')}}
+{% elif  nic.portType is defined and nic.portType == "single-port" %}
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/{{nic.busAddress}}/*", NAME="{{nic.name}}"{{run_directive[0]|default('')}}
+{% else %}
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/{{nic.busAddress}}/*", NAME="{{nic.name}}"{{run_directive[0]|default('')}}
+{% endif %}
+{% else %}
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/{{nic_mappings[nic]}}/*", NAME="{{nic}}"
+{% endif %}
+{% endfor %}

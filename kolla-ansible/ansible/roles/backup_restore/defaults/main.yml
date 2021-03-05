@@ -1,0 +1,5 @@
+---
+cee_user_name: "ceeinfra"
+cee_group_name: "ceeinfra"
+backup_db_user: "backup_db_user"
+backup_db_schema: "backup_schema"

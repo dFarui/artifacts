@@ -1,0 +1,8 @@
+---
+- name: "Configure haproxy for {{ project_name }}"
+  import_role:
+    role: haproxy-config
+  vars:
+    project_services: "{{ portal_services }}"
+    haproxy_service_template: "{{ portal_haproxy_config_template }}"
+  tags: always

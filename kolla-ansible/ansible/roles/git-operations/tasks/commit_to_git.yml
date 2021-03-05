@@ -1,0 +1,60 @@
+# Get the new source code
+# Parameters:
+#   repo: /var/lib/cee/system/<system_name>
+#   work_dir: ~/
+#   commit_msg: "New drop"
+#   branches:
+#     - name: source
+#       copies:
+#       - from: temp (a directory of contents)
+#         to: .
+---
+
+- name: Clear work directory
+  file:
+    dest: "{{ work_dir }}"
+    state: absent
+
+- name: Create work directory
+  file:
+    dest: "{{ work_dir }}"
+    state: directory
+
+- name: Prep new commit
+  shell: >
+    {% for branch in branches %}
+        rm -rf .work &&
+        if ( cd {{ repo }} && git rev-parse --verify {{ branch.name | quote }} )
+        then
+            git clone -b {{ branch.name | quote }} {{ repo }} .work &&
+            (
+            cd .work &&
+            git rm -rf .
+            )
+        else
+            git clone {{ repo }} .work &&
+            (
+            cd .work &&
+            git checkout --orphan {{ branch.name | quote }} &&
+            git rm -rf --ignore-unmatch .
+            )
+        fi &&
+        (
+        cd .work &&
+        {% for copy in branch.copies %}
+            if [ -e {{ copy.from }} ]; then
+              {% if copy.to | dirname != '' -%}
+                  mkdir -p {{ copy.to | dirname | quote }} &&
+              {%- endif %}
+              cp -a {{ copy.from }}/. {{ copy.to }}
+            fi &&
+        {% endfor %}
+        git add -A &&
+        git commit --allow-empty -m "{{ commit_msg }}" &&
+        git push origin {{ branch.name | quote }}
+        ) &&
+    {% endfor %}
+    rm -rf .work
+  args:
+    warn: false
+    chdir: "{{ work_dir }}"

@@ -1,0 +1,10 @@
+---
+- name: Enable Pacemaker remote port in the firewall for MariaDB
+  firewalld:
+    port: "{{ mariadb_services.mariadb.pacemaker.remote_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when:
+    - enable_firewall is defined and enable_firewall | bool
+    - pacemaker_manage_mariadb is defined and pacemaker_manage_mariadb | bool

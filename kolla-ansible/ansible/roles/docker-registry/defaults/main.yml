@@ -1,0 +1,53 @@
+---
+# Roughly follows kolla-ansible's service deployment patterns.
+# Action to perform. One of 'deploy', 'destroy', 'pull', 'reconfigure',
+# 'upgrade'.
+docker_registry_action: deploy
+
+# Whether a docker registry is enabled.
+docker_registry_enabled: true
+
+# Dict of environment variables to provide to the docker registry container.
+# This allows to configure the registry by overriding specific configuration
+# options, as described at https://docs.docker.com/registry/configuration/
+# For example, the registry can be configured as a pull through cache to Docker
+# Hub by setting REGISTRY_PROXY_REMOTEURL to "https://registry-1.docker.io".
+# Note that it is not possible to push to a registry configured as a
+# pull through cache.
+docker_registry_env: {}
+docker_registry_store: "docker_registry"
+
+# Service deployment definition.
+docker_registry_services:
+  docker_registry:
+    container_name: docker_registry
+    env: "{{ docker_registry_env }}"
+    enabled: "{{ docker_registry_enabled }}"
+    image: "{{ docker_registry_image_full }}"
+    ports:
+      - "{{ docker_registry_port }}:5000"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "{{docker_registry_store}}:/var/lib/registry"
+    labels:
+      service-component: "docker-registry"
+
+# The port on which the docker registry server should listen.
+docker_registry_port: 5500
+
+####################
+# Docker
+####################
+# NOTE: Namespace 'library' causes image task to always be changed and
+# container to never update to new images.
+docker_registry_source: "/opt/cee/source/registry_image.tar.gz"
+docker_registry_image: "{{ docker_registry_namespace ~ '/' if docker_registry_namespace else '' }}registry"
+docker_registry_namespace: "cee"
+docker_registry_image: "{{ docker_registry_namespace ~ '/' if docker_registry_namespace else '' }}registry"
+docker_registry_tag: "2.7.1"
+docker_registry_image_full: "{{ docker_registry_image }}:{{ docker_registry_tag }}"
+docker_registry_insecure: "yes"
+docker_registry_url: "docker-registry.local:{{docker_registry_port}}"
+docker_config: {}
+docker_registry_restart_policy: "unless-stopped"
+#docker_registry_restart_retries:

@@ -1,0 +1,157 @@
+- name: Install mkfs tools
+  become: true
+  package:
+    name: "{{mkfstools}}"
+    state: present
+
+- name: Ensure directory for local fatcs
+  become: true
+  file:
+    path: /etc/ansible/facts.d
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+  tags:
+    - facts
+
+- name: Copy custom facts
+  become: true
+  copy:
+    src: custom_facts/
+    dest: /etc/ansible/facts.d
+    owner: root
+    group: root
+    mode: '0755'
+  tags:
+    - facts
+
+- name: collect local facts
+  become: true
+  setup:
+    gather_subset:
+      - local
+  tags:
+    - facts
+
+- name: Print custom facts
+  become: true
+  debug:
+   var: ansible_local
+  tags:
+    - facts
+
+#- name: filter test
+#  debug:
+#    msg: "{{ my_disk_assignments|get_partitions(ansible_devices,ansible_local.disk_devlinks) }}"
+
+- name: filter test2
+  debug:
+    var: local_disk_config
+
+- name: Umount all mounted devices
+  become: true
+  shell: "umount -R {{installroot}}"
+  register: res
+  failed_when:
+   - res.rc != 0
+   - '"not mounted" not in res.stderr'
+   - '"not found" not in res.stderr'
+
+- name: Remove all LVM VGs
+  become: true
+  shell: "vgremove --force $(vgs -o vg_name --noheadings)"
+  failed_when: false
+
+- name: Remove all LVM PVs
+  become: true
+  shell: "pvremove --force $(pvs -o pv_name --noheadings)"
+  failed_when: false
+
+- name: Fail the play if VGs still exist
+  become: true
+  shell: "[ $(vgs -o vg_name --noheadings | wc -l) -eq 0 ]"
+
+- name: wipe all defined disks
+  become: true
+  loop: "{{ local_disk_config.drives }}"
+  loop_control:
+    loop_var: disk
+  command: dd if=/dev/zero of={{disk.devpath}} bs=1M count=100
+
+- name: WA Restart udevd, kill systemd-udevd
+  become: true
+  shell: |
+    pkill systemd-udevd
+    sleep 2
+  failed_when: false
+
+- name: WA Restart udevd, Start systemd-udevd
+  become: true
+  shell: /usr/lib/systemd/systemd-udevd --daemon
+
+- name: WA Restart udevd, Trigger udev
+  become: true
+  shell: |
+    udevadm trigger --type=subsystems --action=add
+    udevadm trigger --type=devices --action=add
+    udevadm settle --timeout=180
+
+- name: Create special partitions
+  become: true
+  loop: "{{ local_disk_config.partition_list }}"
+  loop_control:
+    loop_var: part
+  parted:
+    state: present
+    name: "{{part.name}}"
+    part_start: "{{part.part_start}}"
+    part_end: "{{part.part_end}}"
+    number: "{{part.number}}"
+    label:  "{{part.label}}"
+    device:  "{{part.device}}"
+    flags: "{%- if part.name == 'efi' -%} boot {%- elif part.name == 'mbr' -%} bios_grub {%- endif -%}"
+  when: part.name == 'efi' or part.name == 'mbr'
+
+- name: Create normal partitions
+  become: true
+  loop: "{{ local_disk_config.partition_list }}"
+  loop_control:
+    loop_var: part
+  parted:
+    state: present
+    name: "{{part.name}}"
+    part_start: "{{part.part_start}}"
+    part_end: "{{part.part_end}}"
+    number: "{{part.number}}"
+    label:  "{{part.label}}"
+    device:  "{{part.device}}"
+  when: not (part.name == 'efi' or part.name == 'mbr')
+
+- name: Create volume groups
+  become: true
+  loop: "{{ local_disk_config.volumeGroups }}"
+  loop_control:
+    loop_var: vg
+  lvg:
+    pvs: "{{vg.pvs}}"
+    vg: "{{vg.name}}"
+
+- name: Create logical volumes
+  become: true
+  loop: "{{ local_disk_config.lv_list }}"
+  loop_control:
+    loop_var: lv
+  lvol:
+    lv: "{{lv.name}}"
+    size: "{{lv.size}}"
+    vg: "{{lv.vg}}"
+
+- name: Set disk flag for legacy boot
+  become: true
+  command: "parted {{bootdisk}} disk_set pmbr_boot on"
+  loop: "{{ local_disk_config.bootable_disks }}"
+  loop_control:
+    loop_var: bootdisk
+  when:
+    - ansible_local.bootmode == 'legacy'

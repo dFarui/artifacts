@@ -1,0 +1,12 @@
+- name: Update /etc/fstab with btrfs subvolumes
+  mount:
+    src: "{{volume.device}}"
+    path: "{{subvol.name}}"
+    fstype: "{{volume.fstype}}"
+    opts: "subvol={{ subvol.name }}"
+    state: present
+  loop: "{{ volume.subvolumes }}"
+  loop_control:
+    loop_var: subvol
+  when:
+  - "'subvolumes' in volume"

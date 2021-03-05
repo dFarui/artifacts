@@ -1,0 +1,18 @@
+#
+# Playbook to integrate with H3C SDN
+# 
+# R1A03
+#
+---
+- name: Apply Generic SDN Configuration
+  gather_facts: false
+  hosts:
+    - neutron-server
+    - neutron-generic-sdn
+#    - '&enable_neutron_True'
+  serial: '{{ kolla_serial|default("0") }}'
+  tags:
+    - neutron-generic-sdn
+  roles:
+    - role: neutron-generic-sdn
+      when: enable_neutron_generic_sdn | bool

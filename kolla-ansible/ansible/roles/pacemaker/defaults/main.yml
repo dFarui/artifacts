@@ -1,0 +1,262 @@
+---
+hostname: "{{ ansible_hostname }}"
+hostname_full: "{{ ansible_nodename }}"
+project_name: "pacemaker"
+corosync_container_name: "corosync"
+
+pacemaker_services:
+  corosync:
+    container_name: "{{ corosync_container_name }}"
+    group: pacemaker
+    enabled: "{{ enable_pacemaker | bool }}"
+    image: "{{ corosync_image_full }}"
+    environment:
+      COROSYNC_LOG_DIR: "{{ corosync_logging_log_dir }}"
+      COROSYNC_LOG_FILE: "{{ corosync_logging_log_file }}"
+    cap_add:
+      - IPC_LOCK  # enables memory page locking, mlockall(2)
+      - SYS_NICE  # enables scheduling priority change, setpriority(2)
+      - SYS_ADMIN # enables scheduling policy change, sched_setscheduler(2)
+    volumes: "{{ corosync_default_volumes + pacemaker_extra_volumes }}"
+    dimensions: "{{ corosync_dimensions }}"
+    ipc_mode: "shareable" # Create sharable IPC namespace
+  pacemaker:
+    container_name: pacemaker
+    group: pacemaker
+    enabled: "{{ enable_pacemaker | bool }}"
+    image: "{{ pacemaker_image_full }}"
+    environment:
+      PCMK_authkey_location: "/etc/pacemaker/authkey"
+      PCMK_debug: "yes"
+      PCMK_logfile: "{{ pacemaker_logfile }}"
+      PACEMAKER_LOG_DIR: "{{ pacemaker_log_dir }}"
+      PACEMAKER_LOG_FILE: "{{ pacemaker_log_file }}"
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+    cap_add:
+      - NET_ADMIN # enables the IP alias (Virtual IP) assignment
+    volumes: "{{ pacemaker_default_volumes + pacemaker_extra_volumes }}"
+    dimensions: "{{ pacemaker_dimensions }}"
+    ipc_mode: "container:{{ corosync_container_name }}" # Use corosync's IPC namespace
+
+####################
+# Docker
+####################
+corosync_install_type: "{{ kolla_install_type }}"
+corosync_tag: "{{ openstack_release }}"
+corosync_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ corosync_install_type }}-hacluster-corosync"
+corosync_image_full: "{{ corosync_image }}:{{ corosync_tag }}"
+corosync_dimensions: "{{ default_container_dimensions }}"
+
+corosync_default_volumes:
+  - "{{ node_config_directory }}/corosync/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "corosync:/var/lib/corosync/"
+  - "kolla_logs:/var/log/kolla/"
+corosync_extra_volumes: "{{ default_extra_volumes }}"
+
+pacemaker_install_type: "{{ kolla_install_type }}"
+pacemaker_tag: "{{ openstack_release }}"
+pacemaker_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ pacemaker_install_type }}-hacluster-pacemaker"
+pacemaker_image_full: "{{ pacemaker_image }}:{{ pacemaker_tag }}"
+pacemaker_dimensions: "{{ default_container_dimensions }}"
+
+pacemaker_default_volumes:
+  - "{{ node_config_directory }}/pacemaker/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "pacemaker:/var/lib/pacemaker/"
+  - "kolla_logs:/var/log/kolla/"
+  - "/lib/modules:/lib/modules"
+  - "/var/run/docker.sock:/var/run/docker.sock" # ocf:heartbeat:Docker relies on docker CLI commands
+pacemaker_extra_volumes: "{{ default_extra_volumes }}"
+pacemaker_authkey_location: "{{ node_config_directory }}/pacemaker/authkey"
+pacemaker_log_dir: "/var/log/kolla/pacemaker"
+pacemaker_log_file: "pacemaker.log"
+pacemaker_logfile: "{{ pacemaker_log_dir }}/{{ pacemaker_log_file }}"
+
+#######################
+# Cluster configuration
+#######################
+corosync_totem_version: 2
+corosync_totem_ip_version: "{{ address_family | default('ipv4') }}"
+corosync_totem_token: 3000
+corosync_totem_token_retransmits_before_loss_const: 10
+corosync_totem_join: 50
+corosync_totem_vsftype: "none"
+corosync_totem_max_messages: 17
+corosync_totem_clear_node_high_bit: "yes"
+corosync_totem_rrp_mode: "none"
+corosync_totem_secauth: "off"
+corosync_totem_threads: 28
+corosync_totem_transport: "udpu"
+corosync_totem_interfaces: "{{ corosync_totem_interfaces_ring0 }}"
+corosync_totem_interfaces_ring0:
+ "0":
+   mcastport: "{{ corosync_totem_interfaces_ring0_mcastport }}"
+   interface: "{{ corosync_totem_interfaces_ring0_interface }}"
+corosync_totem_interfaces_ring0_interface: "{{ network_interface }}"
+corosync_totem_interfaces_ring0_mcastport: 5405
+corosync_logging_fileline: "off"
+corosync_logging_to_stderr: "yes"
+corosync_logging_to_logfile: "yes"
+corosync_logging_log_dir: "/var/log/kolla/corosync"
+corosync_logging_log_file: "corosync.log"
+corosync_logging_logfile: "{{ corosync_logging_log_dir }}/{{ corosync_logging_log_file }}"
+corosync_logging_to_syslog: "yes"
+corosync_logging_syslog_facility: "daemon"
+corosync_logging_syslog_priority: "info"
+corosync_logging_function_name: "on"
+corosync_logging_debug: "off"
+corosync_logging_timestamp: "on"
+corosync_logging_logger_subsys_subsys: "AMF"
+corosync_logging_logger_subsys_debug: "off"
+corosync_logging_logger_subsys_tags: "enter|leave|trace1|trace2|trace3|trace4|trace6"
+corosync_amf_mode: "disabled"
+corosync_aisexec_user: "root"
+corosync_aisexec_group: "root"
+corosync_quorum_provider: "corosync_votequorum"
+
+corosync:
+  totem:
+    version: "{{ corosync_totem_version }}"
+    ip_version: "{{ corosync_totem_ip_version }}"
+    token: "{{ corosync_totem_token }}"
+    token_retransmits_before_loss_const: "{{ corosync_totem_token_retransmits_before_loss_const }}"
+    join: "{{ corosync_totem_join }}"
+    vsftype: "{{ corosync_totem_vsftype }}"
+    max_messages: "{{ corosync_totem_max_messages }}"
+    clear_node_high_bit: "{{ corosync_totem_clear_node_high_bit }}"
+    rrp_mode: "{{ corosync_totem_rrp_mode }}"
+    secauth: "{{ corosync_totem_secauth }}"
+    threads: "{{ corosync_totem_threads }}"
+    transport: "{{ corosync_totem_transport }}"
+    interfaces: "{{ corosync_totem_interfaces }}"
+  logging:
+    fileline: "{{ corosync_logging_fileline }}"
+    to_stderr:  "{{ corosync_logging_to_stderr }}"
+    to_logfile: "{{ corosync_logging_to_logfile }}"
+    logfile: "{{ corosync_logging_logfile }}"
+    to_syslog: "{{ corosync_logging_to_syslog }}"
+    syslog_facility: "{{ corosync_logging_syslog_facility }}"
+    syslog_priority: "{{ corosync_logging_syslog_priority }}"
+    function_name: "{{ corosync_logging_function_name }}"
+    debug: "{{ corosync_logging_debug }}"
+    timestamp: "{{ corosync_logging_timestamp }}"
+    logger_subsys:
+      subsys: "{{ corosync_logging_logger_subsys_subsys }}"
+      debug: "{{ corosync_logging_logger_subsys_debug }}"
+      tags: "{{ corosync_logging_logger_subsys_tags }}"
+  amf:
+    mode: "{{ corosync_amf_mode }}"
+  aisexec:
+    user: "{{ corosync_aisexec_user }}"
+    group: "{{ corosync_aisexec_group }}"
+  quorum:
+    provider: "{{ corosync_quorum_provider }}"
+
+pacemaker_cluster_property_cluster_name: "cloud-infra"
+pacemaker_cluster_property_stonith_enabled: "false"
+pacemaker_cluster_property_symmetric_cluster: "false"
+pacemaker_cluster_property_no_quorum_policy: "stop"
+pacemaker_cluster_property_start_failure_is_fatal: "false"
+pacemaker_cluster_property_cluster_recheck_interval: "190s"
+
+pacemaker:
+  cluster:
+    property:
+      cluster-name: "{{ pacemaker_cluster_property_cluster_name }}"
+      stonith-enabled: "{{ pacemaker_cluster_property_stonith_enabled }}"
+      symmetric-cluster: "{{ pacemaker_cluster_property_symmetric_cluster }}"
+      no-quorum-policy: "{{ pacemaker_cluster_property_no_quorum_policy }}"
+      start-failure-is-fatal: "{{ pacemaker_cluster_property_start_failure_is_fatal }}"
+      cluster-recheck-interval: "{{ pacemaker_cluster_property_cluster_recheck_interval }}"
+
+###################
+# Virtual IP
+###################
+pacemaker_enable_vip_management: "yes"
+pacemaker_enable_vip_public: "{{ haproxy_enable_external_vip }}"
+pacemaker_vip_management_ip: "{{ kolla_internal_vip_address }}"
+pacemaker_vip_management_subnet: "{{ kolla_internal_vip_address_mask | default(24) }}"
+pacemaker_vip_management_nic: "{{ api_interface }}"
+pacemaker_vip_management_monitor_interval: "5s"
+pacemaker_vip_management_failure_timeout: "60"
+pacemaker_vip_management_migration_threshold: "3"
+pacemaker_vip_management_resource_stickiness: "1"
+pacemaker_vip_management_target_role: "Started"
+pacemaker_vip_public_ip: "{{ kolla_external_vip_address }}"
+pacemaker_vip_public_subnet: "{{ kolla_external_vip_address_mask | default(27) }}"
+pacemaker_vip_public_nic: "{{ kolla_external_vip_interface }}"
+pacemaker_vip_public_monitor_interval: "5s"
+pacemaker_vip_public_failure_timeout: "60"
+pacemaker_vip_public_migration_threshold: "3"
+pacemaker_vip_public_resource_stickiness: "1"
+pacemaker_vip_public_target_role: "Started"
+
+virtual_ip:
+  vip_management:
+    ip: "{{ pacemaker_vip_management_ip }}"
+    cidr: "{{ pacemaker_vip_management_subnet }}"
+    nic: "{{ pacemaker_vip_management_nic }}"
+    enable: "{{ pacemaker_enable_vip_management | bool }}"
+    operation:
+      monitor:
+        interval: "{{ pacemaker_vip_management_monitor_interval }}"
+    meta:
+      failure-timeout: "{{ pacemaker_vip_management_failure_timeout }}"
+      migration-threshold: "{{ pacemaker_vip_management_migration_threshold }}"
+      resource-stickiness: "{{ pacemaker_vip_management_resource_stickiness }}"
+      target-role: "{{ pacemaker_vip_management_target_role }}"
+  vip_public:
+    ip: "{{ pacemaker_vip_public_ip }}"
+    cidr: "{{ pacemaker_vip_public_subnet }}"
+    nic: "{{ pacemaker_vip_public_nic }}"
+    enable: "{{ pacemaker_enable_vip_public | bool }}"
+    operation:
+      monitor:
+        interval: "{{ pacemaker_vip_public_monitor_interval }}"
+    meta:
+      failure-timeout: "{{ pacemaker_vip_public_failure_timeout }}"
+      migration-threshold: "{{ pacemaker_vip_public_migration_threshold }}"
+      resource-stickiness: "{{ pacemaker_vip_public_resource_stickiness }}"
+      target-role: "{{ pacemaker_vip_public_target_role }}"
+
+haproxy_health_enabled: True
+haproxy_health_resource_name: "haproxy-health"
+haproxy_health_resource_parameter_container: "haproxy"
+haproxy_health_resource_parameter_stat_socket_location: >-
+  /var/lib/kolla/haproxy/haproxy.sock
+haproxy_health_resource_parameter_attribute_name: "haproxy-healthy"
+haproxy_health_resource_parameter_attribute_value: "true"
+haproxy_health_resource_parameter_container_check_timeout: "2.0"
+haproxy_health_resource_parameter_uptime_check_timeout: "2.0"
+haproxy_health_resource_parameter_uptime_minimum: "3"
+haproxy_health_resource_operation_monitor_interval: "10s"
+haproxy_health_resource_operation_monitor_timeout: "5s"
+haproxy_health_resource_meta_failure_timeout: "60s"
+
+
+#########################
+# HAProxy health reporter
+#########################
+haproxy_health:
+  enabled: "{{ haproxy_health_enabled }}"
+  resource:
+    name: "{{ haproxy_health_resource_name }}"
+    parameter:
+      container: "{{ haproxy_health_resource_parameter_container }}"
+      stat_socket_location: >-
+        {{ haproxy_health_resource_parameter_stat_socket_location }}
+      attribute_name: "{{ haproxy_health_resource_parameter_attribute_name }}"
+      attribute_value: >-
+        {{ haproxy_health_resource_parameter_attribute_value }}
+      container_check_timeout: >-
+        {{ haproxy_health_resource_parameter_container_check_timeout }}
+      uptime_check_timeout: >-
+        {{ haproxy_health_resource_parameter_uptime_check_timeout }}
+      uptime_minimum: "{{ haproxy_health_resource_parameter_uptime_minimum }}"
+    operation:
+      monitor:
+        interval: "{{ haproxy_health_resource_operation_monitor_interval }}"
+        timeout: "{{ haproxy_health_resource_operation_monitor_timeout }}"
+    meta:
+      failure-timeout: "{{ haproxy_health_resource_meta_failure_timeout }}"

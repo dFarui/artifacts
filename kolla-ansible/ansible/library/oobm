@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+#
+# An Ansible module to allow playbooks to communicate with
+# remote devices using OOBM(SDI, BSP, DELL-iDRAC, HP-iLO, HP-OA, VIRSH).
+#
+
+import logging
+import io
+import importlib
+import time
+from ansible.module_utils.basic import AnsibleModule
+from oobm_tools.hardware.oobm import known_oobms
+
+_LOG = logging.getLogger(__name__)
+collected_logs = io.StringIO()
+log_collector_handler = logging.StreamHandler(collected_logs)
+logging_formatter = \
+    logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+log_collector_handler.setFormatter(logging_formatter)
+_LOG.addHandler(log_collector_handler)
+_LOG.setLevel(logging.DEBUG)
+
+
+ANSIBLE_METADATA = {'metadata_version': '1.1',
+                    'status': ['stableinterface']}
+
+
+DOCUMENTATION = '''
+---
+module: oobm
+author: no-reply@ericsson.com
+short_description: Issue OOBM commands to network targets
+description:
+    - Issue power commands to BSP, DELL-iDRAC, HP-iLO, HP-OA and SDI systems.
+    - Get MAC address for the systems.
+    - Issue commands to set the boot device (pxe or hdd).
+    - The credentials and network addresses are to be specified in the YAML
+      file.
+options:
+    name:
+        required: true
+        description:
+            - Name of the node to manage.
+    retry_interval:
+        required: false
+        default: 5
+        description:
+            - Interval in seconds between retries.
+    retry_max:
+        required: false
+        default: 12
+        description:
+            - Max number of retries.
+    power:
+        required: false
+        description:
+            - The power command to be sent to the target.
+        choices: [ "on", "off", "status" ]
+    bootdev:
+        required: false
+        description:
+            - A bootdev command to be sent to the target.
+            - For example to boot from PXE first, disk first, etc.
+        choices: [ "pxe", "hdd" ]
+    options:
+        required: false
+        description:
+            - Options for the bootdev command.
+    getmac:
+        required: false
+        description:
+            - Returns the MAC address of control0|control1 interfaces of a
+              given system.
+    setmac:
+        required: false
+        description:
+            - Sets the MAC address of control0 interfaces of a given system.
+            - NB! Intended use case is infra VMs PXE booting over IPv6
+    oobm_type:
+        required: false
+        description:
+            - Enforce using this OOBM method.
+        choices: [ "sdi", "bsp", "oa", "ilo",
+                   "idrac", "ipmi", "virsh",
+                   "h3c", "ibmc", "irmc" ]
+    return_logs:
+        required: false
+        default: false
+        description:
+            - Include the driver logs in the result.
+        type: bool
+'''
+
+EXAMPLES = '''
+'''
+
+RETURN = '''
+msg:
+    description: The reason in case of failure
+    type: str
+    returned: in case of failure
+mac:
+    description: List of MAC addresses as strings
+    type: list
+    returned: when using getmac=True
+stdout:
+    description: Trials of power state change, if many
+    type: str
+    returned: when using power=on/off/status
+power:
+    description: The power state of the  target host
+    type: str
+    returned: when using power=on/off/status
+changed:
+    description: True/False depending on any change has been done on the target
+    type: str
+    returned: when using bootdev=<dev> or power=on/off
+bootdev:
+    description: The selected bootdev
+    type: str
+    returned: when using bootdev=<dev>
+logs:
+    description: The module and the drivers' collected log output
+    type: str
+    returned: when return_logs=True
+'''
+
+# Load the local module
+# import imp
+# TODO
+# omegaencrypt = imp.load_source('oemgaencrypt', './omegaencrypt.py')
+
+# openssl_prefix = omegaencrypt.openssl.prefix
+# legacy_prefix = omegaencrypt.openssl.legacy_prefix
+
+# def decrypt(value):
+#     prefix = None
+#     if value.startswith(openssl_prefix):
+#         decrypter = omegaencrypt.openssl
+#         prefix = openssl_prefix
+#     elif value.startswith(legacy_prefix):
+#         decrypter = omegaencrypt.openssl
+#         prefix = legacy_prefix
+#     else:
+#         return value
+#     obj = decrypter()
+#     return obj.decrypt(value[len(prefix):])
+
+
+class Oobm(object):
+    DRIVERS = {
+        'sdi': {
+            'module': 'oobm_tools.hardware.oobm.sdi_driver',
+            'extra_loggers': [],
+        },
+        'bsp': {
+            'module': 'oobm_tools.hardware.oobm.bsp_driver',
+            'extra_loggers': [],
+        },
+        'oa': {
+            'module': 'oobm_tools.hardware.oobm.oa_driver',
+            'extra_loggers': [],
+        },
+        'ilo': {
+            'module': 'oobm_tools.hardware.oobm.ilo_driver',
+            'extra_loggers': [],
+        },
+        'idrac': {
+            'module': 'oobm_tools.hardware.oobm.idrac_driver',
+            'extra_loggers': [],
+        },
+        'irmc': {
+            'module': 'oobm_tools.hardware.oobm.irmc_driver',
+            'extra_loggers': [],
+        },
+        'h3c': {
+            'module': 'oobm_tools.hardware.oobm.h3c_driver',
+            'extra_loggers': [],
+        },
+        'ibmc': {
+            'module': 'oobm_tools.hardware.oobm.ibmc_driver',
+            'extra_loggers': [],
+        },
+        'ipmi': {
+            'module': 'oobm_tools.hardware.oobm.ipmi_driver',
+            'extra_loggers': [],
+        },
+        'virsh': {
+            'module': 'oobm_tools.hardware.oobm.virsh_driver',
+            'extra_loggers': ['paramiko'],
+        },
+    }
+
+    def __init__(self, module):
+        self.module = module
+        self.target = None
+
+        try:
+            self.bootdev = module.params["bootdev"]
+            self.power = module.params["power"]
+            self.retry_interval = int(module.params["retry_interval"])
+            self.retry_max = int(module.params["retry_max"])
+            self.retries = int(module.params["retries"])
+            self.delay = int(module.params["delay"])
+            self.return_logs = module.params['return_logs']
+
+            self.args = module.params['oobm_args']
+            self.oobm_type = self.args['oobmType']
+            secs = module.params["sleep"]
+            self.getmac = module.params["getmac"]
+            self.setmac = module.params["setmac"]
+            if not secs:
+                self.sleep = None
+            elif secs[-1] == "m":
+                self.sleep = 60.0 * float(secs[:-1])
+            elif secs[-1] == "s":
+                self.sleep = float(secs[:-1])
+            else:
+                self.sleep = float(secs)
+            self.driver = self.load_driver()
+        except ValueError as e:
+            self.fail(msg="oobm: " + str(e))
+
+    def fail(self, **kwargs):
+        if self.return_logs:
+            kwargs.update(logs=collected_logs.getvalue())
+        return self.module.fail_json(**kwargs)
+
+    def succeed(self, **kwargs):
+        if self.sleep:
+            time.sleep(self.sleep)
+        if self.return_logs:
+            kwargs.update(logs=collected_logs.getvalue())
+        return self.module.exit_json(**kwargs)
+
+    def load_driver(self):
+        driver_module_name = self.DRIVERS[self.oobm_type]['module']
+        try:
+            self.driver_module = importlib.import_module(driver_module_name)
+        except ImportError:
+            self.fail(msg=("oobm: failed to load %s "
+                           "that would implement driver for %s") % (
+                               self.DRIVER[self.oobm_type],
+                               self.oobm_type))
+        driver_extra_loggers = self.DRIVERS[self.oobm_type]['extra_loggers']
+        for module in [driver_module_name] + driver_extra_loggers:
+            logger = logging.getLogger(module)
+            logger.addHandler(log_collector_handler)
+            logger.setLevel(logging.DEBUG)
+
+        if self.oobm_type == "sdi":
+            self.id = self.args['oobmExtra']['uuid']
+            pci_addrs = self.args['oobmExtra']['bootPci']
+            cert_verify = self.args['oobmExtra'].get('certVerify', False)
+            ip = self.args['oobmAddress']
+            username = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            driver = self.driver_module.get_driver(ip,
+                                                   username,
+                                                   password,
+                                                   cert_verify=cert_verify,
+                                                   pci_addrs=pci_addrs)
+        elif self.oobm_type == "bsp":
+            self.blade_id = self.args['oobmExtra']['bladeId']
+            shelf_id = self.args['oobmExtra']['shelfId']
+            lct_ip = self.args['oobmExtra']['lctIp']
+            bsp_tenant = self.args['oobmExtra']['bspTenant']
+            mgmnt_ip = self.args['oobmAddress']
+            username = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            # XXXqabcssa, the number of blades present can be passed to the BSP
+            #             driver. It should only be used for optimization
+            #             reasons so we leave it out, at least for now
+            driver = self.driver_module.get_driver(mgmnt_ip,
+                                                   lct_ip,
+                                                   bsp_tenant,
+                                                   username,
+                                                   password,
+                                                   shelf_id)
+        elif self.oobm_type == "oa":
+            self.blade_id = self.args['oobmExtra']['bladeId']
+            oa_ip = self.args['oobmAddress']
+            username = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            driver = self.driver_module.get_driver(oa_ip,
+                                                   username,
+                                                   password)
+        elif self.oobm_type in ['ilo', 'idrac']:
+            ip = self.args['oobmAddress']
+            username = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            interfaces = self.args['oobmExtra']['deviceNames']
+            driver = self.driver_module.get_driver(ip,
+                                                   username,
+                                                   password,
+                                                   interfaces=interfaces)
+        elif self.oobm_type in ['h3c', 'ibmc', 'irmc']:
+            pci_addrs = self.args['oobmExtra']['bootPci']
+            ip = self.args['oobmAddress']
+            username = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            driver = self.driver_module.get_driver(ip,
+                                                   username,
+                                                   password,
+                                                   pci_addrs=pci_addrs)
+        elif self.oobm_type == "ipmi":
+            ipmi_ip = self.args['oobmAddress']
+            ipmi_user = self.args['oobmUser']
+            ipmi_password = self.args['oobmPassword']
+            macs = []
+            port = None
+            if self.args.get('oobmExtra'):
+                mac0 = self.args['oobmExtra'].get('control0')
+                mac1 = self.args['oobmExtra'].get('control1')
+                if mac0:
+                    macs.append(mac0)
+                if mac1:
+                    macs.append(mac1)
+                port = self.args['oobmExtra'].get('port', None)
+
+            driver = self.driver_module.get_driver(ipmi_ip,
+                                                   ipmi_user,
+                                                   ipmi_password,
+                                                   port=port,
+                                                   macs=macs)
+        elif self.oobm_type == "virsh":
+            self.node = self.args['oobmExtra']['vmName']
+            ip_address = self.args['oobmAddress']
+            user = self.args['oobmUser']
+            password = self.args['oobmPassword']
+            pci_addrs = self.args['oobmExtra']['bootPci']
+            mac_index = self.args.get('oobmMACIndex')
+            driver = self.driver_module.get_driver(ip_address,
+                                                   user,
+                                                   password,
+                                                   use_ssh_key=True,
+                                                   sudo_needed=True,
+                                                   pci_addrs=pci_addrs,
+                                                   mac_index=mac_index)
+        else:
+            self.fail(msg="oobm: unsupported oobm_type: %s" % self.oobm_type)
+        return driver
+
+    def action_getmac(self):
+        if self.oobm_type == 'sdi':
+            mac = self.driver.get_mac_addresses(self.id)
+        elif self.oobm_type in ['idrac', 'ilo', 'ipmi', 'h3c', 'ibmc', 'irmc']:
+            mac = self.driver.get_mac_addresses()
+        elif self.oobm_type in ['bsp', 'oa']:
+            mac = self.driver.get_mac_addresses(self.blade_id)
+        elif self.oobm_type == 'virsh':
+            mac = self.driver.get_mac_addresses(self.node)
+
+        result = dict(mac=mac)
+        self.succeed(**result)
+
+    def action_setmac(self):
+        result = dict(changed=False)
+        if self.oobm_type == "virsh":
+            self.driver.set_mac_address(self.node)
+            result = dict(changed=True)
+
+        self.succeed(**result)
+
+    def action_power(self, action):
+        desired = action.strip().lower()
+        out = ""
+        if desired == "status":
+            if self.oobm_type == 'sdi':
+                state = self.driver.get_power_state(self.id)
+            elif self.oobm_type in ['idrac',
+                                    'ilo',
+                                    'ipmi',
+                                    'h3c',
+                                    'ibmc',
+                                    'irmc']:
+                state = self.driver.get_power_state()
+            elif self.oobm_type in ['bsp', 'oa']:
+                state = self.driver.get_power_state(self.blade_id)
+            elif self.oobm_type == 'virsh':
+                state = self.driver.get_power_state(self.node)
+        else:
+            if self.oobm_type == 'sdi':
+                self.driver.set_power_state(desired, [self.id])
+            elif self.oobm_type in ['idrac',
+                                    'ilo',
+                                    'ipmi',
+                                    'h3c',
+                                    'ibmc',
+                                    'irmc']:
+                self.driver.set_power_state(desired)
+            elif self.oobm_type in ['bsp', 'oa']:
+                self.driver.set_power_state(desired, [self.blade_id])
+            elif self.oobm_type == "virsh":
+                self.driver.set_power_state(desired, [self.node])
+            state = desired
+        result = dict(stdout=out, power=state, changed=True)
+        self.succeed(**result)
+
+    def action_bootdev(self, action):
+        BOOTSRC = {
+            'sdi':   {'pxe': ['Pxe'], 'hdd': ['Hdd']},
+            'idrac': {'pxe': ['Pxe'], 'hdd': ['Hdd']},
+            'irmc':  {'pxe': ['Pxe'], 'hdd': ['Hdd']},
+            'ibmc':  {'pxe': ['Pxe'], 'hdd': ['Hdd']},
+            'oa':    {'pxe': ['pxe'], 'hdd': ['hdd', 'pxe']},
+            'bsp':   {'pxe': ['pxe'], 'hdd': ['hdd']},
+            'ipmi':  {'pxe': ['pxe'], 'hdd': ['disk']},
+            'h3c':   {'pxe': ['pxe'], 'hdd': ['disk']},
+            'ilo':   {'pxe': ['Pxe', 'Hdd'], 'hdd': ['Hdd', 'Pxe']},
+            'virsh': {'pxe': ['network'], 'hdd': ['hd']},
+        }
+        source = BOOTSRC[self.oobm_type][action]
+        if self.oobm_type == 'sdi':
+            self.driver.set_bootorder(source, [self.id])
+        elif self.oobm_type in ['idrac', 'ilo', 'ipmi', 'h3c', 'ibmc', 'irmc']:
+            self.driver.set_bootorder(source)
+        elif self.oobm_type in ['bsp', 'oa']:
+            self.driver.set_bootorder(source, [self.blade_id])
+        elif self.oobm_type == 'virsh':
+            self.driver.set_bootorder(source, [self.node])
+
+        result = dict(bootdev=action, changed=True)
+        self.succeed(**result)
+
+    def execute(self):
+        try:
+            action = self.bootdev
+            if action:
+                return self.action_bootdev(action)
+
+            action = self.power
+            if action:
+                return self.action_power(action)
+
+            action = self.getmac
+            if action:
+                return self.action_getmac()
+
+            action = self.setmac
+            if action:
+                return self.action_setmac()
+
+            self.fail(msg="usage: oobm oobm_args=<dict> <action>")
+        except Exception as e:
+            self.fail(msg="oobm: " + str(e))
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            bootdev=dict(required=False, type='str', default=None),
+            power=dict(required=False, type='str', default=None),
+            getmac=dict(required=False, type='bool', default=False),
+            setmac=dict(required=False, type='bool', default=False),
+            sleep=dict(required=False, type='str', default=None),
+            retry_interval=dict(required=False, type='int', default=5),
+            retry_max=dict(required=False, type='int', default=12),
+            retries=dict(required=False, type='int', default=0),
+            delay=dict(required=False, type='int', default=0),
+            return_logs=dict(required=False, type='bool', default=False),
+            oobm_args=dict(
+                required=True,
+                type='dict',
+                options=dict(
+                    oobmType=dict(
+                        required=True,
+                        type='str',
+                        choices=known_oobms,
+                    ),
+                    oobmAddress=dict(required=True, type='str'),
+                    oobmUser=dict(required=True, type='str'),
+                    oobmPassword=dict(required=True, type='str'),
+                    oobmExtra=dict(required=False, type='dict'),
+                    manager=dict(required=False, type='str'),
+                    oobmMACIndex=dict(required=False, type='str'),
+                )
+            )
+        )
+    )
+
+    oobm = Oobm(module)
+    return oobm.execute()
+
+
+main()

@@ -1,0 +1,19 @@
+# ------------------------------------------------- #
+# Configuration file for the Watchmen Producer API. #
+# ------------------------------------------------- #
+
+[DEFAULT]
+
+# The AMQP server name for Target
+messaging_server_name=server1
+
+# The AMQP topic name for Target
+messaging_topic_name=watchmen
+
+# Region name
+region_name={{ system_name }}
+
+# The RabbitMQ transport URL
+transport_url={{ watchmen_rabbitmq_transport_url }}
+
+{% include 'rabbitmq_tls.conf.j2' %}

@@ -1,0 +1,140 @@
+---
+hostname_full: "{{ ansible_nodename }}"
+project_name: "rabbitmq"
+
+rabbitmq_services:
+  rabbitmq:
+    container_name: "{{ project_name }}"
+    group: "{{ role_rabbitmq_groups }}"
+    enabled: true
+    image: "{{ rabbitmq_image_full }}"
+    hostname_prefix: "rabbit@"
+    bootstrap_environment:
+      KOLLA_BOOTSTRAP:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      RABBITMQ_CLUSTER_COOKIE: "{{ role_rabbitmq_cluster_cookie }}"
+      RABBITMQ_LOG_DIR: "/var/log/kolla/{{ project_name }}"
+    environment:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      RABBITMQ_CLUSTER_COOKIE: "{{ role_rabbitmq_cluster_cookie }}"
+      RABBITMQ_LOG_DIR: "/var/log/kolla/{{ project_name }}"
+    volumes: "{{ rabbitmq_default_volumes + rabbitmq_extra_volumes }}"
+    dimensions: "{{ rabbitmq_dimensions }}"
+    configuration:
+      listeners:
+        tcp: "{{ rabbitmq_listeners_tcp }}"
+        ssl: "{{ rabbitmq_listeners_tls }}"
+      ssl_options:
+        cacertfile: "{{ rabbitmq_tls_cacertfile }}"
+        certfile: "{{ rabbitmq_tls_certfile }}"
+        keyfile: "{{ rabbitmq_tls_keyfile }}"
+        password: "{{ rabbitmq_tls_password }}"
+        verify: "{{ rabbitmq_tls_verify }}"
+        fail_if_no_peer_cert: "{{ rabbitmq_tls_fail_if_no_peer_cert }}"
+        honor_cipher_order: "{{ rabbitmq_tls_honor_cipher_order }}"
+        honor_ecc_order: "{{ rabbitmq_tls_honor_ecc_order }}"
+        client_renegotiation: "{{ rabbitmq_tls_client_renegotiation }}"
+        secure_renegotiate: "{{ rabbitmq_tls_secure_renegotiate }}"
+        versions: "{{ rabbitmq_tls_versions }}"
+        ciphers: "{{ rabbitmq_tls_ciphers }}"
+      hipe_compile: "{{ 'true' if rabbitmq_hipe_compile | bool else None }}"
+      cluster_partition_handling: "{{ rabbitmq_cluster_partition_handling }}"
+    pacemaker:
+      remote_port: 3133
+      logfile: "/var/log/kolla/rabbitmq/pacemaker.log"
+      resource_name: "p_{{ project_name }}"
+      resource:
+        container:
+          operation:
+            monitor:
+              interval: "5s"
+              timeout: "10s"
+            start:
+              timeout: "60s"
+            stop:
+              timeout: "60s"
+          meta: {}
+        rabbitmq:
+          operation:
+            monitor:
+              - role: "Master"
+                interval: "20s"
+                timeout: "180s"
+              - interval: "30s"
+                timeout: "180s"
+            start:
+              timeout: "180s"
+            stop:
+              timeout: "120s"
+            promote:
+              timeout: "120s"
+          meta:
+            notify: "true"
+
+####################
+# HAProxy
+####################
+haproxy_outward_rabbitmq_client_timeout: "1h"
+haproxy_outward_rabbitmq_server_timeout: "1h"
+
+
+####################
+# Docker
+####################
+rabbitmq_install_type: "{{ kolla_install_type }}"
+rabbitmq_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ rabbitmq_install_type }}-rabbitmq"
+rabbitmq_tag: "{{ openstack_release }}"
+rabbitmq_image_full: "{{ rabbitmq_image }}:{{ rabbitmq_tag }}"
+rabbitmq_dimensions: "{{ default_container_dimensions }}"
+
+rabbitmq_volume_path: "{{ volume_path_info.rabbitmq | default(project_name) }}"
+rabbitmq_default_volumes:
+  - "{{ node_config_directory }}/{{ project_name }}/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "{{ rabbitmq_volume_path }}:/var/lib/rabbitmq/"
+  - "kolla_logs:/var/log/kolla/"
+  - "{{ rabbitmq_pacemaker_authkey_source ~ ':' ~ rabbitmq_pacemaker_authkey_destination ~ ':ro'}}"
+
+rabbitmq_extra_volumes: "{{ default_extra_volumes }}"
+
+####################
+# Message-Broker
+####################
+rabbitmq_user: "openstack"
+rabbitmq_cluster_name: "openstack"
+rabbitmq_hostname: "{{ hostname }}"
+rabbitmq_pid_file: "/var/lib/rabbitmq/mnesia/rabbitmq.pid"
+rabbitmq_server_additional_erl_args: ""
+rabbitmq_listeners:
+  - "{{ api_interface_address }}:{{ role_rabbitmq_port | default(rabbitmq_port) }}"
+rabbitmq_cluster_partition_handling: "pause_minority"
+rabbitmq_listeners_tcp: "{{ rabbitmq_listeners if not rabbitmq_tls_enable | default | bool else 'none' }}"
+rabbitmq_listeners_tls: "{{ rabbitmq_listeners if rabbitmq_tls_enable | default | bool else None }}"
+rabbitmq_tls_cacertfile: "{{ ca_file if rabbitmq_tls_enable | default | bool else '' }}"
+rabbitmq_tls_certfile_name: "rabbitmq.pem"
+rabbitmq_tls_keyfile_name: "{{ rabbitmq_tls_certfile_name }}"
+rabbitmq_tls_certfile: "/etc/{{ project_name }}/{{ rabbitmq_tls_certfile_name }}"
+rabbitmq_tls_keyfile: "/etc/{{ project_name }}/{{ rabbitmq_tls_keyfile_name }}"
+rabbitmq_tls_files:
+  - "{{ rabbitmq_tls_keyfile }}"
+  - "{{ rabbitmq_tls_certfile }}"
+rabbitmq_tls_password: null
+rabbitmq_tls_verify: "verify_peer"
+# Clients don't have certificates configured as of yet
+rabbitmq_tls_fail_if_no_peer_cert: "false"
+rabbitmq_tls_honor_cipher_order: "true"
+rabbitmq_tls_honor_ecc_order: "true"
+rabbitmq_tls_client_renegotiation: "false"
+rabbitmq_tls_secure_renegotiate: "true"
+# https://www.rabbitmq.com/ssl.html#tls-versions
+rabbitmq_tls_versions:
+  - "tlsv1.2"
+# https://www.rabbitmq.com/ssl.html#available-cipher-suites
+rabbitmq_tls_ciphers:
+  - "ECDHE-ECDSA-AES256-GCM-SHA384"
+  - "ECDHE-RSA-AES256-GCM-SHA384"
+  - "ECDHE-ECDSA-AES128-GCM-SHA256"
+  - "ECDHE-RSA-AES128-GCM-SHA256"
+rabbitmq_pacemaker_authkey_source: "/etc/kolla/pacemaker/authkey"
+rabbitmq_pacemaker_authkey_destination: "/etc/pacemaker/authkey"
+rabbitmq_log_level: "info"

@@ -1,0 +1,10 @@
+---
+- name: "Configure {{ project_name }} RabbitMQ user"
+  import_role:
+    name: service-rabbitmq
+  vars:
+    service_rabbitmq_users: "{{ watchmen_rpc_rabbitmq_users }}"
+    service_rabbitmq_run_once: true
+    service_rabbitmq_when: "{{ inventory_hostname == groups['watchmen-consumer'][0] | default }}"
+    service_rabbitmq_delegate_host: "{{ groups[watchmen_rpc_group_name][0] | default }}"
+  tags: always

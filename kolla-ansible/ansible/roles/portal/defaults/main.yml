@@ -1,0 +1,99 @@
+---
+project_name: "portal"
+
+portal_services:
+  portal:
+    container_name: "portal"
+    group: "portal_hosts"
+    enabled: "{{ enable_portal | bool }}"
+    image: "{{ portal_image_full }}"
+    volumes: "{{ portal_default_volumes + portal_extra_volumes }}"
+    dimensions: "{{ portal_dimensions }}"
+    haproxy: ""
+    haproxy_frontend:
+      portal:
+        enabled: "{{ enable_portal }}"
+        mode: "http"
+        external: false
+        port: "{{ portal_port }}"
+        listen_port: "{{ portal_listen_port }}"
+        default_backend: "portal_backend"
+      portal_external:
+        enabled: "{{ enable_portal }}"
+        mode: "http"
+        external: true
+        port: "{{ portal_port }}"
+        listen_port: "{{ portal_listen_port }}"
+        default_backend: "portal_backend"
+    haproxy_backend:
+      portal:
+        mode: "http"
+        listen_port: "{{ portal_listen_port }}"
+        extra_options:
+          - 'http-request replace-path /{{ portal_haproxy_config_portal_subpath }}/(.*) /\1 if { url_beg /{{ portal_haproxy_config_portal_subpath }}/ }'
+        vip_backend: false
+        sticky_sessions: false
+        acl_rules:
+          - "path_beg /{{ portal_haproxy_config_portal_subpath }}"
+      keystone_admin:
+        mode: "http"
+        listen_port: "{{ keystone_admin_listen_port }}"
+        extra_options:
+          - 'http-request replace-path /{{ portal_haproxy_config_keystone_subpath }}/(.*) /\1 if { url_beg /{{ portal_haproxy_config_keystone_subpath }}/ }'
+        vip_backend: false
+        sticky_sessions: false
+        acl_rules:
+          - "path_beg /{{ portal_haproxy_config_keystone_subpath }}"
+      lcm_api:
+        mode: "http"
+        listen_port: "{{ lcm_api_listen_port }}"
+        extra_options:
+          - 'http-request replace-path /{{ portal_haproxy_config_lcm_api_subpath }}/(.*) /\1 if { url_beg /{{ portal_haproxy_config_lcm_api_subpath }}/ }'
+        vip_backend: false
+        sticky_sessions: true
+        acl_rules:
+          - "path_beg /{{ portal_haproxy_config_lcm_api_subpath }}"
+      lcm_api_ws:
+        mode: "http"
+        listen_port: "{{ lcm_api_listen_port }}"
+        extra_options:
+          - 'http-request replace-path /{{ portal_haproxy_config_lcm_api_subpath }}/(.*) /\1 if { url_beg /{{ portal_haproxy_config_lcm_api_subpath }}/ }'
+          - "balance source"
+          - "option http-server-close"
+          - "option forceclose"
+          - "no option httpclose"
+          - "cookie io prefix indirect nocache"
+        vip_backend: false
+        sticky_sessions: true
+        acl_rules:
+          - "path_beg /socket.io"
+          - "hdr(Connection) -i upgrade"
+          - "hdr(Upgrade)    -i WebSocket"
+          - "hdr_beg(Host)   -i ws"
+
+portal_group_name: "portal"
+
+
+####################
+# Portal
+####################
+portal_haproxy_config_template: "{{ portal_haproxy_config_template | default('haproxy_portal.cfg.j2') }}"
+portal_haproxy_config_backend_vip: "{{ kolla_internal_vip_address }}"
+portal_keystone_admin_url: "{{ portal_haproxy_config_backend_vip | default('/identity')}}"
+portal_lcm_api_url: "{{ portal_lcm_api_url }}"
+portal_lcm_api_port: "{{ portal_lcm_api_port }}"
+
+####################
+# Docker
+####################
+portal_install_type: "{{ kolla_install_type }}"
+
+portal_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ portal_install_type }}-portal"
+portal_tag: "{{ openstack_release }}"
+portal_image_full: "{{ portal_image }}:{{ portal_tag }}"
+portal_dimensions: "{{ default_container_dimensions }}"
+portal_default_volumes:
+  - "{{ node_config_directory }}/portal/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "kolla_logs:/var/log/kolla/"
+portal_extra_volumes: "{{ default_extra_volumes }}"

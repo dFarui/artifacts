@@ -1,0 +1,68 @@
+# Fetch the new source code
+---
+
+- name: Create config directory structure
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+  - "{{ git_temp_dir }}"
+  - "{{ git_temp_dir }}/orchestrator"
+
+- name: Copy initial playbooks from source
+  synchronize:
+    src: "{{ git_import_dir }}/ansible"
+    dest: "{{ git_temp_dir }}/orchestrator/"
+
+- name: Copy kolla-ansible playbooks from source
+  synchronize:
+    src: "{{ git_import_dir }}/kolla-ansible/ansible/"
+    dest: "{{ git_temp_dir }}/orchestrator/ansible/"
+
+#TODO This is copying only css plugin for now. Syncing all the
+#plugins will be handled by plugin framework
+- name: Copy CSS playbooks from source
+  synchronize:
+    src: "{{ git_import_dir }}/plugins/css/roles/"
+    dest: "{{ git_temp_dir }}/orchestrator/ansible/roles/"
+
+- name: Add a .gitignore
+  template:
+    dest: "{{ git_temp_dir }}/.gitignore"
+    src: gitignore.j2
+
+- name: Ensure no uncommitted changes
+  include_role:
+     name: git-operations
+     tasks_from: check_repo_status.yml
+  vars:
+    repo: "{{ git_repo }}"
+
+- name: Copy the new source-code to temp
+  include_role:
+    name: git-operations
+    tasks_from: commit_to_git.yml
+  vars:
+    repo: "{{ git_repo }}"
+    work_dir: "{{ git_repo }}/lcm"
+    commit_msg: "Initial source code from /opt/cee/source"
+    branches:
+      - name: "{{ source_branch }}"
+        copies:
+          - from: "{{ git_temp_dir }}"
+            to: .
+
+- name: Merge new source branch system branch
+  shell: >
+    git checkout {{ system_branch | quote }} &&
+    git merge {{ source_branch | quote }}
+  args:
+    chdir: "{{ git_repo }}"
+
+- name: Clean temp paths
+  file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+  - "{{ git_repo }}/lcm"
+  - "{{ git_temp_dir }}"

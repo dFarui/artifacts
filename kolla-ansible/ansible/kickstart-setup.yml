@@ -1,0 +1,20 @@
+---
+- hosts:
+    - localhost
+    - lcm_hosts
+  roles:
+    - cobbler
+  vars:
+    host_subnet: "{{ lcm_network.subnet }}"
+    host_netmask: "{{ lcm_network.netmask }}"
+    host_cidr: "{{ lcm_network.cidr }}"
+    host_server_ip_addr: "{{ ip }}"
+    host_name_server: "{{ host_server_ip_addr }}"
+    lcm_ssh_pub_key: "{{ lookup('file', '{{ lcm_user_home }}/.ssh/id_rsa.pub') }}"
+    build_discovery_image: true
+  tasks:
+    - fail:
+        msg: "host_username or host_password or root_password is not defined"
+      when: host_username is not defined or host_password is not defined or root_password is not defined
+    - include: roles/cobbler/tasks/configure_kickstart.yml
+    - include: roles/cobbler/tasks/prepare_cobbler.yml

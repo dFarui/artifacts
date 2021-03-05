@@ -1,0 +1,59 @@
+---
+default_hugepagesz: "{{ my_memory_assignment.default_huge_page_size | default('')}}"
+huge_pages: "{{ my_memory_assignment.total_huge_pages | default('[]') }}"
+
+suse_base_products:
+  - SLES
+
+suse_base_patterns:
+  - base
+
+suse_base_packages:
+  - aaa_base-extras
+  - bash-completion
+  - btrfsprogs
+  - chrony
+  - cron
+  - dmidecode
+  - docker
+  - dosfstools
+  - dracut
+  - e2fsprogs
+  - ethtool
+  - firewalld
+  - glibc
+  - glibc-locale-base
+  - gptfdisk
+  - grub2-x86_64-efi
+  - hostname
+#  - intel-ixgbe
+#  - intel-ixgbe-kmp-default
+#  - intel-ixgbevf
+#  - intel-ixgbevf-kmp-default
+  - iproute2
+  - iputils
+  - irqbalance
+  - kdump
+  - "{{ my_host_config.kernel }}"
+  - kernel-firmware
+  - kexec-tools
+  - less
+#  - lsi-megaraid_sas-kmp-default
+  - lvm2
+#  - mokutil
+  - mstflint
+  - numactl
+  - openssh
+  - patterns-base-base
+  - pciutils
+  - python3-docker
+  - python3-selinux
+  - shim
+  - sles-release
+  - sudo
+  - systemd-bash-completion
+  - tar
+  - timezone
+  - util-linux
+  - vim
+  - vim-data

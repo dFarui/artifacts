@@ -1,0 +1,80 @@
+---
+project_name: "aetos"
+
+aetos_services:
+  aetos:
+    container_name: "aetos"
+    group: "aetos"
+    enabled: "{{ enable_aetos | bool }}"
+    image: "{{ aetos_image_full }}"
+    volumes: "{{ aetos_default_volumes + aetos_extra_volumes }}"
+    dimensions: "{{ aetos_dimensions }}"
+    haproxy:
+      aetos:
+        enabled: "{{ enable_aetos }}"
+        mode: "http"
+        external: false
+        port: "{{ aetos_port }}"
+        listen_port: "{{ aetos_listen_port }}"
+      aetos_external:
+        enabled: "{{ enable_aetos }}"
+        mode: "http"
+        external: true
+        port: "{{ aetos_port }}"
+        listen_port: "{{ aetos_listen_port }}"
+
+aetos_group_name: "aetos"
+aetos_log_level: "info"
+
+####################
+# Aetos TLS
+####################
+# Only enable this variable when the functionality is actually needed, don't config Aetos with a fake path
+# aetos_cafile: "/full/qualified/path/to/CAs/certificates"
+
+####################
+# Aetos Keystone
+####################
+aetos_keystone_auth: "{{ openstack_auth }}"
+aetos_keystone_auth_url: "{{ keystone_internal_url }}/v3"
+aetos_keystone_user: "aetos"
+aetos_keystone_default_role: "aetos"
+
+aetos_admin_endpoint: "{{ admin_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ aetos_port }}/v1"
+aetos_internal_endpoint: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ aetos_port }}/v1"
+aetos_public_endpoint: "{{ public_protocol }}://{{ kolla_external_fqdn | put_address_in_context('url') }}:{{ aetos_port }}/v1"
+
+aetos_keystone_services:
+  - name: "aetos"
+    type: "pm"
+    description: "Prometheus API Keystone proxy"
+    endpoints:
+      - {'interface': 'admin', 'url': '{{ aetos_admin_endpoint }}'}
+      - {'interface': 'internal', 'url': '{{ aetos_internal_endpoint }}'}
+      - {'interface': 'public', 'url': '{{ aetos_public_endpoint }}'}
+
+aetos_keystone_users:
+  - project: "service"
+    user: "{{ aetos_keystone_user }}"
+    password: "{{ aetos_keystone_password }}"
+    role: "admin"
+
+aetos_keystone_roles:
+  - "{{ aetos_keystone_default_role }}"
+
+aetos_logging_conf: "/etc/aetos/aetos-logging.conf"
+aetos_listen_address: "{{ api_interface_address }}"
+
+####################
+# Docker
+####################
+aetos_install_type: "{{ kolla_install_type }}"
+aetos_tag: "{{ openstack_release }}"
+
+aetos_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ aetos_install_type }}-aetos"
+aetos_image_full: "{{ aetos_image }}:{{ aetos_tag }}"
+aetos_dimensions: "{{ default_container_dimensions }}"
+aetos_default_volumes:
+  - "{{ node_config_directory }}/aetos/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+aetos_extra_volumes: "{{ default_extra_volumes }}"

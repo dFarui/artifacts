@@ -1,0 +1,25 @@
+[DEFAULT]
+transport_url={{ notifier_rpc_transport_url }}
+
+[requeuer]
+kafka_servers={{ notifier_kafka_bootstrap_servers }}
+logging_conf=/etc/notifier/notifier-requeuer-logging.conf
+subscriber_update_interval=60
+
+[kafka_consumer]
+kafka_consumer_conf=/etc/notifier/notifier-requeuer-kafka-consumer.yml
+requeuer_listen_topics={{ notifier_requeuer_listen_topics }}
+requeuer_pull_event_timeout_seconds=5
+
+[kafka_producer]
+kafka_consumer_conf=/etc/notifier/notifier-requeuer-kafka-producer.yml
+subscriber_internal_topic_partitions=3
+subscriber_internal_topic_repl_factor=2
+
+[subscriber]
+event_type_mapping_yml=/etc/notifier/notifier-requeuer-event-type-mapping.yml
+
+[rpc]
+messaging_topic_name=notifier
+messaging_server_name={{ notifier_rpc_server }}
+messaging_executor_mode=threading

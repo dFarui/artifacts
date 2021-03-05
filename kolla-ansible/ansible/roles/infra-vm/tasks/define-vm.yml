@@ -1,0 +1,45 @@
+- name: Ensure image directory exists
+  file:
+    state: directory
+    path: "{{item.path|dirname}}"
+  with_items: '{{ devices | default([], true) }}'
+  when: item.type == 'disk_image' and item.create | default(true)
+
+- name: Create disks for VM
+  command: >-
+    qemu-img create -f qcow2
+    -o preallocation={{ item.preallocate | default('full') }}
+    {{ item.path }}  {{ item.size_gib * 1024 * 1024 * 1024 }}
+  with_items: '{{ devices | default([], true) }}'
+  when: item.type == 'disk_image' and item.create | default(true)
+
+- name: Create vhostuser interfaces for dpdk backed VMs
+  vars:
+    vport: "vhostuser-{{vm_name}}-{{item.source_device}}"
+  command: >-
+    ovs-vsctl --may-exist add-port {{item.source_device}} {{vport}} --
+    set Interface {{vport}} type=dpdkvhostuserclient
+    options:vhost-server-path=/run/openvswitch/{{vport}}
+  with_items: '{{ devices | default([], true) }}'
+  when: item.type == 'vhost_net_if'
+
+- name: Change permissions of disk image files of {{ vm_name }}
+  file:
+    path: '{{ item.path }}'
+    owner: qemu
+    group: qemu
+    mode: u=rw,g=r,o=r
+  with_items: '{{ devices | default([], true) }}'
+  when: item.type == 'disk_image' and item.create | default(true)
+
+
+- template:
+    src: infra-vm.xml.j2
+    dest: "/tmp/{{vm_name}}.xml"
+
+- name: Define VM domain
+  virt:
+    command: define
+    autostart: "{{ autostart | default(false) }}"
+    xml: "{{ lookup('template', 'infra-vm.xml.j2') }}"
+  register: domain_define_result

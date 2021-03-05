@@ -1,0 +1,35 @@
+{{ ansible_managed | comment }}
+
+# This file controls the configuration of the audit daemon
+
+# This yes/no keyword determines whether or not to write logs to the disk.
+write_logs = no
+
+# Valid values are none, incremental, incremental_async, data, and sync.
+# If set to none, no special effort is made to flush the audit records to disk.
+# This could lead to local data loss but we're using the dispatcher to send
+# data to syslog which uses its own queueing so for auditd we prefer
+# non-blocking mode with maximal throughput
+flush = none
+
+# Increase priority of auditd to have higher throughput
+priority_boost = 5
+
+disp_qos = lossless
+dispatcher = /sbin/audispd
+name_format = hostname
+space_left = 500
+space_left_action = SYSLOG
+action_mail_acct = root
+admin_space_left = 300
+admin_space_left_action = SYSLOG
+
+# When the filesystem is full or faulty then suspend writing to disk,
+# syslog could still transfer the logs off-host
+disk_full_action = suspend
+disk_error_action = suspend
+
+# Use up to 100MB of local storage
+num_logs = 2
+max_log_file = 50
+max_log_file_action = rotate

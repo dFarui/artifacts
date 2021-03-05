@@ -1,0 +1,11 @@
+---
+- include_tasks: disable_host_rsyslog_service.yml
+  when: inventory_hostname in groups["rsyslog"]
+
+- include_tasks: install_logrotate.yml
+  when: inventory_hostname in groups["rsyslog"]
+
+- include_tasks: config.yml
+
+- name: Flush handlers
+  meta: flush_handlers

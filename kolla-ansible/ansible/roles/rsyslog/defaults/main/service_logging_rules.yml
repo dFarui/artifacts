@@ -1,0 +1,1426 @@
+---
+cee_services:
+  ansible:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "ansible"
+      project_name: "ansible"
+      syslog_facilities:
+        - "user"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  audispd:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'audit'
+      )
+    }}"
+    enable_remote_logging: False
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "audispd"
+      project_name: "audit"
+      syslog_facilities:
+        - "user"
+      write_action:
+        local: "{{ rsyslog_logic.local.audit_log.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.audit_log.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.audit_log.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.audit_log.rule_set.name }}"
+  auditd:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'audit'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'audit'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "auditd"
+      project_name: "audit"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  augenrules:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'audit'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'audit'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "augenrules"
+      project_name: "audit"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  barbican:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'barbican-api',
+        'barbican-keystone-listener',
+        'barbican-worker'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'barbican-api',
+        'barbican-keystone-listener',
+        'barbican-worker'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "barbican"
+      project_name: "barbican"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  chrony:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "chronyd"
+      project_name: "chronyd"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  cinder-wsgi-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'cinder-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/cinder/cinder-api-access.log"
+          tag: "cinder_wsgi"
+          severity: "info"
+          facility: "daemon"
+        - file: "/var/log/kolla/cinder/cinder-api.log"
+          tag: "cinder_wsgi"
+          severity: "error"
+          facility: "daemon"
+  cinder-wsgi:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'cinder-api'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'cinder-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "cinder_wsgi"
+      project_name: "cinder"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  cinder:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'cinder-api',
+        'cinder-backup',
+        'cinder-scheduler',
+        'cinder-volume'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'cinder-api',
+        'cinder-backup',
+        'cinder-scheduler',
+        'cinder-volume'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "cinder"
+      project_name: "cinder"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  cmha:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'cmha-restapi',
+        'cmha-service'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'cmha-restapi',
+        'cmha-service'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "cmha"
+      project_name: "cmha"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  collectd:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'collectd'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'collectd'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "collectd"
+      project_name: "collectd"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  corosync:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'pacemaker'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'pacemaker'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "corosync"
+      project_name: "pacemaker"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  dnsmasq:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'neutron-dhcp-agent'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'neutron-dhcp-agent'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "dnsmasq"
+      project_name: "neutron"
+      syslog_facilities:
+        - "daemon"
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  docker_daemon:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "dockerd"
+      project_name: "docker"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  docker_services:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "docker"
+      project_name: "docker"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  fstrim:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "fstrim"
+      project_name: "fstrim"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  glance:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'glance',
+        'glance-api'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'glance',
+        'glance-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "glance"
+      project_name: "glance"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  haproxy:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'haproxy'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'haproxy'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "haproxy"
+      project_name: "haproxy"
+      syslog_facilities:
+        - "local1"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  heat:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'heat',
+        'heat-api',
+        'heat-api-cfn',
+        'heat-engine'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'heat',
+        'heat-api',
+        'heat-api-cfn',
+        'heat-engine'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "heat"
+      project_name: "heat"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  horizon-wsgi-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'horizon'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/horizon/horizon-access.log"
+          tag: "horizon_wsgi"
+          severity: "info"
+          facility: "daemon"
+        - file: "/var/log/kolla/horizon/horizon.log"
+          tag: "horizon_wsgi"
+          severity: "error"
+          facility: "daemon"
+  horizon-wsgi:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'horizon'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'horizon'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "horizon_wsgi"
+      project_name: "horizon"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  horizon-audit-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'horizon'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/horizon/horizon-audit.log"
+          tag: "horizon_audit"
+          severity: "info"
+          facility: "daemon"
+  horizon-audit:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'horizon'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'horizon'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "horizon_audit"
+      project_name: "horizon"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  keystone-admin-wsgi-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'keystone'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/keystone/keystone-apache-admin-access.log"
+          tag: "keystone_admin_wsgi"
+          severity: "info"
+          facility: "daemon"
+        - file: "/var/log/kolla/keystone/keystone-apache-admin-error.log"
+          tag: "keystone_admin_wsgi"
+          severity: "error"
+          facility: "daemon"
+  keystone-admin-wsgi:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'keystone'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'keystone'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "keystone_admin_wsgi"
+      project_name: "keystone"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  keystone-public-wsgi-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'keystone'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/keystone/keystone-apache-public-access.log"
+          tag: "keystone_public_wsgi"
+          severity: "info"
+          facility: "daemon"
+        - file: "/var/log/kolla/keystone/keystone-apache-public-error.log"
+          tag: "keystone_public_wsgi"
+          severity: "error"
+          facility: "daemon"
+  keystone-public-wsgi:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'keystone'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'keystone'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "keystone_public_wsgi"
+      project_name: "keystone"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  keystone:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'keystone'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'keystone'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "keystone"
+      project_name: "keystone"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  logrotate:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'rsyslog-log-aggregator',
+        'rsyslog-log-generator'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'rsyslog-log-aggregator',
+        'rsyslog-log-generator'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "logrotate"
+      project_name: "logrotate"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  manila:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'manila-api',
+        'manila-data',
+        'manila-scheduler',
+        'manila-share'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'manila-api',
+        'manila-data',
+        'manila-scheduler',
+        'manila-share'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "manila"
+      project_name: "manila"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  mariadb:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'mariadb'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'mariadb'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "mysqld"
+      project_name: "mariadb"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  neutron:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'neutron',
+        'neutron-dhcp-agent',
+        'neutron-metadata-agent',
+        'neutron-openvswitch-agent',
+        'neutron-server'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'neutron',
+        'neutron-dhcp-agent',
+        'neutron-metadata-agent',
+        'neutron-openvswitch-agent',
+        'neutron-server'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "neutron"
+      project_name: "neutron"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  nova:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'nova',
+        'nova-api',
+        'nova-compute',
+        'nova-conductor',
+        'nova-libvirt',
+        'nova-novncproxy',
+        'nova-scheduler',
+        'nova_ssh',
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'nova',
+        'nova-api',
+        'nova-compute',
+        'nova-conductor',
+        'nova-libvirt',
+        'nova-novncproxy',
+        'nova-scheduler',
+        'nova_ssh',
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "nova"
+      project_name: "nova"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  openvswitch:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'neutron-openvswitch-agent'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'neutron-openvswitch-agent'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "ovs"
+      project_name: "openvswitch"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  pacemaker:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'pacemaker'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'pacemaker'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "pacemaker"
+      project_name: "pacemaker"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_path.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_path.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  placement-wsgi-file:
+    enabled: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'placement-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "file"
+      imfile_inputs:
+        - file: "/var/log/kolla/placement/placement-api-access.log"
+          tag: "placement_wsgi"
+          severity: "info"
+          facility: "daemon"
+        - file: "/var/log/kolla/placement/placement-api.log"
+          tag: "placement_wsgi"
+          severity: "error"
+          facility: "daemon"
+  placement-wsgi:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'placement-api'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'placement-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "placement_wsgi"
+      project_name: "placement"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: NULL
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  placement:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'placement-api'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'placement-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "placement-api"
+      project_name: "placement"
+      syslog_facilities:
+        - "local6"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_path.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_path.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  rabbitmq:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'rabbitmq'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'rabbitmq'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "rabbitmq"
+      project_name: "rabbitmq"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  rpm:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "contains"
+        property_name: "syslogtag"
+        expected_value: "RPM"
+      project_name: "rpm"
+      syslog_facilities:
+        - "user"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_path.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_path.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  rsyslog:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'rsyslog-log-aggregator',
+        'rsyslog-log-generator'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'rsyslog-log-aggregator',
+        'rsyslog-log-generator'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "rsyslogd"
+      project_name: "rsyslog"
+      syslog_facilities:
+        - "syslog"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  sshd:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "sshd"
+      project_name: "sshd"
+      syslog_facilities:
+        - "auth"
+        - "authpriv"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  su:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: False
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "su"
+      project_name: "su"
+      syslog_facilities:
+        - "auth"
+        - "authpriv"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  sudo:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: False
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "sudo"
+      project_name: "sudo"
+      syslog_facilities:
+        - "auth"
+        - "authpriv"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  swift:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'swift-account-server',
+        'swift-container-server',
+        'swift-object-expirer',
+        'swift-object-server',
+        'swift-proxy-server',
+        'swift-rsyncd'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'swift-account-server',
+        'swift-container-server',
+        'swift-object-expirer',
+        'swift-object-server',
+        'swift-proxy-server',
+        'swift-rsyncd'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "startswith"
+        property_name: "programname"
+        expected_value: "swift"
+      project_name: "swift"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  systemd:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "systemd"
+      project_name: "systemd"
+      syslog_facilities:
+        - "authpriv"
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  systemd-logind:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "systemd-logind"
+      project_name: "systemd"
+      syslog_facilities:
+        - "auth"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  systemd-tmpfiles:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "systemd-tmpfiles"
+      project_name: "systemd"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  systemd-udevd:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "systemd-udevd"
+      project_name: "systemd"
+      syslog_facilities:
+        - "daemon"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  watchmen-api:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'watchmen-api'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'watchmen-api'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "watchmen-api"
+      project_name: "watchmen"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  watchmen-consumer:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'watchmen-consumer'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'watchmen-consumer'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "watchmen-consumer"
+      project_name: "watchmen"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  watchmen-snmpagent:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'watchmen-snmpagent'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'watchmen-snmpagent'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "watchmen-snmpagent"
+      project_name: "watchmen"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  watchmen-webhook:
+    enable_local_logging: "{{
+      service_component_to_nodes_map | is_local_logging_rule_for_service_needed(
+        inventory_hostname,
+        'watchmen-webhook'
+      )
+    }}"
+    enable_remote_logging: "{{
+      service_component_to_nodes_map | is_remote_logging_rule_for_service_needed(
+        groups['rsyslog-log-aggregator'],
+        'watchmen-webhook'
+      )
+    }}"
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "watchmen-webhook"
+      project_name: "watchmen"
+      syslog_facilities:
+        - "local0"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+  wicked:
+    enable_local_logging: True
+    enable_remote_logging: True
+    logging_rule_input:
+      capture: True
+      source_type: "rsyslog"
+      compare:
+        operator: "=="
+        property_name: "programname"
+        expected_value: "wicked"
+      project_name: "wicked"
+      syslog_facilities:
+        - "user"
+      write_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}"
+        remote: "{{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}"
+      send_action:
+        local: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"
+        remote: "{{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}"

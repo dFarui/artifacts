@@ -1,0 +1,28 @@
+{{ file_marker }}
+
+BONDING_MASTER='yes'
+BONDING_MODULE_OPTS='
+{%- if item.bond_options.bond_mode is defined %}
+mode={{ item.bond_options.bond_mode }}
+{%- endif %}
+{%- if item.bond_options.miimon_interval is defined %}
+ miimon={{ item.bond_options.miimon_interval }}
+{%- endif %}
+{%- if item.bond_options.lacp is defined %}
+ lacp={{ item.bond_options.lacp }}
+{%- endif %}'
+
+{% for slave in item.bond_slaves %}
+BONDING_SLAVE{{ loop.index - 1 }}='{{ slave }}'
+{% endfor %}
+{% if item.bond_primary is defined %}
+primary={{ item.bond_primary }}
+{% endif %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+
+{% if disable_lro is defined and disable_lro %}
+ETHTOOL_OPTIONS='lro off'
+{% endif %}
+{% include 'if_ipinfo.j2' %}

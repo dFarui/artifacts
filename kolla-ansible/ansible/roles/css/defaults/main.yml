@@ -1,0 +1,22 @@
+---
+# may be redudant, already present in role hugepages_config
+numa_huge_pages:         "{{ my_memory_assignment.numa_huge_pages | default('[]')}}"
+
+dependent_pkgs:
+  - iputils
+  - numactl
+  - pciutils
+
+# Add the packages in alphabetical order.
+css_packages:
+  - css-init
+  - css-scripts
+  - dpdk-utils
+  - openvswitch
+  - python-openvswitch
+
+# default values
+ovs_dpdk_verbose:        "yes"
+ovs_hugepages_2MB_size:  "2"
+ovs_socket_mem:          "1024"
+ovs_hugepage_mountpoint: "/mnt/huge_ovs_2M/"

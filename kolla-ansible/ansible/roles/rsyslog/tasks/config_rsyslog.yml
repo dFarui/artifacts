@@ -1,0 +1,11 @@
+---
+- include_tasks: cache_service_logging_rules.yml
+
+- include_tasks: config_rsyslog_log_generator.yml
+  when: rsyslog_is_log_generator
+
+- include_tasks: config_rsyslog_log_aggregator.yml
+  when: rsyslog_is_log_aggregator
+
+- include_tasks: check-containers.yml
+  when: kolla_action != "config"

@@ -1,0 +1,12 @@
+---
+- include_tasks: register.yml
+  when: inventory_hostname in groups['aetos']
+
+- include_tasks: config.yml
+  when: inventory_hostname in groups['aetos']
+
+#TODO: Enable when firewall config is in place
+#- include_tasks: firewall.yml
+
+- name: Flush handlers
+  meta: flush_handlers

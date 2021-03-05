@@ -1,0 +1,23 @@
+---
+- name: Create h3c database table sql file
+  become: yes
+  copy:
+    src: h3c_tables.sql
+    dest: '/tmp/h3c_tables.sql'
+    owner: root
+    group: root
+    mode: 0644
+  run_once: True
+  delegate_to: "{{ groups['neutron-server'][0] }}"
+
+- name: Copy h3c talbe sql to the database container
+  become: true
+  command: "docker cp /tmp/h3c_tables.sql mariadb:/tmp/" 
+  run_once: True
+  delegate_to: "{{ groups['neutron-server'][0] }}"
+
+- name: Creating h3c database table in neutron database
+  become: true
+  command: "docker exec mariadb mysql -h {{ database_address }} -P {{ database_port }}  -u root -p{{ database_password }} -D neutron -e \"source /tmp/h3c_tables.sql\""
+  run_once: True
+  delegate_to: "{{ groups['neutron-server'][0] }}"

@@ -1,0 +1,16 @@
+#!/bin/sh
+export LCM_AUTH_STRATEGY='{{ lcm_api_auth_strategy }}'
+{% if lcm_api_auth_strategy == 'none' -%}
+export LCM_API_URL='http://{{ lcm_api_internal_vip_address | ipwrap }}:{{ lcm_api_port }}/v{{ lcm_api_version }}'
+{% elif lcm_api_auth_strategy == 'keystone' -%}
+export LCM_PROJECT_NAME={{ lcm_api_project_name | quote }}
+export LCM_PROJECT_DOMAIN_NAME={{ lcm_api_project_domain_name | quote}}
+export LCM_USER_DOMAIN_NAME={{ lcm_api_user_domain_name | quote }}
+export LCM_AUTH_URL={{ lcm_api_auth_url | quote }}
+export LCM_REGION_NAME={{ lcm_api_region_name | quote }}
+export LCM_INTERFACE=internal
+export LCM_SERVICE_NAME={{ lcm_api_service_name | quote }}
+export LCM_PASSWORD={{ lcm_api_internal_client_password | quote }}
+export LCM_USERNAME={{ lcm_api_internal_client_username | quote }}
+export LCM_CACERT="{{ kolla_internal_fqdn_cacert }}"
+{% endif -%}

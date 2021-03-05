@@ -1,0 +1,317 @@
+---
+hostname_full: "{{ ansible_fqdn }}"
+project_name: "rsyslog"
+
+# Docker configuration
+rsyslog_services:
+  rsyslog-log-aggregator:
+    container_name: "rsyslog_log_aggregator"
+    group: "rsyslog-log-aggregator"
+    enabled: "{{ enable_rsyslog | bool }}"
+    image: "{{ rsyslog_image_full }}"
+    volumes: "{{ rsyslog_log_aggregator_volumes + rsyslog_default_volumes + rsyslog_extra_volumes }}"
+    dimensions: "{{ rsyslog_dimensions }}"
+    privileged: True
+    pid_mode: "host"
+    haproxy:
+      rsyslog_log_aggregator:
+        enabled: "{{ enable_rsyslog | bool }}"
+        mode: "tcp"
+        external: false
+        port: "{{ rsyslog_log_aggregator_port }}"
+        listen_port: "{{ rsyslog_log_aggregator_listen_port }}"
+        frontend_tcp_extra:
+          - "option tcpka"
+      rsyslog_audit_log_aggregator:
+        enabled: "{{ enable_rsyslog | bool and enable_audit | bool }}"
+        mode: "tcp"
+        external: false
+        port: "{{ rsyslog_audit_log_aggregator_port }}"
+        listen_port: "{{ rsyslog_audit_log_aggregator_listen_port }}"
+        frontend_tcp_extra:
+          - "option tcpka"
+  rsyslog-log-generator:
+    container_name: "rsyslog_log_generator"
+    group: "rsyslog-log-generator"
+    enabled: "{{ enable_rsyslog | bool }}"
+    image: "{{ rsyslog_image_full }}"
+    volumes: "{{ rsyslog_log_generator_volumes + rsyslog_default_volumes + rsyslog_extra_volumes }}"
+    dimensions: "{{ rsyslog_dimensions }}"
+    privileged: True
+    pid_mode: "host"
+
+rsyslog_install_type: "{{ kolla_install_type }}"
+rsyslog_tag: "{{ openstack_release }}"
+
+rsyslog_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ rsyslog_install_type }}-rsyslog"
+rsyslog_image_full: "{{ rsyslog_image }}:{{ rsyslog_tag }}"
+rsyslog_dimensions: "{{ default_container_dimensions }}"
+
+rsyslog_host_log_dir: "/var/log"
+rsyslog_log_aggregator_volumes:
+  - "{{ node_config_directory }}/rsyslog-log-aggregator/:{{ container_config_directory }}/:ro"
+rsyslog_log_generator_volumes:
+  - "{{ node_config_directory }}/rsyslog-log-generator/:{{ container_config_directory }}/:ro"
+rsyslog_default_volumes:
+  - "/etc/localtime:/etc/localtime:ro"
+  - "kolla_logs:/var/log/kolla/"
+  - "/run/systemd/journal:/run/systemd/journal"
+  - "{{ rsyslog_host_log_dir }}:{{ rsyslog_log_dir }}"
+rsyslog_extra_volumes: "{{ default_extra_volumes }}"
+
+# RSYSLOG configuration
+rsyslog_is_log_aggregator: "{{ inventory_hostname in groups['rsyslog-log-aggregator'] }}"
+rsyslog_is_log_generator: "{{ inventory_hostname in groups['rsyslog-log-generator'] }}"
+
+rsyslog_omfile_common_parameters: &rsyslog_omfile_common_parameters
+  type: "omfile"
+  dircreatemode: "{{ rsyslog_log_dir_create_mode }}"
+  filecreatemode: "{{ rsyslog_log_file_create_mode }}"
+  filegroup: "{{ rsyslog_log_file_group }}"
+  fileowner: "{{ rsyslog_log_file_owner }}"
+  asyncwriting: "on"
+
+rsyslog_omfwd_common_parameters: &rsyslog_omfwd_common_parameters
+  action.resumeIntervalMax: "120"
+  keepalive.interval: "15"
+  keepalive.probes: "3"
+  keepalive.time: "60"
+  keepalive: "on"
+  protocol: "tcp"
+  queue.discardmark: "9500"
+  queue.discardseverity: "0"
+  queue.maxDiskSpace: "640M"
+  queue.saveonshutdown: "on"
+  queue.size: "10000"
+  queue.timeoutenqueue: "0"
+  queue.type: "LinkedList"
+  queue.workerthreads: "1"
+  tcp_framing: "octet-counted"
+  type: "omfwd"
+
+rsyslog_omrelp_common_parameters: &rsyslog_omrelp_common_parameters
+  action.resumeretrycount: "-1"
+  queue.checkpointinterval: "100"
+  queue.discardmark: "45000"
+  queue.discardseverity: "0"
+  queue.maxdiskspace: "100M"
+  queue.saveonshutdown: "on"
+  queue.size: "50000"
+  queue.type: "disk"
+  queue.workerthreads: "1"
+  timeout: "120"
+  type: "omrelp"
+
+rsyslog_audittrail_binary: "/usr/sbin/audittrail-logger"
+rsyslog_audittrail_file_template: "{}/audittrail"
+rsyslog_audittrail_max_file_size: "52428800"
+rsyslog_audittrail_max_number_of_rotated_files: "2"
+rsyslog_audittrail_command_template: "{{ '{} --file={} --size={} --keep={}'.format(
+  rsyslog_audittrail_binary,
+  rsyslog_audittrail_file_template,
+  rsyslog_audittrail_max_file_size,
+  rsyslog_audittrail_max_number_of_rotated_files)
+}}"
+
+rsyslog_local_common_log_format_template_name: "local_common_log_format"
+rsyslog_audit_log_format_template_name: "audit_log_format"
+rsyslog_forwarded_common_log_message_template_name: "template_of_forwarded_common_log_message"
+rsyslog_received_common_log_message_template_name: "template_of_received_common_log_message"
+
+rsyslog_logic:
+  local:
+    common_log:
+      bind:
+        address: "127.0.0.1"
+        port: "{{ rsyslog_log_local_port }}"
+      processing:
+        rule_set:
+          name: "process_local_common_log_rule_set"
+      functions:
+        write_to_dir:
+          rule_set:
+            name: "write_local_common_log_to_dir_rule_set"
+            templates_and_actions:
+              - template:
+                  name: "log_file_name_with_set_dir_name_and_dynamic_file_name"
+                  type: "string"
+                  string: "{{ rsyslog_log_dir }}/%$!log_dir_name%/%programname%.log"
+                action:
+                  name: "write_local_common_log_to_dir_action"
+                  template: "{{ rsyslog_local_common_log_format_template_name }}"
+                  dynafile: "log_file_name_with_set_dir_name_and_dynamic_file_name"
+                  <<: *rsyslog_omfile_common_parameters
+        write_to_path:
+          rule_set:
+            name: "write_local_common_log_to_path_rule_set"
+            templates_and_actions:
+              - template:
+                  name: "log_file_name_with_set_dir_name_and_set_file_name"
+                  type: "string"
+                  string: "{{ rsyslog_log_dir }}/%$!log_dir_name%/%$!log_file_name%.log"
+                action:
+                  name: "write_local_common_log_to_path_action"
+                  template: "{{ rsyslog_local_common_log_format_template_name }}"
+                  dynafile: "log_file_name_with_set_dir_name_and_set_file_name"
+                  <<: *rsyslog_omfile_common_parameters
+        forward:
+          rule_set:
+            name: "forward_local_common_log_rule_set"
+            actions: >
+              {%- set actions_internal = [] %}
+              {%- for remote_server in rsyslog_log_behavior.remote_servers %}
+              {%- set action_internal = {
+                "name": "forward_local_common_log_action_{}".format(loop.index0),
+                "template": rsyslog_forwarded_common_log_message_template_name,
+                "target": remote_server.host,
+                "port": remote_server.port,
+                "queue.filename": "forward_local_common_log_queue_{}".format(loop.index0),
+              } %}
+              {%- set _ = action_internal.update(rsyslog_omfwd_common_parameters) %}
+              {%- set _ = actions_internal.append(action_internal) %}
+              {%- endfor %}
+              {{- actions_internal -}}
+    audit_log:
+      rule_set:
+        name: "process_local_audit_log_rule_set"
+        functions:
+          write:
+            actions:
+              - name: "write_local_audit_log_action"
+                template: "{{ rsyslog_audit_log_format_template_name }}"
+                type: "omprog"
+                binary: "{{ rsyslog_audittrail_command_template.format(rsyslog_log_dir) }}"
+          forward:
+            actions: >
+              {%- set actions_internal = [] %}
+              {%- for remote_server in rsyslog_log_behavior.remote_servers %}
+              {%- set action_internal = {
+                "name": "forward_local_audit_log_action_{}".format(loop.index0),
+                "target": remote_server.host,
+                "port": rsyslog_audit_log_aggregator_port,
+                "queue.filename": "forward_local_audit_log_queue_{}".format(loop.index0),
+              } %}
+              {%- set _ = action_internal.update(rsyslog_omrelp_common_parameters) %}
+              {%- set _ = actions_internal.append(action_internal) %}
+              {%- endfor %}
+              {{- actions_internal -}}
+  remote:
+    common_log:
+      bind:
+        address: "{{ api_interface_address }}"
+        port: "{{ rsyslog_log_aggregator_port }}"
+      processing:
+        rule_set:
+          name: "process_remote_common_log_rule_set"
+      template:
+        name: "{{ rsyslog_received_common_log_message_template_name }}"
+        type: "string"
+        string: "%rawmsg%\n"
+      functions:
+        write_to_dir:
+          rule_set:
+            name: "write_remote_common_log_to_dir_rule_set"
+            templates_and_actions:
+              - template:
+                  name: "log_file_name_with_set_remote_dir_name_and_dynamic_program_name"
+                  type: "string"
+                  string: "{{ rsyslog_remote_log_dir }}/%hostname%/%$!log_dir_name%/%programname%.log"
+                action:
+                  name: "write_remote_common_log_to_dir_action"
+                  template: "{{ rsyslog_received_common_log_message_template_name }}"
+                  dynafile: "log_file_name_with_set_remote_dir_name_and_dynamic_program_name"
+                  <<: *rsyslog_omfile_common_parameters
+        write_to_path:
+          rule_set:
+            name: "write_remote_common_log_to_path_rule_set"
+            templates_and_actions:
+              - template:
+                  name: "log_file_name_with_set_remote_dir_name_and_set_file_name"
+                  type: "string"
+                  string: "{{ rsyslog_remote_log_dir }}/%hostname%/%$!log_dir_name%/%$!log_file_name%.log"
+                action:
+                  name: "write_remote_common_log_to_path_action"
+                  template: "{{ rsyslog_received_common_log_message_template_name }}"
+                  dynafile: "log_file_name_with_set_remote_dir_name_and_set_file_name"
+                  <<: *rsyslog_omfile_common_parameters
+        forward:
+          rule_set:
+            name: "forward_remote_common_log_rule_set"
+            actions: >
+              {%- set actions_internal = [] %}
+              {%- for remote_server in rsyslog_log_behavior.remote_servers %}
+              {%- set action_internal = {
+                "name": "forward_remote_common_log_action_{}".format(loop.index0),
+                "template": rsyslog_forwarded_common_log_message_template_name,
+                "target": remote_server.host,
+                "port": remote_server.port,
+                "queue.filename": "forward_remote_common_log_queue_{}".format(loop.index0),
+              } %}
+              {%- set _ = action_internal.update(rsyslog_omfwd_common_parameters) %}
+              {%- set _ = actions_internal.append(action_internal) %}
+              {%- endfor %}
+              {{- actions_internal -}}
+    audit_log:
+      bind:
+        address: "{{ api_interface_address }}"
+        port: "{{ rsyslog_audit_log_aggregator_port }}"
+      rule_set:
+        name: "process_remote_audit_log_rule_set"
+        functions:
+          write:
+            actions:
+              - name: "write_remote_audit_log_action"
+                template: "{{ rsyslog_audit_log_format_template_name }}"
+                type: "omprog"
+                binary: "{{ rsyslog_audittrail_command_template.format(rsyslog_remote_log_dir) }}"
+          forward:
+            actions: >
+              {%- set actions_internal = [] %}
+              {%- for remote_server in rsyslog_log_behavior.remote_servers %}
+              {%- set action_internal = {
+                "name": "forward_remote_audit_log_action_{}".format(loop.index0),
+                "target": remote_server.host,
+                "port": rsyslog_audit_log_aggregator_port,
+                "queue.filename": "forward_remote_audit_log_queue_{}".format(loop.index0),
+              } %}
+              {%- set _ = action_internal.update(rsyslog_omrelp_common_parameters) %}
+              {%- set _ = actions_internal.append(action_internal) %}
+              {%- endfor %}
+              {{- actions_internal -}}
+
+rsyslog_leftover_logs_directory_name: "catch-all"
+
+rsyslog_log_behavior:
+  forward_logs: "{{ logging_details.forward_logs_to != 'nowhere' }}"
+  remote_servers: "{{ logging_details.remote_servers }}"
+  write_local_logs: "{{ logging_details.write_local_logs }}"
+  write_received_logs: "{{ logging_details.write_received_logs }}"
+
+rsyslog_local_logging_rules_input: {}
+rsyslog_remote_logging_rules_input: {}
+
+rsyslog_log_aggregator_vip: "{{ rsyslog_log_aggregator_internal_fqdn | default(kolla_internal_fqdn) }}"
+
+rsyslog_host_service_name: "rsyslog.service"
+
+rsyslog_config_file_owner: "root"
+rsyslog_config_file_group: "root"
+rsyslog_config_file_mode: "0644"
+
+rsyslog_max_open_files: 4096
+rsyslog_process_umask: "0027"
+rsyslog_work_directory: "/var/spool/rsyslog"
+rsyslog_log_dir: "/var/log"
+rsyslog_remote_log_dir: "{{ rsyslog_log_dir }}/remote"
+
+rsyslog_log_file_owner: "root"
+rsyslog_log_file_group: "root"
+rsyslog_log_file_create_mode: "0640"
+rsyslog_log_dir_create_mode: "0750"
+
+# RSYSLOG tuning
+# Lets assume RSYSLOG can consume up to 8GB memory
+rsyslog_max_available_memory: 8589934592
+rsyslog_max_message_size: 65536
+rsyslog_queue_high_watermark_percent: 80
+rsyslog_queue_low_watermark_percent: 60

@@ -1,0 +1,9 @@
+---
+- name: Enable cmha in the firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "{{ cmha_port }}/tcp"

@@ -1,0 +1,46 @@
+---
+- name: copy cinder backup config backup
+  become: yes
+  become_method: sudo
+  copy:
+    src: /etc/kolla/cinder-backup/config.json
+    remote_src: yes
+    dest: /etc/kolla/cinder-backup/config.json.bak
+
+- name: modify cinder backup config
+  become: yes
+  become_method: sudo
+  lineinfile:
+    path: /etc/kolla/cinder-backup/config.json
+    insertafter: '    \"config_files\"\: \['
+    line: "{{ item }}"
+  with_items:
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0777",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/iscsi/initiatorname.iscsi",'
+  - '           "source": "/var/lib/kolla/config_files/initiatorname.iscsi",'
+  - '       {'
+ 
+- name: update cinder_backup contrainer volume.filters file
+  copy:
+    src: volume.filters
+    remote_src: no
+    dest: "/home/ceeinfra/volume.filters"
+    force: no
+  shell:
+    docker cp volume.filters cinder_backup:/etc/cinder/rootwrap.d/volume.filters
+
+- name: update cinder_backup contrainer connector.py file 
+  copy:
+    src: nova_connector.py
+    remote_src: no
+    dest: "/home/ceeinfra/nova_connector.py"
+    force: no
+  shell:
+    docker cp nova_connector.py cinder_backup:/usr/lib/python2.7/site-packages/os_brick/initiator/connector.py
+
+- name: docker restart cinder_backup
+  shell: "docker restart cinder_backup"
+

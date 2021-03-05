@@ -1,0 +1,14 @@
+---
+
+h3c_storage_custom_properties: "{{ hostvars[inventory_hostname]['custom_properties']['h3c-storage'] }}"
+onestor_block_service_ip: "{{ h3c_storage_custom_properties.onestor_block_service_ip | default(['']) }}"
+onestor_diskpool: "{{ h3c_storage_custom_properties.onestor_diskpool | default([''])  }}"
+onestor_nodepool: "{{ h3c_storage_custom_properties.onestor_nodepool | default([''])  }}"
+onestor_poolname: "{{ h3c_storage_custom_properties.onestor_poolname | default([''])  }}"
+password: "{{ h3c_storage_custom_properties.password | default([''])  }}"
+user: "{{ h3c_storage_custom_properties.user | default([''])  }}"
+volume_backend_name: "{{ h3c_storage_custom_properties.volume_backend_name | default([''])  }}"
+ceph_address: "{{ hostvars[inventory_hostname]['interface_addresses'] }}"
+cephA_address: "{{ ceph_address.cephA | default([''])  }}"
+cephB_address: "{{ ceph_address.cephB | default([''])  }}"
+

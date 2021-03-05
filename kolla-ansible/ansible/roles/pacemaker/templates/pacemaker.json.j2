@@ -1,0 +1,24 @@
+{
+    "command": "/usr/sbin/pacemakerd -f",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/pacemaker.conf",
+            "dest": "/etc/pacemaker/pacemaker.conf",
+            "owner": "root",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/authkey",
+            "dest": "/etc/pacemaker/authkey",
+            "owner": "hacluster:root",
+            "perm": "0600"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/log/kolla/pacemaker",
+            "owner": "root:root",
+            "recurse": true
+        }
+    ]
+}

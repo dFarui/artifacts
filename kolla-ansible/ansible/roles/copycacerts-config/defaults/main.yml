@@ -1,0 +1,6 @@
+---
+copycacerts_src_path: "{{ node_custom_config }}/../certificates/"
+copycacerts_staging_path: "{{ cee_cacert_stagedir if cee_cacert_stagedir is defined else '/etc/kolla/certificates/ca' }}"
+copycacerts_external_cacerts: "{{ cee_external_cacert_list if cee_external_cacert_list is defined else '[]' }}"
+copycacerts_internal_cacerts: "{{ cee_internal_cacert_list if cee_internal_cacert_list is defined else '[]' }}"
+copycacerts_additional_cacerts: "{{ additional_cacerts_list if additional_cacerts_list is defined else '[]' }}"

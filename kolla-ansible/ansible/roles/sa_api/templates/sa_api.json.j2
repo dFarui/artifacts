@@ -1,0 +1,31 @@
+{% if kolla_base_distro in ['sles'] %}
+    {% set apache_binary = 'start_apache2' %}
+    {% set apache_conf_dir = 'apache2/vhosts.d' %}
+{% else %}
+    {% set apache_binary = 'apache2' if kolla_base_distro in ['ubuntu', 'debian'] else 'httpd' %}
+    {% set apache_conf_dir = 'apache2/conf-enabled' if kolla_base_distro in ['ubuntu', 'debian'] else 'httpd/conf.d' %}
+{% endif %}
+{
+    "command": "/usr/sbin/{{ apache_binary }} -DFOREGROUND",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/sa_api.conf",
+            "dest": "/etc/sa_api/sa_api.conf",
+            "owner": "sa",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/sa_api_wsgi.conf",
+            "dest": "/etc/{{ apache_conf_dir }}/sa_api_wsgi.conf",
+            "owner": "sa",
+            "perm": "0600"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/log/sa_api",
+            "owner": "sa:sa",
+            "recurse": true
+        }
+    ]
+}

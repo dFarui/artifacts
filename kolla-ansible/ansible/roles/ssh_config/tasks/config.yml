@@ -1,0 +1,23 @@
+#
+# SSH Setup
+#
+---
+- name: Configure sshd
+  become: yes
+  lineinfile:
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    dest: /etc/ssh/sshd_config
+    state: present
+  with_items: "{{ sshd_config }}"
+  notify:
+  - Restart sshd service
+
+- name: Create ./ssh/config
+  become: yes
+  template:
+    src: ../templates/ssh_config.j2
+    dest: "/home/{{ host_username }}/.ssh/config"
+    mode: '0640'
+    owner: "{{ host_username }}"
+    group: "{{ host_username }}"

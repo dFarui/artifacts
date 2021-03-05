@@ -1,0 +1,11 @@
+---
+- name: Enable Watchmen in the firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "{{ watchmen_api_listen_port }}/tcp"
+    - "{{ watchmen_snmpagent_listen_port }}/udp"
+    - "{{ watchmen_webhook_listen_port }}/tcp"

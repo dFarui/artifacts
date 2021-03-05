@@ -1,0 +1,30 @@
+---
+ovs_dpdk_enabled:        "{{ 'yes' if ( dpdk_devices is defined and dpdk_devices.openvswitch is defined ) else 'no' }}"
+
+numa_huge_pages:         "{{ my_memory_assignment.numa_huge_pages | default('[]')}}"
+
+ovs_numa:                "{%- set temp_dict = {} -%}
+                          {%- for item in total_huge_pages -%}
+                            {%- if item.owner == 'ovs' -%}
+                              {%- for item1 in numa_huge_pages -%}
+                                {%- if item1.size == item.size and item1.numa_node == 0 -%}
+                                  {%- set _ = temp_dict.update({ 'node0_count': item1.count, 'ovs_hugepage_mountpoint': item.mountpoint }) -%}
+                                {%- elif item1.size == item.size and item1.numa_node == 1 -%}
+                                  {%- set _ = temp_dict.update({ 'node1_count': item1.count, 'ovs_hugepage_mountpoint': item.mountpoint}) -%}
+                                {%- endif -%}
+                              {%- endfor -%}
+                            {%- endif -%}
+                          {%- endfor -%}
+                          {{ temp_dict }}"
+ovs_hugepage_mountpoint: "{{ ovs_numa['ovs_hugepage_mountpoint'] }}"
+
+ovs_data0:               "{{ dpdk_devices.openvswitch.devices[0].bus_address if (dpdk_devices is defined and dpdk_devices.openvswitch is defined) else '' }}"
+ovs_data1:               "{{ dpdk_devices.openvswitch.devices[1].bus_address if (dpdk_devices is defined and dpdk_devices.openvswitch is defined) else '' }}"
+
+ovs_dpdk_io_driver:      "{{ dpdk_devices.openvswitch.devices[0].driver if (dpdk_devices is defined and dpdk_devices.openvswitch is defined) else 'uio_pci_generic' }}"
+ovs_dpdk_def_mtu_size:   "{{ my_dpdk_interfaces[0].mtu if (my_dpdk_interfaces is defined and my_dpdk_interfaces[0].mtu is defined) else '2140' }}"
+
+css_custom_properties:   "{{ hostvars[inventory_hostname]['custom_properties']['css'] }}"
+ovs_non_pmd_cpus:        "{{ css_custom_properties.ovs_nonpmd | default('0')}}"
+ovs_pmd_cpus:            "{{ css_custom_properties.ovs_pmd | default('1')}}"
+ovs_pmd_cpus_ht:         "{{ css_custom_properties.ovs_pmd_ht | default('')}}"

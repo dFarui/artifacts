@@ -1,0 +1,45 @@
+---
+- name: Get container facts
+  become: true
+  kolla_container_facts:
+    name:
+      - rsyslog_log_aggregator
+  register: container_facts
+
+- name: Checking free port for local common logging
+  wait_for:
+    host: "{{ rsyslog_logic.local.common_log.bind.address }}"
+    port: "{{ rsyslog_logic.local.common_log.bind.port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - inventory_hostname in groups['rsyslog']
+
+- name: Checking free port for remote common logging
+  vars:
+    is_generator_forwarding: "{{ rsyslog_log_behavior.forward_logs }}"
+  wait_for:
+    host: "{{ rsyslog_logic.remote.common_log.bind.address }}"
+    port: "{{ rsyslog_logic.remote.common_log.bind.port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - container_facts['rsyslog_log_aggregator'] is not defined
+    - rsyslog_is_log_aggregator
+    - is_generator_forwarding
+
+- name: Checking free port for remote audit logging
+  vars:
+    is_generator_forwarding: "{{ rsyslog_log_behavior.forward_logs }}"
+  wait_for:
+    host: "{{ rsyslog_logic.remote.audit_log.bind.address }}"
+    port: "{{ rsyslog_logic.remote.audit_log.bind.port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - container_facts['rsyslog_log_aggregator'] is not defined
+    - rsyslog_is_log_aggregator
+    - is_generator_forwarding

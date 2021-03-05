@@ -1,0 +1,48 @@
+This role is specifically created to configure glusterfs cluster on CEE LCM nodes.
+It is not intended to be a generic role to cover various configuration options of glusterfs.
+The current implementation is based on the following assumptions:
+ - All cluster nodes are configured with the same type and number of storage devices
+      That is, the storage devices intended for glusterfs are assigned with the same device name
+      in each node. The devices with the same name serves exactly the same purpose in each node.
+ - All glusterfs volumes are replicated volumes, the replica count equals to the number of nodes
+ - Each volume uses exacly one brick in each node
+
+The role uses the following variables:
+
+  - gluster_interface
+      The interface intended to use for glusterfs data plane traffic. This parameter is configurable
+      per host.
+      Example:
+         gluster_interface: eth1
+
+  - gluster_address_family
+      This is a string parameter, the possible values are 'ipv4' and 'ipv6'
+      Example:
+         gluster_address_family: 'ipv4'
+
+  - gluster_bricks
+      This variable is a dictinary. The keys of the dictionary are name identifiers of the bricks
+      The values for the brick names are also dictionaries. Keys in the sub directories are
+         blockdev:     pointing to the block device the brick is created on
+         filesystem:   the filesystem that the brick uses
+         mountpoint:   the base directory where the brick is mounted. The actual mount poing is <base>/<brick_name>
+
+      Example:
+         gluster_bricks:
+           brick1:
+             blockdev: /dev/sdb
+             filesystem: xfs
+             mountpoint: /gluster_bricks
+
+      This example results in an xfs file system created on /dev/sdb, and the filesystem is mounted at
+      /gluster_bricks/brick1
+
+  - gluster_volumes
+      This variable is a dictinary. The keys of the dictionary are name identifiers of the volumes
+      The values are dictionaries, the possible keys in the sub dictionaries are:
+         brick:        The (single) brick that the volume is created on. It must be a valid name used in gluster_bricks
+
+      Example:
+         gluster_volumes:
+           infra:
+             brick: brick1

@@ -1,0 +1,8 @@
+---
+css_custom_properties: "{{ custom_properties.css | default({}) }}"
+
+pmd_cpus:
+  - "{{ css_custom_properties.ovs_pmd | default('') }}"
+  - "{{ css_custom_properties.ovs_pmd_ht | default('') }}"
+
+pmd_cpus_all: "{{ pmd_cpus | select('ne', '') | join(',') }}"

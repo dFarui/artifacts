@@ -1,0 +1,12 @@
+{{ ansible_managed | comment }}
+
+{% for imfile_input in log_file_writer_service.logging_rule_input.imfile_inputs %}
+input(
+    type="imfile"
+    file="{{ imfile_input.file }}"
+    tag="{{ imfile_input.tag }}"
+    severity="{{ imfile_input.severity }}"
+    facility="{{ imfile_input.facility }}"
+    ruleset="{{ rsyslog_logic.local.common_log.processing.rule_set.name }}"
+)
+{% endfor %}

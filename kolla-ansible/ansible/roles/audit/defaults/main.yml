@@ -1,0 +1,468 @@
+---
+project_name: "audit"
+audit_package_name: "audit"
+audit_systemd_service_name: "auditd"
+
+audit_service_config_dir_path: "/etc/{{ project_name }}"
+audit_service_rules_dir_path: "/etc/{{ project_name }}/rules.d"
+audit_dispatcher_config_dir_path: "/etc/audisp"
+
+audit_docker_runtime_dir_root: "{{ docker_runtime_directory or '/var/lib/docker' }}"
+
+# FIXME: these values are from CEE9, probably incorrect in CEE neXt
+audit_system_user_login_id_min: "1000"
+audit_normal_user_login_id_min: "1200"
+audit_normal_user_login_id_invalid: "-1"
+
+# NOTE: order matters, rules trigger only once, first comes first served.
+audit_rule_groups:
+  - filter_key: "neutron_config"
+    comment: "Audit Neutron config change"
+    rules:
+      - type: "watch"
+        path: "{{ node_config_directory }}/neutron-server/ml2_conf.ini"
+        permission_access_type:
+          - "read"
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "haproxy_config"
+    comment: "Audit HAProxy service-config change"
+    rules:
+      - type: "watch"
+        path: "{{ node_config_directory }}/haproxy/services.d"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "direct_vm_image_access"
+    comment: "Audit VM image read accesses"
+    rules:
+      - type: "watch"
+        path: "{{ audit_docker_runtime_dir_root }}/volumes/nova_compute/_data/instances"
+        permission_access_type:
+          - "read"
+        rule_fields:
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_normal_user_login_id_min }}"
+  - filter_key: "time_change"
+    comment: "Audit date and time changes"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+        syscalls:
+          - "adjtimex"
+          - "settimeofday"
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+        syscalls:
+          - "clock_settime"
+      - type: "watch"
+        path: "/etc/localtime"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "identity"
+    comment: "Audit user/group data changes"
+    rules:
+      - type: "watch"
+        path: "/etc/group"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/passwd"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/shadow"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "system_locale"
+    comment: "Audit system network changes"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+        syscalls:
+          - "setdomainname"
+          - "sethostname"
+      - type: "watch"
+        path: "/etc/hosts"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/networks"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/sysconfig/network"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "mac_policy"
+    comment: "Audit 'Mandatory Access Controls' (MAC) changes"
+    rules:
+      - type: "watch"
+        path: "/etc/selinux"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/apparmor"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/apparmor.d"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "logins"
+    comment: "Audit loging and logout changes"
+    rules:
+      - type: "watch"
+        path: "/var/log/lastlog"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/var/log/tallylog"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "session"
+    comment: "Audit session initiation data"
+    rules:
+      - type: "watch"
+        path: "/var/log/btmp"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/var/log/wtmp"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/var/run/utmp"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "perm_mod"
+    comment: "Audit discretionary access control permission modifications"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "chmod"
+          - "fchmod"
+          - "fchmodat"
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "chown"
+          - "fchown"
+          - "fchownat"
+          - "lchown"
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "fremovexattr"
+          - "fsetxattr"
+          - "lremovexattr"
+          - "lsetxattr"
+          - "removexattr"
+          - "setxattr"
+  - filter_key: "access"
+    comment: "Audit unsuccessful or unauthorized file access attempts"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+          - "exit=-EACCES"
+        syscalls:
+          - "creat"
+          - "ftruncate"
+          - "open"
+          - "openat"
+          - "truncate"
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+          - "exit=-EPERM"
+        syscalls:
+          - "creat"
+          - "ftruncate"
+          - "open"
+          - "openat"
+          - "truncate"
+  - filter_key: "mounts"
+    comment: "Audit file system mounts"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "mount"
+  - filter_key: "delete"
+    comment: "Audit file deletion by users"
+    rules:
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "unlink"
+          - "unlinkat"
+          - "rename"
+          - "renameat"
+  - filter_key: "scope"
+    comment: "Audit changes to system administration scope (sudoers)"
+    rules:
+      - type: "watch"
+        path: "/etc/sudoers"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/etc/sudoers.d"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "modules"
+    comment: "Audit kernel module loading and unloading"
+    rules:
+      - type: "watch"
+        path: "/sbin/insmod"
+        permission_access_type:
+          - "execute"
+        rule_fields: []
+      - type: "watch"
+        path: "/sbin/rmmod"
+        permission_access_type:
+          - "execute"
+        rule_fields: []
+      - type: "watch"
+        path: "/sbin/modprobe"
+        permission_access_type:
+          - "execute"
+        rule_fields: []
+      - type: "append_rule"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+        syscalls:
+          - "init_module"
+          - "delete_module"
+  - filter_key: "system_configuration_change"
+    comment: "Audit system confinguration changes"
+    rules:
+      - type: "watch"
+        path: "/etc"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "system_binary_change"
+    comment: "Audit system binaries changes"
+    rules:
+      - type: "watch"
+        path: "/bin"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/boot"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/lib"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/lib64"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/sbin"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+      - type: "watch"
+        path: "/usr"
+        permission_access_type:
+          - "write"
+          - "attribute"
+        rule_fields: []
+  - filter_key: "system_logs_access"
+    comment: "Audit system log access"
+    rules:
+      - type: "watch"
+        path: "/var/log"
+        permission_access_type:
+          - "read"
+          - "write"
+          - "attribute"
+        rule_fields:
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+      - type: "watch"
+        path: "{{ audit_docker_runtime_dir_root }}/volumes/cee_logging/_data"
+        permission_access_type:
+          - "read"
+          - "write"
+          - "attribute"
+        rule_fields:
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+  - filter_key: "privilege_escalation"
+    comment: "Audit privilege escalation binaries execution"
+    rules:
+      - type: "watch"
+        path: "/usr/bin/sudo"
+        permission_access_type:
+          - "execute"
+        rule_fields:
+          - "auid>={{ audit_normal_user_login_id_min }}"
+          - "uid>={{ audit_normal_user_login_id_min }}"
+      - type: "watch"
+        path: "/bin/su"
+        permission_access_type:
+          - "execute"
+        rule_fields: []
+  - filter_key: "privileged"
+    comment: "Audit execution of binaries with setuid"
+    rules:
+      - type: "batch_file_execution_append_rule"
+        paths_variable_name: "files_with_setuid_rights_flag"
+        actions:
+          - "always"
+          - "exit"
+        permission_access_type:
+          - "execute"
+        rule_fields:
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "all"
+  - filter_key: "audit_trail"
+    comment: "Audit command executions by users"
+    rules:
+      - type: "append_rule"
+        paths_variable_name: "files_with_setuid_rights_flag"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "execve"
+  - filter_key: "process_termination_syscall"
+    comment: "Audit process termination syscalls"
+    rules:
+      - type: "append_rule"
+        paths_variable_name: "files_with_setuid_rights_flag"
+        actions:
+          - "always"
+          - "exit"
+        rule_fields:
+          - "arch=b64"
+          - "auid!={{ audit_normal_user_login_id_invalid }}"
+          - "auid>={{ audit_system_user_login_id_min }}"
+        syscalls:
+          - "kill"
+          - "tkill"
+          - "tgkill"
+
+audit_rule_type_to_option:
+  append_rule: "-a"
+  batch_file_execution_append_rule: "-a"
+  watch: "-w"
+
+audit_rule_permission_access_type_to_option:
+  attribute: "a"
+  execute: "x"
+  read: "r"
+  write: "w"

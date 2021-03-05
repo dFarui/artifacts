@@ -1,0 +1,209 @@
+---
+hostname_full: "{{ ansible_nodename }}"
+project_name: "watchmen"
+
+watchmen_services:
+  watchmen-api:
+    container_name: "watchmen_api"
+    group: "watchmen-api"
+    enabled: "{{ enable_watchmen | bool }}"
+    image: "{{ watchmen_api_image_full }}"
+    volumes: "{{ watchmen_api_default_volumes + watchmen_api_extra_volumes }}"
+    dimensions: "{{ watchmen_api_dimensions }}"
+    haproxy:
+      watchmen-api:
+        enabled: "{{ enable_watchmen }}"
+        mode: "http"
+        external: false
+        port: "{{ watchmen_api_port }}"
+        listen_port: "{{ watchmen_api_listen_port }}"
+      watchmen_api_external:
+        enabled: "{{ enable_watchmen }}"
+        mode: "http"
+        external: true
+        port: "{{ watchmen_api_port }}"
+        listen_port: "{{ watchmen_api_listen_port }}"
+  watchmen-consumer:
+    container_name: "watchmen_consumer"
+    group: "watchmen-consumer"
+    enabled: "{{ enable_watchmen | bool }}"
+    image: "{{ watchmen_consumer_image_full }}"
+    volumes: "{{ watchmen_consumer_default_volumes + watchmen_consumer_extra_volumes }}"
+    dimensions: "{{ watchmen_consumer_dimensions }}"
+  watchmen-snmpagent:
+    container_name: "watchmen_snmpagent"
+    group: "watchmen-snmpagent"
+    enabled: "{{ enable_watchmen | bool }}"
+    image: "{{ watchmen_snmpagent_image_full }}"
+    volumes: "{{ watchmen_snmpagent_default_volumes + watchmen_snmpagent_extra_volumes }}"
+    dimensions: "{{ watchmen_snmpagent_dimensions }}"
+  watchmen-webhook:
+    container_name: "watchmen_webhook"
+    group: "watchmen-webhook"
+    enabled: "{{ enable_watchmen | bool }}"
+    image: "{{ watchmen_webhook_image_full }}"
+    volumes: "{{ watchmen_webhook_default_volumes + watchmen_webhook_extra_volumes }}"
+    dimensions: "{{ watchmen_webhook_dimensions }}"
+    haproxy:
+      watchmen-webhook:
+        enabled: "{{ enable_watchmen }}"
+        mode: "http"
+        external: false
+        port: "{{ watchmen_webhook_port }}"
+        listen_port: "{{ watchmen_webhook_listen_port }}"
+
+watchmen_group_name: "watchmen"
+watchmen_service_log_level: "info"
+watchmen_client_package_name: "watchmen-client"
+
+####################
+# Watchmen TLS
+####################
+# Only enable this variable when the functionality is actually needed, don't config Watchmen with a fake path
+# watchmen_cafile: "/full/qualified/path/to/CAs/certificates"
+
+####################
+# Watchmen Database
+####################
+watchmen_database_user: "{% if use_preconfigured_databases | bool and use_common_mariadb_user | bool %}{{ database_user }}{% else %}watchmen{% endif %}"
+watchmen_database_address: "{{ database_address | put_address_in_context('url') }}:{{ database_port }}"
+watchmen_database_name: "watchmen"
+watchmen_database_connection: "mysql+pymysql://{{ watchmen_database_user }}:{{ watchmen_database_password }}@{{ watchmen_database_address }}/{{ watchmen_database_name }}"
+watchmen_unified_alarm_alert_sequence_no: "True"
+
+####################
+# Watchmen Keystone
+####################
+watchmen_keystone_auth: "{{ openstack_auth }}"
+watchmen_keystone_auth_url: "{{ keystone_internal_url }}/v3"
+watchmen_keystone_user: "watchmen"
+watchmen_keystone_default_role: "watchmen"
+
+watchmen_api_admin_endpoint: "{{ admin_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ watchmen_api_port }}/v1"
+watchmen_api_internal_endpoint: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ watchmen_api_port }}/v1"
+watchmen_api_public_endpoint: "{{ public_protocol }}://{{ kolla_external_fqdn | put_address_in_context('url') }}:{{ watchmen_api_port }}/v1"
+
+watchmen_keystone_services:
+  - name: "watchmen"
+    type: "fm"
+    description: "Ericsson Fault Management"
+    endpoints:
+      - {'interface': 'admin', 'url': '{{ watchmen_api_admin_endpoint }}'}
+      - {'interface': 'internal', 'url': '{{ watchmen_api_internal_endpoint }}'}
+      - {'interface': 'public', 'url': '{{ watchmen_api_public_endpoint }}'}
+
+watchmen_keystone_users:
+  - project: "service"
+    user: "{{ watchmen_keystone_user }}"
+    password: "{{ watchmen_keystone_password }}"
+    role: "admin"
+
+watchmen_keystone_roles:
+  - "{{ watchmen_keystone_default_role }}"
+
+####################
+# Watchmen API
+####################
+watchmen_api_logging_conf: "/etc/watchmen/watchmen-api-logging.conf"
+watchmen_api_listen_address: "{{ api_interface_address }}"
+
+####################
+# Watchmen Consumer
+####################
+watchmen_consumer_logging_conf: "/etc/watchmen/watchmen-consumer-logging.conf"
+watchmen_consumer_ampq_topic_name: "watchmen"
+watchmen_consumer_ampq_target_name: "server1"
+watchmen_consumer_snmp_heartbeat_interval: "60"
+watchmen_consumer_snmp_trap_sender_worker_number: "1"
+watchmen_consumer_alarm_gc_check_period: "60"
+watchmen_consumer_keep_alarms_timeout: "1800"
+watchmen_consumer_setup_logging_conf: "{{ watchmen_consumer_logging_conf }}"
+watchmen_consumer_startup_aal_synchronization_delay: "5"
+
+####################
+# Watchmen Producer
+####################
+watchmen_producer_ampq_topic_name: "{{ watchmen_consumer_ampq_topic_name }}"
+watchmen_producer_ampq_target_name: "{{ watchmen_consumer_ampq_target_name }}"
+
+#####################
+# Watchmen SNMP-Agent
+#####################
+watchmen_snmpagent_logging_conf: "/etc/watchmen/watchmen-snmpagent-logging.conf"
+watchmen_snmpagent_listen_address: "{{ kolla_external_vip_address }}"
+watchmen_snmpagent_community_name: "traps"
+watchmen_snmpagent_security_model:
+  - "2"
+  - "3"
+watchmen_snmpagent_v3_user: "test-user"
+watchmen_snmpagent_v3_auth_key: "authkey1"
+watchmen_snmpagent_v3_priv_key: "privkey1"
+watchmen_snmpagent_mib_refresh_interval: "3"
+
+#####################
+# Watchmen Webhook
+#####################
+watchmen_webhook_logging_conf: "/etc/watchmen/watchmen-webhook-logging.conf"
+watchmen_webhook_number_of_workers: "1"
+watchmen_webhook_listen_address: "{{ api_interface_address }}"
+prometheus_alertmanager_v2_alerts_url: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ prometheus_alertmanager_port }}/api/v2/alerts"
+
+####################
+# RabbitMQ
+####################
+
+# TODO: remove duplication
+# (same values in:
+#   cee_config_model/v1/generators/5_system_1_watchmen_rabbitmq_params.py
+# )
+watchmen_rpc_user: "watchmen"
+watchmen_rpc_password: "{{ watchmen_rabbitmq_password }}"
+watchmen_rpc_group_name: "{{ om_rpc_group }}"
+watchmen_rpc_vhost: "watchmen_vhost"
+
+watchmen_rpc_rabbitmq_users:
+  - user: "{{ watchmen_rpc_user }}"
+    password: "{{ watchmen_rpc_password }}"
+    vhost: "{{ watchmen_rpc_vhost }}"
+
+####################
+# Docker
+####################
+watchmen_install_type: "{{ kolla_install_type }}"
+watchmen_tag: "{{ openstack_release }}"
+
+watchmen_api_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ watchmen_install_type }}-watchmen-api"
+watchmen_api_tag: "{{ watchmen_tag }}"
+watchmen_api_image_full: "{{ watchmen_api_image }}:{{ watchmen_api_tag }}"
+watchmen_api_dimensions: "{{ default_container_dimensions }}"
+watchmen_api_default_volumes:
+  - "{{ node_config_directory }}/watchmen-api/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+watchmen_api_extra_volumes: "{{ default_extra_volumes }}"
+
+watchmen_consumer_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ watchmen_install_type }}-watchmen-consumer"
+watchmen_consumer_tag: "{{ watchmen_tag }}"
+watchmen_consumer_image_full: "{{ watchmen_consumer_image }}:{{ watchmen_consumer_tag }}"
+watchmen_consumer_dimensions: "{{ default_container_dimensions }}"
+watchmen_consumer_default_volumes:
+  - "{{ node_config_directory }}/watchmen-consumer/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+watchmen_consumer_extra_volumes: "{{ default_extra_volumes }}"
+
+watchmen_snmpagent_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ watchmen_install_type }}-watchmen-snmpagent"
+watchmen_snmpagent_tag: "{{ watchmen_tag }}"
+watchmen_snmpagent_image_full: "{{ watchmen_snmpagent_image }}:{{ watchmen_snmpagent_tag }}"
+watchmen_snmpagent_dimensions: "{{ default_container_dimensions }}"
+watchmen_snmpagent_default_volumes:
+  - "{{ node_config_directory }}/watchmen-snmpagent/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+watchmen_snmpagent_extra_volumes: "{{ default_extra_volumes }}"
+
+watchmen_webhook_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ watchmen_install_type }}-watchmen-webhook"
+watchmen_webhook_tag: "{{ watchmen_tag }}"
+watchmen_webhook_image_full: "{{ watchmen_webhook_image }}:{{ watchmen_webhook_tag }}"
+watchmen_webhook_dimensions: "{{ default_container_dimensions }}"
+watchmen_webhook_default_volumes:
+  - "{{ node_config_directory }}/watchmen-webhook/:{{ container_config_directory }}/:ro"
+  - "/etc/localtime:/etc/localtime:ro"
+watchmen_webhook_extra_volumes: "{{ default_extra_volumes }}"

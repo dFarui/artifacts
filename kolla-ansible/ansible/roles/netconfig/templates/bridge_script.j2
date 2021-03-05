@@ -1,0 +1,31 @@
+{% include 'ifscript_header.j2' %}
+
+{% if item.mtu is defined %}
+  $POST_UP || ip link set dev {{ item.device }} mtu {{ item.mtu }} || true
+{% endif %}
+{% for i in routes %}
+{% if item.device == i.device %}
+ $POST_UP || route add -net {{ i.network }} netmask {{ i.netmask }} gw {{ i.gateway }} dev {{ i.device }} || true
+ $PRE_DOWN || route delete -net {{ i.network }} netmask {{ i.netmask }} gw {{ i.gateway }} dev {{ i.device }} || true
+{% endif %}
+{% endfor %}
+{% if item.routing_table is defined %}
+{% if item.address is defined %}
+{% if item.gateway is defined %}
+  $POST_UP || ip route add default via {{ item.gateway }} table {{ item.routing_table }} || true
+  $PRE_DOWN || ip route delete default via {{ item.gateway }} table {{ item.routing_table }} || true
+{% if item.cidr is defined %}
+  $POST_UP || ip route add {{ item.cidr }} dev {{ item.device }} table {{ item.routing_table }} || true
+  $PRE_DOWN || ip route delete {{ item.cidr }} dev {{ item.device }} table {{ item.routing_table }} || true
+{% endif %}
+  $POST_UP || ip rule add from {{ item.address }} table {{ item.routing_table }} || true
+  $PRE_DOWN || ip rule delete from {{ item.address }} table {{ item.routing_table }} || true
+{% if item.vips is defined %}
+{% for vip in item.vips %}
+  $POST_UP || ip rule add from {{ vip }} table {{ item.routing_table }} || true
+  $PRE_DOWN || ip rule delete from {{ vip }} table {{ item.routing_table }} || true
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

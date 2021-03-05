@@ -1,0 +1,4 @@
+---
+- include_tasks: gather_group_facts.yml
+
+- include_tasks: deploy.yml

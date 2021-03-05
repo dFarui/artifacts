@@ -1,0 +1,20 @@
+# Create tags on the branches
+# Parameters:
+#   repo: /var/lib/cee/system/<system_name>
+#   timestamp: 20150101T001020Z
+#   branches:
+#     - system
+#     - system-persistent-data
+#     - system-data
+---
+
+- name: Create timestamped tags on branches
+  shell: >
+    {% for branch in branches %}
+        if ! git rev-parse --verify "deployment-{{ timestamp }}-{{ branch }}" ; then
+            git tag "deployment-{{ timestamp }}-{{ branch }}" {{ branch | quote }}
+        fi &&
+    {% endfor %}
+    true
+  args:
+    chdir: "{{ repo }}"

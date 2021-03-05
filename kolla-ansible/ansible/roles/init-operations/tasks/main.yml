@@ -1,0 +1,5 @@
+# Copy the ansible configuration file
+---
+- include: initialize_git.yml
+  when: create_system
+- include: fetch_source.yml

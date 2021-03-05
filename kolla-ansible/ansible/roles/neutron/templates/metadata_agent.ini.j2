@@ -1,0 +1,11 @@
+# metadata_agent.ini
+[DEFAULT]
+{% if 'OpenStack Mitaka' in software_release %}
+nova_metadata_ip = {{ nova_internal_fqdn }}
+{% else %}
+nova_metadata_host = {{ nova_internal_fqdn }}
+{% endif %}
+
+nova_metadata_port = {{ nova_metadata_port }}
+metadata_proxy_shared_secret = {{ metadata_secret }}
+nova_metadata_protocol = {{ internal_protocol }}

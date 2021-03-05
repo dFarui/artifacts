@@ -1,0 +1,25 @@
+---
+- name: Prepare and setup backup/restore service
+  include_tasks: "{{ kolla_action }}.yml"
+  when: kolla_action is defined and kolla_action == "deploy"
+
+- name: Set backup variables
+  set_fact:
+    dynamic_db_info:
+      host: "{{ lcm_network.vip }}"
+      port: "{{ database_port }}"
+  when: brf_action is defined
+
+- name: Get host group for cluster {{ cluster_name }}
+  set_fact:
+    brf_group: "mariadb"
+
+- name:  Run {{ brf_action }} operation for {{ cluster_name }}
+  include_tasks: "{{ brf_action }}.yml"
+  vars:
+    brf_group: "mariadb"
+    domain_data: "{{ brf.domains | selectattr('name', 'equalto', brf_domain) | list }}"
+    backup_db_info: "{{ backup_db_credentials | combine(dynamic_db_info) }}"
+    mariadb_count: "{{ groups[brf_group] | count }}"
+    mariadb_image: "{{ docker_registry }}/{{ docker_namespace }}/sles-binary-mariadb:{{ mariadb_tag }}"
+  when: brf_action is defined

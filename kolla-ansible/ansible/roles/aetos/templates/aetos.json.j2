@@ -1,0 +1,17 @@
+{
+    "command": "/usr/bin/aetos",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/aetos.conf",
+            "dest": "/etc/aetos/aetos.conf",
+            "owner": "root:{{ aetos_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/aetos-logging.conf",
+            "dest": "/etc/aetos/aetos-logging.conf",
+            "owner": "root:{{ aetos_group_name }}",
+            "perm": "0640"
+        }
+    ]
+}

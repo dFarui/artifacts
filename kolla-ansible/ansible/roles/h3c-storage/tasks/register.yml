@@ -1,0 +1,30 @@
+---
+- import_role:
+    name: service-ks-register
+  vars:
+    service_ks_register_auth: "{{ openstack_cinder_auth }}"
+    service_ks_register_services: "{{ cinder_ks_services }}"
+    service_ks_register_users: "{{ cinder_ks_users }}"
+  tags: always
+
+- name: Retrieve cinder user id from keystone
+  kolla_toolbox:
+    module_name: os_user_info
+    module_args:
+      name: "{{ cinder_keystone_user }}"
+      auth: "{{ openstack_cinder_auth }}"
+      endpoint_type: "{{ openstack_interface }}"
+      cacert: "{{ openstack_cacert }}"
+  register: os_user
+  run_once: true
+
+- name: Retrieve service project id from keystone
+  kolla_toolbox:
+    module_name: os_project_info
+    module_args:
+      name: service
+      auth: "{{ openstack_cinder_auth }}"
+      endpoint_type: "{{ openstack_interface }}"
+      cacert: "{{ openstack_cacert }}"
+  register: os_project
+  run_once: true

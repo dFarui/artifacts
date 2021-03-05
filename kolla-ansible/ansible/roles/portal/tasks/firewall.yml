@@ -1,0 +1,9 @@
+---
+- name: Enable Portal in the firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "{{ portal_listen_port }}/tcp"

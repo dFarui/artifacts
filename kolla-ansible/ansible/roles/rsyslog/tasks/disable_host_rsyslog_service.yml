@@ -1,0 +1,17 @@
+---
+- name: Collect facts about system services
+  service_facts:
+
+- name: Stop RSYSLOG service on host node
+  become: True
+  service:
+    name: "{{ rsyslog_host_service_name }}"
+    state: stopped
+  when: rsyslog_host_service_name in ansible_facts.services
+
+- name: Mask RSYSLOG service on host node
+  become: True
+  systemd:
+    name: "{{ rsyslog_host_service_name }}"
+    masked: yes
+  when: rsyslog_host_service_name in ansible_facts.services

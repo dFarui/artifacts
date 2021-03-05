@@ -1,0 +1,22 @@
+#!/bin/bash
+{{ file_marker }}
+PARAM_ACTION=$1
+PARAM_INTERFACE=$2
+
+PRE_UP=true
+POST_UP=true
+PRE_DOWN=true
+POST_DOWN=true
+
+if [ "$PARAM_ACTION" == "pre-up" ]; then
+  PRE_UP=false
+fi
+if [ "$PARAM_ACTION" == "post-up" ]; then
+  POST_UP=false
+fi
+if [ "$PARAM_ACTION" == "pre-down" ]; then
+  PRE_DOWN=false
+fi
+if [ "$PARAM_ACTION" == "post-down" ]; then
+  POST_DOWN=false
+fi

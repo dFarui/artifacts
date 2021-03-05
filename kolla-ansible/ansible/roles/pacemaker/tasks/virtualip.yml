@@ -1,0 +1,52 @@
+---
+- name: Configure Virtual IP resource
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_resource
+    name: "{{ item.key }}"
+    type: primitive
+    agent: "ocf:heartbeat:IPaddr2"
+    parameter:
+      ip: "{{ item.value.ip }}"
+      cidr_netmask: "{{ item.value.cidr }}"
+    operation: "{{ item.value.operation }}"
+    meta: "{{ item.value.meta }}"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "item.value.enable"
+  with_dict: "{{ virtual_ip }}"
+
+- name: Add Virtual IP role attribute to the nodes
+  become: True
+  throttle: 1
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ hostvars[inventory_hostname]['hostname_full'] }}"
+    attribute: "{{ item.key }}-role"
+    value: "true"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "item.value.enable"
+  with_dict: "{{ virtual_ip }}"
+
+- name: Add location constraint for the Virtual IP resource
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ item.key }}"
+    resource: "{{ item.key }}"
+    attribute:
+      resource-discovery: exclusive
+    rules: "rule 100: {{ item.key }}-role eq true"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "item.value.enable"
+  with_dict: "{{ virtual_ip }}"

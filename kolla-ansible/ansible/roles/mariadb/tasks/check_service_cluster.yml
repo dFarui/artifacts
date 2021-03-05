@@ -1,0 +1,18 @@
+---
+- name: Check MariaDB service WSREP sync status on {{ item }}
+  delegate_to: "{{ item }}"
+  become: true
+  command: >-
+    docker exec {{ mariadb_service.container_name }}
+    mysql -uroot -p{{ database_password }}
+    --silent --skip-column-names
+    -e 'SHOW STATUS LIKE "wsrep_local_state_comment"'
+  changed_when: false
+  register: check_mariadb_sync_status
+  until:
+    - check_mariadb_sync_status.stdout.split('\t')[1] is defined
+    - check_mariadb_sync_status.stdout.split('\t')[1].find("Synced") != -1
+  retries: 30
+  delay: 5
+  no_log: true
+  loop: "{{ groups[project_name] }}"

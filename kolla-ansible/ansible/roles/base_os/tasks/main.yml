@@ -1,0 +1,173 @@
+---
+- name: Ensure clean filesystem
+  become: true
+  filesystem:
+    dev: "{{volume.device}}"
+    fstype: "{{volume.fstype}}"
+    force: yes
+    opts: "{{volume.mkfsOptions |d('')}}"
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+  when:
+  - "'device' in volume"
+  - "volume.fstype is defined"
+
+- name: Ensure installroot
+  become: true
+  file:
+   path: "{{installroot}}"
+   state: directory
+
+- name: Mount / under {{ installroot }}
+  become: true
+  mount:
+    src: "{{ volume.device }}"
+    path: "{{ installroot }}{{ volume.mount }}"
+    fstype: "{{ volume.fstype }}"
+    state: mounted
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+  when:
+  - "'device' in volume"
+  - "volume.mount is defined"
+  - "volume.mount == '/'"
+
+- include_tasks: nested_btrfs_subvolume_loop.yml
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+
+- name: Mount remaining volumes under {{ installroot }}
+  become: true
+  mount:
+    src: "{{ volume.device }}"
+    path: "{{ installroot }}{{ volume.mount }}"
+    fstype: "{{ volume.fstype }}"
+    state: mounted
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+  when:
+  - "'device' in volume"
+  - "volume.mount is defined"
+  - "volume.mount != '/'"
+
+- name: Install suse products
+  become: true
+  zypper:
+   name: "{{suse_base_products}}"
+   type: product
+   state: installed
+   extra_args_precommand: "--installroot {{installroot}}"
+  tags:
+  - install
+
+- name: Install suse patterns
+  become: true
+  zypper:
+   name: "{{suse_base_patterns}}"
+   type: pattern
+   state: installed
+   extra_args_precommand: "--installroot {{installroot}}"
+  tags:
+  - install
+
+- name: Install suse packages
+  become: true
+  zypper:
+   name: "{{suse_base_packages}}"
+   type: package
+   state: installed
+   extra_args_precommand: "--installroot {{installroot}}"
+  tags:
+  - install
+
+- name: Ensure chroot init
+  become: true
+  file:
+   path: "/chroot_init"
+   state: directory
+  tags:
+  - chroot
+
+- name: Run chroot init
+  become: true
+  script: init.sh {{ installroot | quote }} {{ host_username | quote }} {{ host_password | quote }}
+  tags:
+  - chroot
+  - install
+
+- name: Reset ssh connection
+  meta: reset_connection
+
+- name: Wait for ssh to come online
+  wait_for_connection:
+    delay: 10
+    timeout: 240
+
+- name: Create GRUB config
+  become: true
+  template:
+    src: grub.j2
+    dest: /etc/default/grub
+  register: grub_mod
+
+- name: Update GRUB
+  become: true
+  command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  when: grub_mod.changed
+
+- name: Install GRUB to MBR on all disks
+  become: true
+  command: "/usr/sbin/grub2-install {{disk.devpath}}"
+  loop: "{{ local_disk_config.drives }}"
+  loop_control:
+    loop_var: disk
+
+- name: Remove existing fstab
+  become: true
+  file:
+    path: "/etc/fstab"
+    state: absent
+
+- name: Create fstab with only / mount
+  become: true
+  mount:
+    src: "{{volume.device}}"
+    path: "{{volume.mount}}"
+    fstype: "{{volume.fstype}}"
+    state: present
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+  when:
+  - "'device' in volume"
+  - "volume.fstype is defined"
+  - "volume.mount is defined"
+  - "volume.mount == '/'"
+
+- include_tasks: nested_btrfs_fstab_loop.yml
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+
+- name: Update fstab with remaining mounts
+  become: true
+  mount:
+    src: "{{volume.device}}"
+    path: "{{volume.mount}}"
+    fstype: "{{volume.fstype}}"
+    state: present
+  loop: "{{ local_disk_config.volumes }}"
+  loop_control:
+    loop_var: volume
+  when:
+  - "'device' in volume"
+  - "volume.fstype is defined"
+  - "volume.mount is defined"
+  - "volume.mount != '/'"
+
+- name: Reload facts
+  setup:

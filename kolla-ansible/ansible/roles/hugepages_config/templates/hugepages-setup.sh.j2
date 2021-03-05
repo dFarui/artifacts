@@ -1,0 +1,22 @@
+{#
+#
+#}
+#!/bin/sh
+#
+# rc.local
+#
+
+# set the number of hugepages on a node
+if mkdir /dev/shm/hugepage-service; then
+  echo "Creating node-specific huge pages."
+  {% for item in numa_huge_pages %}
+    nodedir='/sys/devices/system/node/node{{ item.numa_node }}'
+    hugepages='hugepages/hugepages-{{ item.size_in_k }}kB/nr_hugepages'
+    old_page_count=`cat $nodedir/$hugepages`
+    new_page_count={{ item.count }}
+    echo $new_page_count > $nodedir/$hugepages
+  {% endfor %}
+  exit 0
+fi
+echo "Service has been run previously. Do nothing."
+exit 0

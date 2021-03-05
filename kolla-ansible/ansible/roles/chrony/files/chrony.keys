@@ -1,0 +1,5 @@
+ntp_keys:
+  1:
+    hash_algorithm: "SHA512"
+    input_format: "HEX"
+    hash: "EC290CEB32DD7FE0AAAF52953809744145E774A1"

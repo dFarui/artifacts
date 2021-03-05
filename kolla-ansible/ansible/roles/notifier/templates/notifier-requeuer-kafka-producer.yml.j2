@@ -1,0 +1,6 @@
+bootstrap.servers: {{ notifier_kafka_bootstrap_servers }}
+auto.offset.reset: earliest
+security.protocol: SASL_PLAINTEXT
+sasl.mechanism: PLAIN
+sasl.username: {{ kafka_admin_username }}
+sasl.password: {{ kafka_admin_password }}

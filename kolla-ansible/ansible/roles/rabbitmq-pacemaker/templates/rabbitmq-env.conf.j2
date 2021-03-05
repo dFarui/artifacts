@@ -1,0 +1,42 @@
+#jinja2: trim_blocks:False
+{%- set erl_dist_proto_ip_family = 'inet6' if api_address_family == 'ipv6' else 'inet' -%}
+{%- set erl_dist_proto_transport = 'tls' if rabbitmq_tls_enable | default | bool else 'tcp' -%}
+{%- set erl_dist_proto = erl_dist_proto_ip_family ~ '_' ~ erl_dist_proto_transport -%}
+{%- macro erl_tls_args() -%}
+{%- if rabbitmq_tls_enable | default | bool %}
+  -pa $ERL_SSL_PATH \
+  -ssl_dist_opt $RABBITMQ_SSL_DIST_OPT \
+{%- endif -%}
+{%- endmacro -%}
+{%- if rabbitmq_tls_enable | default | bool -%}
+ERL_SSL_PATH={{ erl_tls_path.stdout }}
+RABBITMQ_SSL_DIST_OPT="\
+  versions                    {{ rabbitmq_tls_versions | join(':') }} \
+  server_cacertfile           {{ rabbitmq_tls_cacertfile }} \
+  server_certfile             {{ rabbitmq_tls_certfile }} \
+  server_keyfile              {{ rabbitmq_tls_keyfile }} \
+  server_verify               {{ rabbitmq_tls_verify }} \
+  server_fail_if_no_peer_cert {{ rabbitmq_tls_fail_if_no_peer_cert }} \
+  server_ciphers              {{ rabbitmq_tls_ciphers | join(':') }} \
+  client_cacertfile           {{ rabbitmq_tls_cacertfile }} \
+  client_verify               {{ rabbitmq_tls_verify }}"
+{% endif -%}
+RABBITMQ_NODENAME={{ rabbitmq_services[project_name]['hostname_prefix'] }}{{ hostname }}
+RABBITMQ_DIST_PORT={{ role_rabbitmq_cluster_port }}
+RABBITMQ_PID_FILE={{ rabbitmq_pid_file }}
+RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="\
+{{- erl_tls_args() }}
+  -kernel inetrc '/etc/rabbitmq/erl_inetrc' {{ rabbitmq_server_additional_erl_args }} \
+  -proto_dist {{ erl_dist_proto }}"
+RABBITMQ_CTL_ERL_ARGS="\
+{{- erl_tls_args() }}
+  -proto_dist {{ erl_dist_proto }}"
+LANG=en_US.UTF-8
+LC_ALL=en_US.UTF-8
+
+export ERL_EPMD_ADDRESS={{ api_interface_address }}
+export ERL_EPMD_PORT={{ role_rabbitmq_epmd_port }}
+export ERL_INETRC=/etc/rabbitmq/erl_inetrc
+export LANG LC_ALL
+
+unset RABBITMQ_NODE_PORT

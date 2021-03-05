@@ -1,0 +1,6 @@
+---
+- name: Soft rebooting the node
+  become: yes
+  reboot:
+    reboot_timeout: 900
+  when: power_state == "soft_reboot"

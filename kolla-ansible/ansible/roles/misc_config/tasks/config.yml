@@ -1,0 +1,32 @@
+---
+# set hostname
+- name: Set native hostname
+  become: yes
+  hostname: name={{ hostname_full }}
+  when: hostname_full is defined
+
+- name: Set native hostname in kernel
+  become: yes
+  sysctl:
+    name: kernel.hostname
+    value: "{{ hostname_full }}"
+    sysctl_set: yes
+  when: hostname_full is defined
+
+- name: Set default python interpreter
+  become: yes
+  alternatives:
+    name: python
+    link: /usr/bin/python
+    path: /usr/bin/python3
+    priority: 1
+
+- name: Ensure correct python interpreter
+  become: yes
+  command: update-alternatives --auto python
+
+- name: Start sys-kernel-config.mount
+  become: yes
+  systemd:
+    state: restarted
+    name: sys-kernel-config.mount

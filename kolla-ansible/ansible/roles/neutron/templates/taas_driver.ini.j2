@@ -1,0 +1,10 @@
+{% if enable_neutron_taas | bool %}
+[taas]
+driver = neutron_taas.services.taas.drivers.linux.ovs_taas.OvsTaasDriver
+enabled = True
+
+[service_providers]
+# Defines providers for advanced services using the format:
+# <service_type>:<name>:<driver>[:default] (multi valued)
+service_provider = TAAS:TAAS:neutron_taas.services.taas.service_drivers.taas_rpc.TaasRpcDriver:default
+{% endif %}

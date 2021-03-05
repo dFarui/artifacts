@@ -1,0 +1,6 @@
+#
+# Host Operating System Configuration
+#
+---
+- import_playbook: common-provision-tasks.yml
+- import_playbook: provision-lcm-hosts.yml

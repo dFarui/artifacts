@@ -1,0 +1,7 @@
+---
+mkfs_tools:
+  btrfs: "btrfsprogs"
+  ext2:  "e2fsprogs"
+  ext3:  "e2fsprogs"
+  ext4:  "e2fsprogs"
+  xfs:   "xfsprogs"

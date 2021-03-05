@@ -1,0 +1,25 @@
+{
+    "command": "nova-scheduler",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/nova.conf",
+            "dest": "/etc/nova/nova.conf",
+            "owner": "nova",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/cpu_map.xml",
+            "dest": "/etc/nova/cpu_map.xml",
+            "owner": "nova",
+            "perm": "0600",
+            "optional": "{{ 'OpenStack Mitaka' not in software_release }}"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/log/kolla/nova",
+            "owner": "nova:nova",
+            "recurse": true
+        }
+    ]
+}

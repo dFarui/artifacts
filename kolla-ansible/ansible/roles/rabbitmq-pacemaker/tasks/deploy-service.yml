@@ -1,0 +1,197 @@
+---
+- name: Creating RabbitMQ volume
+  become: true
+  kolla_docker:
+    action: "create_volume"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ project_name }}"
+  register: rabbitmq_volume
+
+- name: Creating Docker resource for RabbitMQ
+  vars:
+    service_name: "rabbitmq"
+    service: "{{ rabbitmq_services[service_name] }}"
+    volumes: >-
+      {% set volumes = [] -%}
+      {% for volume in service['volumes'] -%}
+        {% if volume -%}
+          {% if volume[0] != '/' and volume.split(':') | length == 2 -%}
+            {% set elem = volume ~ ':rw' -%}
+            {{ volumes.append(elem) -}}
+          {% else -%}
+            {{ volumes.append(volume) -}}
+          {% endif -%}
+        {% endif -%}
+      {% endfor -%}
+      {{ volumes | map('regex_replace', '(.*)', '-v \1') | join(' ') -}}
+    kolla_environment:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      KOLLA_SERVICE_NAME: "{{ service_name }}"
+    pacemaker_environment:
+      PCMK_remote_port: "{{ service.pacemaker.remote_port }}"
+      PCMK_authkey_location: "{{ rabbitmq_pacemaker_authkey_destination }}"
+      PCMK_logfile: "{{ service.pacemaker.logfile }}"
+    service_environment: >-
+      {% set service_environment = [] -%}
+      {% for key, value in kolla_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {% for key, value in pacemaker_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {{ service_environment | map('regex_replace', '(.*)', '-e \1') | join(' ') -}}
+    meta:
+      remote-node: "{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+      remote-port: "{{ service.pacemaker.remote_port }}"
+      remote-addr: "{{ 'api' | kolla_address(item) }}"
+      remote-connect-timeout: "30s"
+    cgroup_parent: "{{ '--cgroup-parent=' ~ service['dimensions']['cgroup_parent'] if 'cgroup_parent' in service['dimensions'] else '' }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_resource
+    name: "c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    type: primitive
+    agent: "ocf:heartbeat:docker"
+    parameter:
+      image: "{{ service.image }}"
+      name: "{{ service_name }}"
+      allow_pull: "true"
+      run_opts: "--user=root --net=host {{ service_environment }} {{ volumes }} {{ cgroup_parent }} --cap-add NET_ADMIN --label service-component={{ service_name }}"
+      run_cmd: "kolla_start"
+      monitor_cmd: "/usr/bin/true"
+      force_kill: "false"
+      reuse: "1"
+    operation: "{{ service.pacemaker.resource.container.operation }}"
+    meta: "{{ meta | combine(service.pacemaker.resource.container.meta) }}"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Define Pacemaker node for the RabbitMQ container
+  vars:
+    service_name: "rabbitmq"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_node
+    name: "{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    type: "remote"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Restricting RabbitMQ container location
+  vars:
+    service_name: "rabbitmq"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    resource: "c_{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "100: {{ hostvars[item]['hostname_full'] }}"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Construct cluster host map for RabbitMQ
+  vars:
+    service_name: "rabbitmq"
+  set_fact:
+    rabbitmq_cluster_host_map: >-
+      {% set rabbitmq_cluster_host_map = [] -%}
+      {% for host in groups[service_name] -%}
+        {% set elem = service_name ~ '-' ~ (groups[service_name].index(host) + 1) ~ ':' ~ host -%}
+        {{ rabbitmq_cluster_host_map.append(elem) -}}
+      {% endfor -%}
+      {{ rabbitmq_cluster_host_map | join(';') -}}
+  run_once: True
+  changed_when: false
+
+- name: Creating RabbitMQ resource
+  vars:
+    service_name: "rabbitmq"
+    service: "{{ rabbitmq_services[service_name] }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+    type: primitive
+    agent: "ocf:rabbitmq:rabbitmq-server-ha"
+    operation: "{{ service.pacemaker.resource.rabbitmq.operation }}"
+    meta: "{{ service.pacemaker.resource.rabbitmq.meta }}"
+    parameter:
+      erlang_cookie: "{{ role_rabbitmq_cluster_cookie }}"
+      pid_file: "{{ rabbitmq_pid_file }}"
+      log_dir: "/var/log/kolla/rabbitmq"
+      admin_user: "{{ rabbitmq_user }}"
+      admin_password: "{{ rabbitmq_password }}"
+      cluster_host_map: "{{ rabbitmq_cluster_host_map }}"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Creating master/slave resource for RabbitMQ
+  vars:
+    service_name: "rabbitmq"
+    nodes: "{{ groups[service_name] | length }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "ms_{{ service_name }}"
+    type: ms
+    agent: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+    meta:
+      master-max: 1
+      master-node-max: 1
+      clone-max: "{{ nodes }}"
+      ordered: "false"
+      notify: "true"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Putting RabbitMQ role for its hosting container node
+  vars:
+    service_name: "rabbitmq"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ service_name }}-{{ groups[service_name].index(item) + 1 }}"
+    attribute: "{{ service_name }}-role"
+    value: "true"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - kolla_action != "config"
+  notify: Restart RabbitMQ
+
+- name: Restricting RabbitMQ instance location
+  vars:
+    service_name: "rabbitmq"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ service_name }}"
+    resource: "ms_{{ service_name }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "rule 100: {{ service_name }}-role eq true"
+  when:
+    - kolla_action != "config"

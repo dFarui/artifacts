@@ -1,0 +1,49 @@
+#
+# Playbook to setup zypper repositories for Sles
+#
+---
+- name: Create vendors truster list
+  become: yes
+  copy:
+    src: 70-vendors.conf
+    dest: '/etc/zypp/vendors.d/70-vendors.conf'
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Fetch existing repos
+  become: yes
+  shell: zypper repos 2>/dev/null | grep '^[1-9]' | awk '{print $3}'
+  args:
+    warn: no
+  changed_when: false
+  register: existing_repos
+
+- name: Set list of existing repos
+  set_fact:
+    repos_list: "{{ existing_repos.stdout_lines }}"
+
+- name: Remove all old zypper repos
+  become: yes
+  zypper_repository:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ repos_list }}"
+
+- name: Add the configured zypper repos
+  become: yes
+  zypper_repository:
+    name: "{{ item.name }}"
+    state: present
+    description: "{{ item.name }}"
+    repo: "{{ item.uri }}"
+    disable_gpg_check: yes
+    runrefresh: yes
+    priority: "{{ item.priority }}"
+  loop: "{{ my_repos }}"
+
+- name: Update all packages
+  become: yes
+  zypper:
+    name: '*'
+    state: latest

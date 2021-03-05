@@ -1,0 +1,113 @@
+#jinja2: trim_blocks: False
+[cmha]
+database_driver={{ cmha_database_driver }}
+database_username={{ cmha_database_user }}
+database_password={{ cmha_database_password }}
+database_host={{ cmha_database_host }}
+database_name={{ cmha_database_name }}
+
+# If use_logfiles is set to true, cmha will use a simple file logging.
+# Logfile will be under logfiles_dir directory. It will rollover at a
+# predetermined time automatically. A new file will be generated in
+# logrotate_interval day, which is by default 7 days. A number of
+# logs_to_keep files will be kept. By default a maximum of 4 logfiles
+# will exists.
+# (Syslog based logging and file based logging can be used at the same time)
+use_logfiles=false
+logfiles_dir=/var/log/kolla/cmha
+log_level=info
+
+# If use_syslog set to true, CMHA will log to syslog.
+# (Syslog based logging and file based logging can be used at the same time)
+use_syslog=true
+
+# The syslog_address stores the address to use by CMHA for syslog based logging
+# By default (if you don't specify an address) it uses syslog on localhost
+# syslog_address=<IP ADDRESS>:514
+
+# Used protocol for syslog based logging.
+# Can be set to 'udp' or 'tcp'
+# syslog_protocol=udp
+
+# Fencing specific settings
+# If fence_compute_before_evacuation is set to true CMHA will fence down the compute
+# before evacuating VMs. This will prevent VM duplication in case of a partial compute failure
+fence_compute_before_evacuation=true
+
+# If try_to_recover_compute_after_evacuation is set to true CMHA will try to power on the compute
+# after finishing the evacuation of the VMs. This might recover the failed compute
+try_to_recover_compute_after_evacuation=true
+
+# Time period from start fencing to finish it if fencing won't be successful.
+# Supported values are 0 and positive numbers (zero means only one time fencing).
+fencing_time_window=1800
+
+# Timeout between last failed fencing operation and new one. Supported values
+# are 0 and positive numbers.
+fencing_sleep_timeout=600
+
+# Time period from stop fencing to finish it if fencing off is not successful.
+# Supported values are 0 and positive numbers (zero means only ones it will try to stop fencing).
+recover_time_window=300
+
+# Timeout between last failed fencing operation and new one. Supported values
+# are 0 and positive numbers.
+power_on_sleep_timeout=60
+
+# After forcemove_timeout, CMHA will consider
+# the forcemove of the VM have failed.
+forcemove_timeout=1800
+
+# Timeout for the OpenStack REST API call to return.
+openstack_rest_api_timeout=60
+
+# Limits the maximum number of ongoing forcemove jobs per failed compute host
+max_parallel_evacuation=3
+
+# Timeout for a VM reboot
+reboot_timeout=30
+
+# Timeout for a VM redefine operation
+redefine_timeout=30
+
+# Frequency of the monitoring operation / monitoring heartbeat timeout
+# This parameter is used for Compute nodes and Fuel node
+repeat_delay=10
+
+# CMHA tries to connect to Compute nodes to check their state
+# If it fails for compute_unavailable_after_tries times in series
+# CMHA will consider the compute host is down
+compute_unavailable_after_tries=4
+
+# If the Compute host is unavailable, and it is reported offline consecutively
+# predefined period of time (compute_fail_after_time), its state changes to failed.
+compute_fail_after_time=300
+
+# After Control computer reboot, wait
+# vm_cold_evacuation_delay seconds, before
+# enabling evacuation event
+vm_cold_evacuation_delay=300
+
+# URL of the CMHA restapi
+rest_wsgi_address={{ api_interface_address }}
+rest_wsgi_port={{ cmha_listen_port }}
+
+# URL to send events to
+sync_url=http://{{ cmha_internal_fqdn | put_address_in_context('url') }}:{{ cmha_listen_port }}/resend_alarms
+
+# Name of the OpenStack region
+region_name={{ openstack_region_name }}
+
+# Host name convention tpye
+# Valid values: prefix or postfix
+hostname_convention_type={{ cmha_hostname_convention_type }}
+
+# Network postfixes for multi-port failure handling
+compute_add_net_names={{ cmha_multi_interface_net_names }}
+
+# CMHA agent configuration parameters: agent_port_number defines the port,
+# where the agent remotely listens to CMHA's uptime request;
+# agent_protocol_version defines version IPV4/IPV6 of the connection socket
+# between CMHA and the agent.
+agent_port_number={{ agent_port_number }}
+agent_protocol_version: {{ agent_protocol_version }}

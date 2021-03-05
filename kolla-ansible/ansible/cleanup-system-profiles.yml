@@ -1,0 +1,58 @@
+#
+# Playbook to clean up system profiles and distros.
+#
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Get the system list from cobbler
+      become: yes
+      shell: cobbler system list |awk '{print $1}'
+      register: system_list
+
+    - name: set cobbler system list
+      set_fact:
+        cobbler_system_list: "{{ system_list.stdout_lines }}"
+
+    - name: Get the profile list from cobbler
+      become: yes
+      shell: cobbler profile list |awk '{print $1}'
+      register: profile_list
+
+    - name: set cobbler profile list
+      set_fact:
+        cobbler_profile_list: "{{ profile_list.stdout_lines }}"
+
+    - name: Get the distro list from cobbler
+      become: yes
+      shell: cobbler distro list |awk '{print $1}'
+      register: distro_list
+
+    - name: set cobbler distro list
+      set_fact:
+        cobbler_distro_list: "{{ distro_list.stdout_lines }}"
+
+    - name: Clean up Cobbler systems
+      become: yes
+      with_items: "{{ cobbler_system_list }}"
+      command: cobbler system remove --name {{ item }}
+      changed_when: false
+      failed_when: false
+
+    - meta: end_play
+      when:
+        - not full_cleanup | d(false)
+
+    - name: Clean up Cobbler profiles
+      become: yes
+      with_items: "{{ cobbler_profile_list }}"
+      command: cobbler profile remove --name {{ item }}
+      changed_when: false
+      failed_when: false
+
+    - name: Clean up Cobbler distros
+      become: yes
+      with_items: "{{ cobbler_distro_list }}"
+      command: cobbler distro remove --name {{ item }}
+      changed_when: false
+      failed_when: false

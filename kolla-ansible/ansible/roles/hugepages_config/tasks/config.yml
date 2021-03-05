@@ -1,0 +1,92 @@
+- name: Copy hugepages setup script
+  become: yes
+  template:
+    src: ../templates/hugepages-setup.sh.j2
+    dest: /usr/bin/hugepages-setup.sh
+    owner: root
+    group: root
+    mode: 0755
+  when:
+    numa_huge_pages | length > 0
+
+- name: clean existing service
+  become: yes
+  file:
+    path: "{{ systemd_script_dir }}/hugepages-setup.service"
+    state: absent
+
+- name: Generate systemd service file
+  become: yes
+  template:
+    src: ../templates/hugepages-setup-service.j2
+    dest: "{{ systemd_script_dir }}/hugepages-setup.service"
+    owner: root
+    group: root
+    mode: 0644
+  register:
+    systemd_service_result
+  when:
+    numa_huge_pages | length > 0
+
+- name: Add service to systemd
+  become: yes
+  command: /bin/systemctl daemon-reload
+  when:
+    not (systemd_service_result is not defined) and
+    systemd_service_result.changed
+
+- name: Start and enable service
+  become: yes
+  service:
+    name: hugepages-setup
+    enabled: yes
+    state: started
+  when:
+    systemd_service_result is defined and
+    systemd_service_result.changed
+
+- name: Create hugepage directories
+  become: yes
+  file:
+    name: "{{ item['mountpoint'] }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    "{{ total_huge_pages }}"
+  when:
+    total_huge_pages | length > 0
+
+- name: Mount hugepages
+  become: yes
+  mount:
+    name: "{{ item['mountpoint'] }}"
+    src: hugetlbfs
+    fstype: hugetlbfs
+    state: mounted
+    opts: 'pagesize={{ item.size }}'
+  with_items:
+    "{{ total_huge_pages }}"
+  when:
+    total_huge_pages | length > 0
+
+- name: remove any existing hugepages mounts from fstab
+  become: yes
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '^.*hugetlbfs.*$'
+    state: absent
+
+- name: Add hugepages mount to fstab
+  become: yes
+  lineinfile:
+    dest: /etc/fstab
+    line: >
+      hugetlbfs   {{ item['mountpoint'] }}    hugetlbfs
+      mode=0755,pagesize={{ item['size'] }} 0 0
+    insertafter: EOF
+  with_items:
+    "{{ total_huge_pages }}"
+  when:
+    total_huge_pages | length > 0

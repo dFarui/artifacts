@@ -1,0 +1,6 @@
+---
+- name: Restart audit service
+  become: True
+  service:
+    name: "{{ audit_systemd_service_name }}"
+    state: restarted

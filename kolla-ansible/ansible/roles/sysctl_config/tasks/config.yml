@@ -1,0 +1,20 @@
+#
+# Configure sysctl
+#
+---
+- name: Remove 70-yast.conf file if present
+  become: true
+  file:
+    path: /etc/sysctl.d/70-yast.conf
+    state: absent
+
+- name: Configure sysctl parameters
+  become: yes
+  template:
+    src: ../templates/host_sysctl.conf.j2
+    dest: "{{ sysctl_conf_file }}"
+    owner: root
+    group: root
+    mode: '0640'
+  notify:
+    - Load sysctl options

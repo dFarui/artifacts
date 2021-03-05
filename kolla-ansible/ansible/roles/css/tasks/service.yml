@@ -1,0 +1,7 @@
+---
+- name: Start openvswitch-switch service
+  service:
+    name: "openvswitch-switch"
+    state: "started"
+    enabled: true
+  become: true

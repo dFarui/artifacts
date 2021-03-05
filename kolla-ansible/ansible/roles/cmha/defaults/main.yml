@@ -1,0 +1,133 @@
+---
+hostname_full: "{{ ansible_nodename }}"
+project_name: "cmha"
+
+cmha_services:
+  cmha-service:
+    container_name: "cmha-service"
+    group: "cmha-service"
+    enabled: true
+    image: "{{ cmha_service_image_full }}"
+    volumes: "{{ cmha_default_volumes + cmha_extra_volumes + cmha_service_extra_volumes }}"
+    dimensions: "{{ cmha_dimensions }}"
+    environment:
+      OS_AUTH_URL: "{{ keystone_internal_url }}"
+      OS_USERNAME: "{{ cmha_keystone_user }}"
+      OS_PASSWORD: "{{ cmha_keystone_password }}"
+      OS_TENANT_NAME: "service"
+      OS_PROJECT_NAME: "service"
+      OS_USER_DOMAIN_NAME: "Default"
+      OS_PROJECT_DOMAIN_NAME: "Default"
+      OS_ENDPOINT_TYPE: "internal"
+      OS_INTERFACE: "internal"
+  cmha-restapi:
+    container_name: "cmha-restapi"
+    group: "cmha-restapi"
+    enabled: "{{ enable_cmha | bool }}"
+    image: "{{ cmha_restapi_image_full }}"
+    volumes: "{{ cmha_default_volumes + cmha_extra_volumes + cmha_restapi_extra_volumes}}"
+    dimensions: "{{ cmha_dimensions }}"
+    haproxy:
+      cmha-restapi:
+        enabled: "{{ enable_cmha }}"
+        mode: "http"
+        external: false
+        port: "{{ cmha_port }}"
+        listen_port: "{{ cmha_listen_port }}"
+      cmha_api_external:
+        enabled: "{{ enable_cmha }}"
+        mode: "http"
+        external: true
+        port: "{{ cmha_port }}"
+        listen_port: "{{ cmha_listen_port }}"
+
+
+cmha_evaluation_interval: 300
+
+
+####################
+# Database
+####################
+cmha_database_name: "cmha"
+cmha_database_driver: "mysql+pymysql"
+cmha_database_user: "{% if use_preconfigured_databases | bool and use_common_mariadb_user | bool %}{{ database_user }}{% else %}cmha{% endif %}"
+cmha_database_host: "{{ database_address }}"
+
+####################
+# Docker
+####################
+cmha_install_type: "{{ kolla_install_type }}"
+cmha_tag: "{{ openstack_release }}"
+
+cmha_service_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ cmha_install_type }}-cmha-service"
+cmha_service_image_full: "{{ cmha_service_image }}:{{ cmha_tag }}"
+
+cmha_restapi_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ cmha_install_type }}-cmha-restapi"
+cmha_restapi_image_full: "{{ cmha_restapi_image }}:{{ cmha_tag }}"
+
+cmha_dimensions: "{{ default_container_dimensions }}"
+
+cmha_default_volumes:
+  - "/etc/localtime:/etc/localtime:ro"
+  - "cmha:/var/lib/cmha/"
+  - "kolla_logs:/var/log/kolla/"
+
+cmha_extra_volumes: "{{ default_extra_volumes }}"
+cmha_service_extra_volumes:
+  - "{{ node_config_directory }}/cmha-service/:{{ container_config_directory }}/:ro"
+cmha_restapi_extra_volumes:
+  - "{{ node_config_directory }}/cmha-restapi/:{{ container_config_directory }}/:ro"
+
+cmha_files_permission: '0640'
+
+####################
+# Rabbitmq
+####################
+rabbit_hosts: "{% for host in groups[om_rpc_group] %}{{ 'api' | kolla_address(host) }}{% if not loop.last %},{% endif %}{% endfor %}/{{ om_rpc_vhost }}"
+
+####################
+# OpenStack
+####################
+cmha_admin_endpoint: "{{ admin_protocol }}://{{ cmha_internal_fqdn | put_address_in_context('url') }}:{{ cmha_port }}"
+cmha_internal_endpoint: "{{ internal_protocol }}://{{ cmha_internal_fqdn | put_address_in_context('url') }}:{{ cmha_port }}"
+cmha_public_endpoint: "{{ public_protocol }}://{{ cmha_external_fqdn | put_address_in_context('url') }}:{{ cmha_port }}"
+
+cmha_logging_debug: "{{ openstack_logging_debug }}"
+
+cmha_keystone_user: "cmha"
+
+openstack_cmha_auth: "{{ openstack_auth }}"
+
+
+####################
+# Kolla
+####################
+cmha_git_repository: "{{ kolla_dev_repos_git }}/{{ project_name }}"
+cmha_dev_repos_pull: "{{ kolla_dev_repos_pull }}"
+cmha_dev_mode: "{{ kolla_dev_mode }}"
+cmha_source_version: "{{ kolla_source_version }}"
+
+####################
+# Keystone
+####################
+cmha_ks_services:
+  - name: "cmha"
+    type: "cmha"
+    description: "cmha"
+    endpoints:
+      - {'interface': 'admin', 'url': '{{ cmha_admin_endpoint }}'}
+      - {'interface': 'internal', 'url': '{{ cmha_internal_endpoint }}'}
+      - {'interface': 'public', 'url': '{{ cmha_public_endpoint }}'}
+
+cmha_ks_users:
+  - project: "service"
+    user: "{{ cmha_keystone_user }}"
+    password: "{{ cmha_keystone_password }}"
+    role: "admin"
+
+####################
+# Agent
+####################
+agent_port_number: "{{ cmha_agent_port_number| default('8660') }}"
+agent_protocol_version: "{{ cmha_agent_protocol_version | default('IPV4') }}"
+systemd_config_path: "{{ cmha_systemd_config_path | default('/etc/systemd/system') }}"

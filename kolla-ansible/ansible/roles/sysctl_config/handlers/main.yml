@@ -1,0 +1,7 @@
+#
+# Handler to load sysctl options
+#
+---
+- name: Load sysctl options
+  become: yes
+  shell: sysctl -p "{{ sysctl_conf_file }}"

@@ -1,0 +1,4 @@
+---
+- include_tasks: check_pacemaker_cluster.yml
+
+- include_tasks: check_service_cluster.yml

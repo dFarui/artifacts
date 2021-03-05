@@ -1,0 +1,30 @@
+---
+- hosts:
+    - physical_hosts
+    - virtual_hosts
+  become: true
+  any_errors_fatal: false
+  vars:
+    ansible_become_pass: "{{ root_password | d('') }}"
+  tasks:
+    - name: Power cycle the host
+      vars:
+        ansible_connection: local
+      block:
+      - name: flush handlers before rebooting
+        meta: flush_handlers
+      - name: Power off node
+        oobm:
+          oobm_args: "{{ oobm_args }}"
+          power: 'off'
+          sleep: '1'
+      - name: Power on node
+        oobm:
+          oobm_args: "{{ oobm_args }}"
+          power: 'on'
+
+    - name: Wait for ssh to come online
+      vars:
+        ansible_connection: ssh
+      wait_for_connection:
+        timeout: 900

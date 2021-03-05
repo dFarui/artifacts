@@ -1,0 +1,46 @@
+---
+- hosts: localhost
+  tasks:
+    - include_vars: roles/cee-lcm/defaults/main.yml
+    - name : install mariadb package
+      become: yes
+      package:
+        name:
+          - mariadb
+        state: latest
+
+    - name: Create mariadb conf file
+      become: yes
+      template:
+        src: "templates/my.cnf.j2"
+        dest: "/etc/my.cnf"
+
+    - name: Enable and restart mariadb
+      become: yes
+      service:
+        name=mariadb
+        state=restarted
+        enabled=yes
+
+    - name: Create LCM database on seed
+      become: true
+      mysql_db:
+        login_unix_socket: "{{ mysql_socket }}"
+        name: "{{ lcm_database }}"
+        state: present
+        collation: "utf8_bin"
+      register: db_creation
+
+    - name: Create LCM database user and set permissions on seed
+      become: true
+      mysql_user:
+        login_unix_socket: "{{ mysql_socket }}"
+        name: "{{ lcm_database_user }}"
+        password: "{{ lcm_database_password }}"
+        host: "{{ lcm_api_internal_vip_address }}"
+        priv: "{{ lcm_database }}.*:ALL"
+        append_privs: "yes"
+
+    - name: Run LCM DB sync
+      become: true
+      command: /usr/bin/lcm_syncdb

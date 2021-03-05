@@ -1,0 +1,21 @@
+---
+- hosts:
+    - infra_hypervisors
+  become: true
+  strategy: free
+  tasks:
+#  - debug:
+#      var: virtual_machines
+  - include_role:
+      name: infra-vm
+    vars:
+      vm_name: "{{vmitem.vm_name}}"
+      vm_definition_revision: "{{vmitem.vm_definition_revision}}"
+      autostart: "{{vmitem.autostart}}"
+      memory_gib: "{{vmitem.memory_gib}}"
+      vcpu_num: "{{vmitem.vcpu_num}}"
+      devices: "{{vmitem.devices}}"
+    with_items: "{{ virtual_machines }}"
+    loop_control:
+      loop_var: vmitem
+

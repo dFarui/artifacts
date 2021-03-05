@@ -1,0 +1,49 @@
+{% set external_ntp_servers = ntp_config.external_servers %}
+{% set internal_ntp_servers = ntp_config.internal_servers %}
+{% if 'chrony_server' in groups and inventory_hostname in groups['chrony_server'] %}
+{%   for ntp_server in external_ntp_servers | default([])%}
+server {{ ntp_server['server'] }} {% if ntp_server.get('key') -%} key {{ ntp_server.get('key') }} {% endif -%} iburst minpoll 3 maxpoll 8
+{%   endfor %}
+{% else %}
+{%   for ntp_server in internal_ntp_servers | default([])%}
+server {{ ntp_server['server'] }} {% if ntp_server.get('key') -%} key {{ ntp_server.get('key') }} {% endif -%} iburst minpoll 3 maxpoll 8
+{%   endfor %}
+{% endif %}
+user chrony
+
+#keyfile {{ keyfile }}
+
+driftfile /var/lib/chrony/chrony.drift
+
+log tracking measurements statistics
+logdir /var/log/chrony
+logchange 0.5
+
+makestep 1.0 3
+
+maxupdateskew 100.0
+
+dumponexit
+dumpdir /var/lib/chrony
+
+lock_all
+
+{% if 'chrony_server' in groups and inventory_hostname in groups['chrony_server'] %}
+allow {{ lcm_network.cidr | ipaddr('subnet') }}
+port {{ ntp_port }}
+{%   for ntp_server in internal_ntp_servers | default([]) %}
+{%     if ntp_server['server'] != chrony_bindaddress %}
+server {{ ntp_server['server'] }} {% if ntp_server.get('key') -%} key {{ ntp_server.get('key') }} {% endif -%} minpoll 3 maxpoll 8
+{%     endif %}
+{%   endfor %}
+local stratum {{ ntp_config.local_stratum | default(9) }} orphan
+bindaddress {{ chrony_bindaddress }}
+{% else %}
+deny all
+port 0
+{% endif %}
+
+hwclockfile /etc/adjtime
+
+rtconutc
+rtcsync

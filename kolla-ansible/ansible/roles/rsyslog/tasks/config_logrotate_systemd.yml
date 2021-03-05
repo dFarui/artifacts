@@ -1,0 +1,22 @@
+---
+- name: Copying over CEE logrotate systemd timer unit file
+  template:
+    src: "{{ logrotate_systemd_timer_unit_name }}.timer.j2"
+    dest: "/usr/lib/systemd/system/{{ logrotate_systemd_timer_unit_name }}.timer"
+    mode: "{{ logrotate_config_file_mode }}"
+  become: true
+  when:
+    - enable_rsyslog | bool
+  notify:
+    - Restart CEE logrotate systemd timer
+
+- name: Copying over CEE logrotate systemd service unit file
+  template:
+    src: "{{ logrotate_systemd_timer_unit_name }}.service.j2"
+    dest: "/usr/lib/systemd/system/{{ logrotate_systemd_timer_unit_name }}.service"
+    mode: "{{ logrotate_config_file_mode }}"
+  become: true
+  when:
+    - enable_rsyslog | bool
+  notify:
+    - Restart CEE logrotate systemd timer

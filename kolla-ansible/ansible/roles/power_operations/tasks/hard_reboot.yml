@@ -1,0 +1,14 @@
+---
+- name: Powering off the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'off'
+
+- name: Wait for poweroff
+  local_action: wait_for host={{ inventory_hostname }} port=22 state=stopped delay=15 timeout=120
+  become: False
+
+- name: Powering on the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'on'

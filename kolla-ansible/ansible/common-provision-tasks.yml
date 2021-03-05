@@ -1,0 +1,151 @@
+#
+# Host Operating System Configuration
+#
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - import_role:
+        name: hosts_setup
+      tags: hosts_setup
+    - name: Check for availability of LCM VIP addresses
+      run_once: true
+      local_action: shell ping -c 3 "{{ lcm_network.vip }}"
+      register: vip_check
+      failed_when: false
+      changed_when: false
+      tags: hosts_setup
+    - name: Keep seed IP for cee-repo in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "cee-repo.{{my_dns_config.domain}}"
+        line: "{{ lcm_network.cidr | ipaddr('address') }} cee-repo.{{my_dns_config.domain}}"
+      when:
+      - vip_check.rc != 0
+      tags: hosts_setup
+    - name: Keep seed IP for cee-repo in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "cee-repo.{{my_dns_config.domain}}"
+        line: "{{ lcm_network.cidr | ipaddr('address') }} cee-repo.{{my_dns_config.domain}}"
+      when:
+      - vip_check.rc != 0
+      tags: hosts_setup
+    - import_role:
+        name: chrony
+      tags: chrony
+      when:
+        - "'chrony_server' in groups"
+        - "'localhost' in groups['chrony_server']"
+- hosts:
+    - physical_hosts
+    - virtual_hosts
+  become: true
+  any_errors_fatal: false
+  vars:
+    ansible_become_pass: "{{ root_password | d('') }}"
+  tasks:
+    - name: Check for LCM VIP address availability
+      run_once: true
+      local_action: shell ping -c 3 "{{ lcm_network.vip }}"
+      register: vip_check
+      failed_when: false
+      changed_when: false
+      tags: hosts_setup
+    - import_role:
+        name: hosts_setup
+      tags: hosts_setup
+    - name: Keep seed IP for cee-repo in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "cee-repo.{{my_dns_config.domain}}"
+        line: "{{ lcm_network.cidr | ipaddr('address') }} cee-repo.{{my_dns_config.domain}}"
+      when:
+      - vip_check.rc != 0
+      tags: hosts_setup
+    - name: Keep seed IP for docker-registry /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "docker-registry.{{my_dns_config.domain}}"
+        line: "{{ lcm_network.cidr | ipaddr('address') }} lcm docker-registry.{{my_dns_config.domain}}"
+      when:
+      - vip_check.rc != 0
+      tags: hosts_setup
+    - name: Write local legaltext
+      copy:
+        dest: "/etc/issue"
+        content: "{{ legaltext.local }}"
+    - name: Write remote legatext
+      copy:
+        dest: "/etc/issue.net"
+        content: "{{ legaltext.remote }}"
+    - import_role:
+        name: base_os
+      tags: base_os
+      when:
+        - "'my_ip' in ansible_cmdline"
+        - ansible_service_mgr == "sysvinit"
+    - import_role:
+        name: repo_config
+      tags: repo_config
+    - import_role:
+        name: dns_config
+      tags: dns_config
+    - import_role:
+        name: sudo_config
+      tags: sudo_config
+    - import_role:
+        name: ssh_config
+      tags: ssh_config
+    - import_role:
+        name: misc_config
+      tags: misc_config
+    - import_role:
+        name: timezone_config
+      tags: timezone_config
+    - import_role:
+        name: chrony
+      tags: chrony
+    - import_role:
+        name: systemd_config
+      tags: systemd_config
+    - import_role:
+        name: cgroup_config
+      tags: cgroup_config
+    - import_role:
+        name: hugepages_config
+      tags: hugepages_config
+    - import_role:
+        name: kernel_module_config
+      tags: kernel_module_config
+    - import_role:
+        name: sysctl_config
+      tags: sysctl_config
+    - import_role:
+        name: crashes
+      tags: crashes
+    - import_role:
+        name: umm
+      tags: umm
+      when:
+       - "'umm_hosts' in groups"
+       - inventory_hostname in groups['umm_hosts']
+    - include_role:
+        name: css
+        apply:
+          tags: css
+      tags: css
+      when:
+       - "'css_hosts' in groups"
+       - inventory_hostname  in groups['css_hosts']
+    - import_role:
+        name: netconfig
+      tags: netconfig
+    - import_role:
+        name: docker
+      tags: docker
+    - import_role:
+        name: lldp
+      tags: lldp
+    - name: sync filesystems to disk
+      shell: sync

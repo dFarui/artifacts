@@ -1,0 +1,376 @@
+---
+- name: Create artifacts directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  file:
+    path: "{{ default_artifacts_path }}/{{ item }}"
+    mode: '0755'
+    owner: "{{ ceeuser }}"
+    group: "{{ ceegroup }}"
+    state: directory
+  with_items:
+    - metadata
+    - artifacts_json
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Define a temporary directory to download  and extract the tar
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    tar_work_dir: "/tmp/ansible.{{ lookup('pipe', 'date +%Y%M%d%H%M%S') }}_tar_uri/"
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Create the temporary directory to download and extract the tar
+  delegate_to: localhost
+  run_once: true
+  file:
+    path: "{{ tar_work_dir }}"
+    state: directory
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Download tar from remote URI(http or https or ftp of ftps)
+  delegate_to: localhost
+  run_once: true
+  get_url:
+    url: "{{ tar_uri }}"
+    dest: "{{ tar_work_dir }}"
+    validate_certs : no
+    force: yes
+  when: tar_uri is defined and (tar_uri.startswith('https://') or tar_uri.startswith('http://') or tar_uri.startswith('ftps://')  or tar_uri.startswith('ftp://'))
+  register: tar_file_path
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Define destination variable for local tar uri
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    tar_file_path: "{{ tar_file_path | combine( { 'dest': tar_uri.split(':/')[1] } ) }}"
+  when: tar_uri is defined and tar_uri.startswith('file:/')
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Extract the tar file
+  delegate_to: localhost
+  run_once: true
+  unarchive:
+    src: "{{ tar_file_path.dest }}"
+    dest: "{{ tar_work_dir }}"
+    remote_src: no
+    validate_certs : no
+  when: tar_uri is defined and tar_file_path is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Get the metadata file
+  delegate_to: localhost
+  run_once: true
+  find:
+    paths: "{{ tar_work_dir }}"
+    patterns: '*.yaml'
+    file_type: file
+  register: yaml_path
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Get the ISO file
+  delegate_to: localhost
+  run_once: true
+  find:
+    paths: "{{ tar_work_dir }}"
+    patterns: '*.iso'
+    file_type: file
+  register: iso_path
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Define artifact_uri and metadata_uri for type tar
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    artifact_uri: "file:/{{ iso_path.files[0].path }}"
+    metadata_uri: "file:/{{ yaml_path.files[0].path }}"
+    type: "iso"
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import
+
+- set_fact:
+    mode: "remote"
+  when: metadata_uri is defined and (metadata_uri.startswith('https://') or metadata_uri.startswith('http://') or metadata_uri.startswith('ftps://')  or metadata_uri.startswith('ftp://'))
+  tags:
+    - repo_import
+    - docker_image_import
+  delegate_to: localhost
+  run_once: true
+
+- set_fact:
+    mode: "local"
+  when: metadata_uri is defined and metadata_uri.startswith('file:/')
+  tags:
+    - repo_import
+    - docker_image_import
+  delegate_to: localhost
+  run_once: true
+
+- name: Create temporary artifacts directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  tempfile:
+    state: directory
+    suffix: _artifact
+    path: "{{ srv_path }}"
+  register: _artifact_tmpdir
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- set_fact:
+    artifact_tmpdir: "{{ _artifact_tmpdir.path }}"
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+  delegate_to: localhost
+  run_once: true
+
+- name: Download the artifact uri
+  delegate_to: localhost
+  run_once: true
+  get_url:
+    url: "{{ artifact_uri }}"
+    dest: "{{ artifact_tmpdir }}"
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Download the metadata uri
+  delegate_to: localhost
+  run_once: true
+  get_url:
+    url: "{{ metadata_uri }}"
+    dest: "{{ artifact_tmpdir }}"
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Set metadata variables for remote artifact
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    metadata_file: "{{ artifact_tmpdir }}/{{ metadata_uri.split('/')[-1] }}"
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Set metadata variables for local artifact
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    metadata_file: "{{ metadata_uri.split(':/')[1] }}"
+  when: mode == "local"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- set_fact:
+    metadata_basename: "{{ metadata_file | basename }}"
+  tags:
+    - repo_import
+    - docker_image_import
+  delegate_to: localhost
+  run_once: true
+
+- name: Include vars from provided metadata yaml
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  include_vars:
+    file: "{{ metadata_file }}"
+    name: artifact_metadata
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Copy the metadata yaml
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  copy:
+    src: "{{ metadata_file }}"
+    dest: "{{ default_artifacts_path }}/metadata/{{ metadata_basename }}"
+    mode: '0644'
+    owner: "{{ ceeuser }}"
+    group: "{{ ceegroup }}"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Create temporary mount directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  tempfile:
+    state: directory
+    suffix: _artifact
+    path: "{{ srv_path }}"
+  register: _mnt_tmpdir
+  when: type == "iso"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- set_fact:
+    mnt_tmpdir: "{{ _mnt_tmpdir.path }}"
+  when: type == "iso"
+  tags:
+    - repo_import
+    - docker_image_import
+  delegate_to: localhost
+  run_once: true
+
+- name: Set artifact variables for remote iso
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    artifact_iso: "{{ artifact_tmpdir }}/{{ artifact_uri.split('/')[-1]}}"
+  when: type == "iso" and mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Set artifact variables for local iso
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    artifact_iso: "{{ artifact_uri.split(':/')[1] }}"
+  when: type == "iso" and mode == "local"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Set artifact variables for local iso
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    artifact_uri_path: "{{ artifact_uri.split(':/')[1] }}"
+  when: type == "directory" and mode == "local"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Mount the artifacts iso
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  mount:
+    path: "{{ mnt_tmpdir }}"
+    src: "{{ artifact_iso }}"
+    fstype: iso9660
+    opts: ro,noauto
+    state: mounted
+  when: type == "iso"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Setup repos
+  include_tasks: setup_repos.yml
+  vars:
+    metadatafile: "{{ artifact_metadata }}"
+  when: artifact_metadata.repositories is defined
+  tags: repo_import
+
+- name: Import orchestrators
+  include_tasks: import_orchestrator.yml
+  loop_control:
+    loop_var: service
+  when: service.orchestrator is defined
+  with_items:
+    - '{{ artifact_metadata["services"] | d([]) }}'
+  tags: repo_import
+
+- name: Import one docker image
+  include_tasks: import_single_image.yml
+  loop_control:
+    loop_var: image
+  with_items:
+    - '{{ artifact_metadata.containerImages | d([]) }}'
+  tags: docker_image_import
+
+- name: Running the list playbook to generate artifacts dictionary
+  delegate_to: localhost
+  run_once: true
+  include: list.yml
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Umount artifacts ISO
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  mount:
+    path: "{{ mnt_tmpdir }}"
+    state: absent
+  when: type == "iso"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Remove temporary mount directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  file:
+    path: "{{ mnt_tmpdir }}"
+    state: absent
+  when: type == "iso"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Remove temporary artifact directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  file:
+    path: "{{ artifact_tmpdir }}"
+    state: absent
+  when: mode == "remote"
+  tags:
+    - repo_import
+    - docker_image_import
+
+- name: Remove temporary tar directory
+  delegate_to: localhost
+  run_once: true
+  file:
+    path: "{{ tar_work_dir }}"
+    state: absent
+  when: tar_uri is defined
+  tags:
+    - repo_import
+    - docker_image_import

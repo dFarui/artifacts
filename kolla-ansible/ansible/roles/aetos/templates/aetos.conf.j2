@@ -1,0 +1,45 @@
+# --------------------------------------------- #
+# Configuration file for the Aetos API Service. #
+# --------------------------------------------- #
+
+[DEFAULT]
+
+# Path to the logging configuration file
+logging_conf={{ aetos_logging_conf }}
+
+# Address of the aetos WSGI server
+aetos_wsgi_address={{ aetos_listen_address }}
+
+# Port where aetos WSGI server listens
+aetos_wsgi_port={{ aetos_listen_port }}
+
+# Prometheus API URL
+prometheus_url={{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ prometheus_port }}
+
+# Users with this role have unlimited access to Prometheus
+full_access_role_id={{ service_ks_register_role_result.results | selectattr('item', 'search', 'admin') | list | map(attribute='role') | list | map(attribute='id') | join(',') }}
+
+[keystone]
+
+# Keystone auth url
+auth_url={{ aetos_keystone_auth_url }}
+
+# Keystone auth username
+auth_username={{ aetos_keystone_users[0].user }}
+
+# Keystone auth password
+auth_password={{ aetos_keystone_users[0].password }}
+
+# Keystone auth domain
+auth_domain={{ aetos_keystone_auth.user_domain_name }}
+
+# Keystone auth project
+auth_project={{ aetos_keystone_users[0].project }}
+
+# Keystone auth project domain
+auth_project_domain={{ aetos_keystone_auth.domain_name }}
+
+{% if aetos_cafile is defined %}
+# A PEM encoded Certificate Authority to use when verifying HTTPs connections.
+cafile={{ aetos_cafile }}
+{% endif %}

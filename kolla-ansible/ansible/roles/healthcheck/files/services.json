@@ -1,0 +1,35 @@
+{
+   "systemd_services": [
+      {
+         "name": "chrony-server",
+         "service": "chronyd.service",
+         "package": "chrony"
+      },
+      {
+         "name": "cee-lcm",
+         "service": "apache2.service",
+         "package": "cee-lcm"
+      },
+      {
+         "name": "cee-umm",
+         "service": "umm.service",
+         "package": "cee-umm"
+      },
+      {
+         "name": "audit",
+         "service": "auditd.service",
+         "package": "audit"
+      },
+      {
+         "name": "glusterfs",
+         "service": "glusterd.service",
+         "package": "glusterfs"
+      },
+      {
+         "name": "css",
+         "service": "openvswitch.service",
+         "package": "css",
+         "version_command": "ovs-vsctl --version"
+      }
+   ]
+}

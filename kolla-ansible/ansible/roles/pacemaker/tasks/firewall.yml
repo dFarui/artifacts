@@ -1,0 +1,14 @@
+# NOTE: The below listed UDP port is the receiving port for the UDP Unicast
+#       messages in the cluster. Corosync will use the port below that
+#       (mcastport - 1) for sending messages. This fact needs to be taken
+#       into account when multi-cluster support is being introduced.
+- name: Enable Corosync in the firewall
+  firewalld:
+    port: "{{ item.value.mcastport }}/udp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  with_dict: "{{ corosync.totem.interfaces }}"
+  when:
+    - enable_firewall is defined and enable_firewall | bool
+    - corosync.totem.interfaces is defined

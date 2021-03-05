@@ -1,0 +1,15 @@
+---
+datapath:     "{{ 'netdev' if ( dpdk_devices is defined and dpdk_devices.openvswitch is defined ) else 'system' }}"
+copycacerts_src_path: "{{ node_custom_config }}/../certificates/"
+
+generic_sdn_custom_properties:   "{{ hostvars[inventory_hostname]['custom_properties']['neutron-generic-sdn'] }}"
+vendor:       "{{ generic_sdn_custom_properties.vendor | default('h3c')}}"
+nbi_ssl:      "{{ generic_sdn_custom_properties.sbi_ssl.enabled | default('False')}}"
+nbi_certificates: { ca: "{{ generic_sdn_custom_properties.nbi_ssl.ca }}", private: "{{ generic_sdn_custom_properties.nbi_ssl.private }}", certificate: "{{ generic_sdn_custom_properties.nbi_ssl.certificate }}" }
+sdnc_host:    "{{ generic_sdn_custom_properties.sdnc_host | default('')}}"
+sdnc_ip:      "{{ generic_sdn_custom_properties.sdnc_ip | default('')}}"
+sbi_ssl:      "{{ generic_sdn_custom_properties.sbi_ssl.enabled | default('False')}}"
+same_cert:    "{{ generic_sdn_custom_properties.sbi_ssl.same_cert | default('True')}}"
+sbi_certificates: { ca: "{{ generic_sdn_custom_properties.sbi_ssl.ca }}", private: "{{ generic_sdn_custom_properties.sbi_ssl.private }}", certificate: "{{ generic_sdn_custom_properties.sbi_ssl.certificate }}" }
+controller_hostname: "{{ generic_sdn_custom_properties.sbi_ssl.cn | default('')}}"
+vlanid: "{{ generic_sdn_custom_properties.vlanid| default('[]')}}"

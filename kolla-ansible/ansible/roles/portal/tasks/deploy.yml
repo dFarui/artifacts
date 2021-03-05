@@ -1,0 +1,11 @@
+---
+- include_tasks: config.yml
+  when: inventory_hostname in groups['portal_hosts']
+
+- include_tasks: bootstrap.yml
+  when: inventory_hostname in groups['portal_hosts']
+
+# - include_tasks: firewall.yml
+
+- name: Flush handlers
+  meta: flush_handlers

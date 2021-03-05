@@ -1,0 +1,36 @@
+{
+    "command": "/usr/bin/notifier-emitter",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/notifier-emitter.conf",
+            "dest": "/etc/notifier/notifier-emitter.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-emitter-logging.conf",
+            "dest": "/etc/notifier/notifier-emitter-logging.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-emitter-kafka-consumer.yml",
+            "dest": "/etc/notifier/notifier-emitter-kafka-consumer.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-emitter-https.pem",
+            "dest": "/etc/notifier/notifier-emitter-https.pem",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/lib/notifier/data",
+            "owner": "root:{{ notifier_group_name }}",
+            "recurse": true
+        }
+    ]
+}

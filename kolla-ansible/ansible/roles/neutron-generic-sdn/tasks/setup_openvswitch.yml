@@ -1,0 +1,41 @@
+---
+- name: Configuring SSL Support for OpenVswitch
+  become: true
+  command: "ovs-vsctl set-ssl /etc/openvswitch/{{ sbi_certificates.private }} /etc/openvswitch/{{ sbi_certificates.certificate }} /etc/openvswitch/{{ sbi_certificates.ca }}"
+  when:
+    - sbi_ssl | bool
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']
+
+- name: LISTEN ON br_sdnc_sbi IP for MANAGER CONNECTION
+  vars:
+    ip: "{{ hostvars[inventory_hostname]['interface_addresses']['br_sdnc_sbi'] }}"
+  become: true
+  command: "ovs-vsctl set-manager  {{ 'pssl:6640' if sbi_ssl | bool else 'ptcp:6632' }}:{{ ip | put_address_in_context('url') }}  -- set Manager . other_config:manager_hostname='{{ controller_hostname }}'"
+  when:
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']
+
+- name: ADD VLAN TAG to br_prv
+  become: true
+  command: "ovs-vsctl set port br_prv tag={{ vlanid }}"
+  when:
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']
+
+- name: ADD VXLAN TUNNEL
+  vars:
+    tunip: "{{ hostvars[inventory_hostname]['interface_addresses']['br_prv'] }}"
+  become: true
+  command: "ovs-vsctl --may-exist add-port br-int  vxlan_br-int -- set interface vxlan_br-int type=vxlan options:remote_ip=flow options:key=flow options:tos=inherit options:local_ip={{ tunip }}"
+  when:
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']
+
+- name: Configure OpenFlow CN Verification
+  become: true
+  command: "ovs-vsctl set bridge br-int other_config:controller_hostname={{ controller_hostname }}"
+  when:
+    - controller_hostname != ''
+    - inventory_hostname not in groups['neutron-server']
+    - inventory_hostname in groups['neutron-generic-sdn']

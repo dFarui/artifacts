@@ -1,0 +1,20 @@
+# Playbook to remove server/system from cobbler
+---
+- name: Remove Cobbler system
+  become: yes
+  command: "cobbler system remove --name={{ inventory_hostname }}"
+  register: rm_result
+  failed_when:
+    - not rm_result.rc == 0
+    - '("internal error, unknown system name " + inventory_hostname) not in rm_result.stdout'
+  notify: Cobbler sync
+
+- name: Remove dhcp leases
+  become: yes
+  file:
+    path: /var/lib/misc/dnsmasq.leases
+    state: absent
+  notify: Cobbler sync
+  run_once: true
+
+- meta: flush_handlers

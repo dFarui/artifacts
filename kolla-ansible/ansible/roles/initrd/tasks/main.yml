@@ -1,0 +1,9 @@
+- name: Build initrd
+  vars:
+    ansible_connection: local
+  include_tasks: build.yml
+  run_once: true
+  when: build_discovery_image | d(true)
+  loop: "{{ discovery_images | dict2items }}"
+  loop_control:
+    loop_var: discovery_image

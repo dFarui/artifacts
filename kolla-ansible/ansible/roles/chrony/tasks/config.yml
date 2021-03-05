@@ -1,0 +1,7 @@
+---
+- name: Create chrony config file
+  become: yes
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+  notify: Restart chrony

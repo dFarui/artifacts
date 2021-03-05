@@ -1,0 +1,86 @@
+---
+- name: Install required packages
+  become: yes
+  zypper:
+    name: [ "python3-PyYAML", "python3-PyMySQL" ]
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Creating the scheduler database
+  become: true
+  kolla_toolbox:
+    module_name: mysql_db
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ scheduler_db_schema }}"
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Creating scheduler user and setting global permissions
+  become: true
+  kolla_toolbox:
+    module_name: mysql_user
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ scheduler_db_user }}"
+      password: "{{ scheduler_db_password }}"
+      host: "%"
+      priv: "*.*:CREATE TABLESPACE,RELOAD,PROCESS,SUPER,LOCK TABLES,REPLICATION CLIENT"
+      append_privs: True
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+# TODO: Set more restrictive privileges for scheduler_db_user
+- name: Setting scheduler database privileges
+  become: true
+  kolla_toolbox:
+    module_name: mysql_user
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ scheduler_db_user }}"
+      password: "{{ scheduler_db_password }}"
+      host: "%"
+      priv: "{{ scheduler_db_schema }}.*:ALL"
+      append_privs: True
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Include vars from backup_restore role
+  include_vars:
+    file: "../../backup_restore/defaults/main.yml"
+
+# TODO: Set more restrictive privileges for backup_db_user
+- name: Setting scheduler database privileges for backup user
+  become: true
+  kolla_toolbox:
+    module_name: mysql_user
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ backup_db_user }}"
+      password: "{{ backup_db_password }}"
+      host: "%"
+      priv: "{{ scheduler_db_schema }}.*:ALL"
+      append_privs: True
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Create scheduler configuration file
+  become: true
+  template:
+    src: "/var/lib/cee/system/{{ system_name }}/config/services/default/config/scheduler/scheduler.yaml"
+    dest: "{{ config_directory }}/scheduler.yml"
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Setup scheduler agent service
+  include_tasks: scheduler_agent.yml

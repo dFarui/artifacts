@@ -1,0 +1,58 @@
+---
+- name: install iscsi
+  become: yes
+  become_method: sudo
+  shell: 
+    zypper install -y open-iscsi libvirt-daemon-driver-storage-iscsi
+
+- name: start and enable iscsi & iscsid 
+  become: yes
+  become_method: sudo
+  shell:
+    systemctl enable iscsid ; systemctl enable iscsi ; systemctl start iscsi; systemctl start iscsid
+
+- name: iscsi target login
+  become: yes
+  become_method: sudo
+  shell:
+    iscsiadm -m node -T {{ iqn }} -p [{{ onestor_block_service_ip }}]:3260 -l 
+
+- name: iscsi login after server reboot
+  become: yes
+  become_method: sudo
+  copy:
+    src: after.local
+    remote_src: no
+    dest: "/etc/init.d/after.local"
+    force: yes
+    mode: '0755'
+
+- name: ln initiatorname.iscsi to /etc/kolla/cinder-volume/
+  become: yes
+  become_method: sudo
+  shell:
+    ln /etc/iscsi/initiatorname.iscsi /etc/kolla/cinder-volume/initiatorname.iscsi
+  when:
+    - inventory_hostname in groups['cinder-volume']
+
+- name: ln initiatorname.iscsi to /etc/kolla/cinder-backup/
+  become: yes
+  become_method: sudo
+  shell:
+    ln /etc/iscsi/initiatorname.iscsi /etc/kolla/cinder-backup/initiatorname.iscsi
+  when:
+    - inventory_hostname in groups['cinder-backup']
+
+- name: ln initiatorname.iscsi to /etc/kolla/nova-compute/
+  become: yes
+  become_method: sudo
+  shell:
+    ln /etc/iscsi/initiatorname.iscsi /etc/kolla/nova-compute/initiatorname.iscsi
+  when:
+    - inventory_hostname in groups['nova-compute']
+
+#- name: test
+#  shell:
+#    hostname
+#  when:
+#    - inventory_hostname in groups['cinder-volume']

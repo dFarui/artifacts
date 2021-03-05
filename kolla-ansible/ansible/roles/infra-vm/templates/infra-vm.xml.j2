@@ -1,0 +1,123 @@
+{% set slots = range(31, 2, -1) | list -%}
+{% set mem = namespace(hugepage = false) -%}
+<domain type='kvm'>
+  <name>{{ vm_name }}</name>
+  <uuid>{{ vm_name | to_uuid }}</uuid>
+  <metadata>
+    <cee:infra_vm_revision xmlns:cee="http://ericsson.com/cee/">{{ vm_definition_revision }}</cee:infra_vm_revision>
+  </metadata>
+  <memory unit='GiB'>{{ memory_gib }}</memory>
+  <currentMemory unit='GiB'>{{ memory_gib }}</currentMemory>
+{% for page in my_memory_assignment.total_huge_pages | default([]) %}
+{%   if '1G' in page.size and (page.count | int) > 0 %}
+{%     set mem.hugepage = true %}
+  <memoryBacking>
+    <hugepages>
+      <page size='1' unit='GiB'/>
+    </hugepages>
+  </memoryBacking>
+{%   endif %}
+{% endfor %}
+  <vcpu placement='static'>{{ vcpu_num }}</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-q35-3.1'>hvm</type>
+    {#<loader readonly='yes' type='pflash'>/usr/share/qemu/ovmf-x86_64-suse-4m-code.bin</loader>#}
+    <loader readonly='yes' type='pflash'>/usr/share/qemu/ovmf-x86_64-ms-4m-code.bin</loader>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  <cpu mode='host-passthrough' check='none'>
+{% if mem.hugepage %}
+    <numa>
+      <cell id='0' cpus='0-{{ vcpu_num | int - 1 }}' memory='{{ memory_gib }}' unit='GiB' memAccess='shared'/>
+    </numa>
+{% endif %}
+  </cpu>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>coredump-restart</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+{% for device in devices | default([], true) %}
+{%   if device.pci_bus is defined and device.pci_slot is defined and device.pci_bus | int != 0 %}
+{%     set pci_bus = '0x%0.2x' | format(device.pci_bus | int) %}
+{%     set pci_slot = '0x%0.2x' | format(device.pci_slot | int) %}
+{%   else %}
+{%     set pci_bus = '0x00' %}
+{%     set pci_slot = '0x%0.2x' | format(slots.pop()) %}
+{%   endif %}
+{%   if device.type == 'disk_image' %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='{{ device.path }}'/>
+      <target dev='{{ device.target_device }}' bus='virtio'/>
+{%     if device.target_device == 'vda' %}
+      <boot order='1'/>
+{%     endif %}
+      <address type='pci' domain='0x0000' bus='{{ pci_bus }}' slot='{{ pci_slot }}' function='0x0'/>
+    </disk>
+{%   elif device.type == 'disk_blockdev' %}
+    <disk type='block' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source dev='{{ device.path }}'/>
+      <target dev='{{ device.target_device }}' bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='{{ pci_bus }}' slot='{{ pci_slot }}' function='0x0'/>
+    </disk>
+{%   elif device.type.endswith('_net_if') %}
+{%     if device.type.endswith('bridge_net_if') %}
+    <interface type='bridge'>
+      <source bridge='{{ device.source_device}}'/>
+{%       if device.type.startswith('ovs') %}
+      <virtualport type='openvswitch'/>
+{%       endif %}
+{%     elif device.type == 'direct_net_if' %}
+    <interface type='direct'>
+      <source dev='{{ device.source_device }}' mode='bridge'/>
+{%     elif device.type == 'vhost_net_if' %}
+    <interface type='vhostuser'>
+{%     endif %}
+{# slightly fragile check, especially the extra br_control0 to catch vComputes #}
+{%     if ('lcm' in device.source_device and 'ctrl' in device.source_device) or device.source_device == 'br_control0' %}
+      <boot order='2'/>
+{%     endif %}
+{%   if device.type == 'vhost_net_if' %}
+      <source type='unix' path='/run/openvswitch/vhostuser-{{vm_name}}-{{device.source_device}}' mode='server'/>
+{%   else %}
+{# truncate so that target dev name is no longer than 15 characters, the exact name can't be that important #}
+{%     if loop.index0 < 10 %}
+      <target dev='{{ vm_name[:11] }}-if{{ loop.index0 }}' />
+{%     else %}
+      <target dev='{{ vm_name[:10] }}-if{{ loop.index0 }}' />
+{%     endif %}
+{%   endif %}
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='{{ pci_bus }}' slot='{{ pci_slot }}' function='0x0'/>
+{#      <mac address='02:01:ec:{{ '%0.2x' | format(infra_vm_group_id | int) }}:{{ '%0.2x' | format(vm_id | int) }}:{{ '%0.2x' | format(loop.index) }}'/>#}
+    </interface>
+{%   endif %}
+{% endfor %}
+    <serial type='pty'>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <!-- A video device is needed otherwise the VM does not pxe-boot. I guess the
+         menu needs a video output, but not sure. -->
+    <video>
+      <model type='cirrus' vram='16384' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='{{ slots.pop() }}' function='0x0'/>
+    </video>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='{{ slots.pop() }}' function='0x0'/>
+    </memballoon>
+    <rng model='virtio'>
+        <backend model='random'>/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>

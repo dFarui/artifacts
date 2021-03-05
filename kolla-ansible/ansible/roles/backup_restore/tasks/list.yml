@@ -1,0 +1,15 @@
+---
+- name: Get backup info for {{ backupname }}
+  backup_restore:
+    action: "list"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  when: inventory_hostname == groups[brf_group][0]
+  register: backup_info
+
+- name: Display backup information for {{ backupname }}
+  debug:
+    msg: "{{ backup_info.backup_list }}"
+  when: inventory_hostname == groups[brf_group][0]

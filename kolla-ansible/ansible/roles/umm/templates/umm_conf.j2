@@ -1,0 +1,7 @@
+{%  if umm and (umm not in ["yes", "no"]) %}
+UMM=yes
+{% else %}
+UMM={{ umm | default('yes') }}
+{% endif %}
+REBOOT_COUNT={{ rc | default(2) }}
+COUNTER_RESET_TIME={{ crt | default(10) }}

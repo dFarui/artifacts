@@ -1,0 +1,7 @@
+[Unit]
+Description=Entry point for controlling resources allocated to containerized services in CEE. Do not edit!
+Documentation=man:systemd.special(7)
+Before=slices.target
+
+[Install]
+WantedBy=slices.target

@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+kernel.core_pattern = |/usr/sbin/process-dump coredump %h core.%h.%t.%e.%p.gz
+# "suidsafe", no real difference from using 1 "debug*" since we are using pipe in pattern
+fs.suid_dumpable = 2

@@ -1,0 +1,577 @@
+address_family: ipv6
+ansible_host: 2409:1616:e2e:821::100
+cluster: openstack
+control_groups:
+-   dimensions:
+        allowedCpus: 0,16,34,50
+    name: system
+-   dimensions:
+        allowedCpus: 0-2,16-18,33-34,49-50
+    name: css
+-   dimensions:
+        allowedCpus: 0,16,34,50
+        allowedMemoryNodes: 0,1
+    name: container
+-   dimensions:
+        allowedCpus: 3-15,19-31,35-47,51-63
+        allowedMemoryNodes: 0,1
+    name: machine
+custom_properties:
+    css:
+        ovs_nonpmd: 0
+        ovs_pmd: 1,2,17,18
+        ovs_pmd_ht: 33,49
+    h3c-storage:
+        onestor_block_service_ip: null
+        onestor_diskpool: null
+        onestor_nodepool: null
+        onestor_poolname: null
+        password: null
+        user: null
+        vendor: h3c
+        volume_backend_name: null
+    neutron-generic-sdn:
+        nbi_ssl:
+            ca: null
+            certificate: null
+            enabled: false
+            private: null
+        password: null
+        sbi_ssl:
+            ca: null
+            certificate: null
+            cn: cmcc.h3c.com
+            enabled: false
+            private: null
+            same_cert: true
+        sdnc_host: null
+        sdnc_ip: null
+        username: null
+        vendor: h3c
+        vlanid: 3201
+    nova-compute:
+        novaVcpuPinSet: 3-15,19-31,35-47,51-63
+dpdk_devices:
+    openvswitch:
+        devices:
+        -   bus_address: 0000:3b:00.1
+            device: data0
+            driver: vfio-pci
+        -   bus_address: 0000:af:00.0
+            device: data1
+            driver: vfio-pci
+hostname: compute-c0104-05
+hostname_full: compute-c0104-05.bjitte.ericsson.se
+id: C0104-05
+interface_addresses:
+    bond_cephA: 2409:1616:e2e:830::29
+    bond_cephB: 2409:1616:e2e:831::29
+    bond_glance: 2409:1616:e2e:835::26
+    bond_migration: 2409:1616:e2e:827::20
+    br_cee_ctrl: 2409:1616:e2e:820::29
+    br_lcm_ctrl: 2409:1616:e2e:821::100
+    br_prv: 2409:8097:104:c81::20
+    br_sdnc_sbi: fd00:7070:0:341::20
+ip: 2409:1616:e2e:821::100
+kopts: console=tty0 console=ttyS0,115200 net.ifnames=0 biosdevname=0 rootdelay=90
+    nomodeset crashkernel=256M transparent_hugepage=never intel_iommu=on iommu=pt
+    nomdmonddf nomdmonisw plymouth.ignore-serial-consoles elevator=deadline
+lcm_network:
+    cidr: 2409:1616:e2e:821::1ff/64
+    name: lcm-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:821::100-2409:1616:e2e:821::1000
+    subnet: '2409:1616:e2e:821::'
+    vip: 2409:1616:e2e:821::a001
+lcm_public_network:
+    cidr: 2409:1616:e2e:823::0/64
+    name: lcm-om-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:823::20-2409:1616:e2e:823::1000
+    subnet: '2409:1616:e2e:823::'
+    vip: 2409:1616:e2e:823::a001
+logging_details:
+    forward_logs_to: internalAggregator
+    profile_name: write_and_forward_log_generator
+    remote_servers:
+    -   host: 2409:1616:e2e:820::a002
+        port: '{{ rsyslog_log_aggregator_port }}'
+    write_local_logs: true
+    write_received_logs: false
+my_bond_interfaces:
+-   bond_options:
+        bond_mode: active-backup
+        miimon_interval: 200
+    bond_primary: control0
+    bond_slaves:
+    - control0
+    - control1
+    bootproto: manual
+    device: bond_lcm_ctrl
+    mtu: 1500
+-   bond_options:
+        bond_mode: active-backup
+        miimon_interval: 200
+    bond_primary: cee0
+    bond_slaves:
+    - cee0
+    - cee1
+    bootproto: manual
+    device: bond_cee_ctrl
+    mtu: 1500
+-   bond_options:
+        bond_mode: 802.3ad
+        lacp-time: fast
+        miimon_interval: 100
+    bond_primary: null
+    bond_slaves:
+    - storage0
+    - storage1
+    bootproto: manual
+    device: bond_storage
+    mtu: 4000
+-   bond_options:
+        bond_mode: active-backup
+        miimon_interval: 200
+    bond_primary: sdnc_sbi0
+    bond_slaves:
+    - sdnc_sbi0
+    - sdnc_sbi1
+    bootproto: manual
+    device: bond_sdnc_sbi
+    mtu: 1500
+my_bridge_interfaces:
+-   address: 2409:1616:e2e:821::100
+    bootproto: static
+    cidr: 2409:1616:e2e:821::1ff/64
+    device: br_lcm_ctrl
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+    ports:
+    - bond_lcm_ctrl
+-   address: 2409:1616:e2e:820::29
+    bootproto: static
+    cidr: 2409:1616:e2e:820::11/64
+    device: br_cee_ctrl
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+    ports:
+    - bond_cee_ctrl
+-   address: fd00:7070:0:341::20
+    bootproto: static
+    cidr: FD00:7070:0:0341::0/64
+    device: br_sdnc_sbi
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+    ports:
+    - bond_sdnc_sbi
+my_disk_assignments:
+    drives:
+    -   bootable: true
+        id: /dev/sda
+        labelType: gpt
+        name: disk1
+        partitions:
+        -   name: btrfs
+            size: 10%
+        -   name: lvm_pv_1
+            size: 90%
+            type: lvm
+            vg: system
+        type: local
+    name: compute-disks
+    volumeGroups:
+    -   logicalVolumes:
+        -   filesystem: ext4
+            mount: /var/log
+            name: log
+            size: 10%
+        -   filesystem: ext4
+            mount: /var/crash
+            name: crash
+            size: 10%
+        -   filesystem: ext4
+            mount: /var/lib/docker
+            name: docker
+            size: 10%
+        -   filesystem: ext4
+            mount: /var/lib/nova
+            name: nova
+            size: 100%FREE
+        name: system
+        physicalVolumes:
+        -   partname: lvm_pv_1
+            type: partition
+    volumes:
+    -   devices:
+        -   partname: btrfs
+            type: partition
+        format: true
+        fstype: btrfs
+        mount: /
+        name: root
+        owner:
+            name: os
+        partname: btrfs
+        subvolumes:
+        -   cow: false
+            name: /tmp
+        -   cow: false
+            name: /home
+        -   cow: false
+            name: /opt
+        -   cow: false
+            name: /srv
+        -   cow: false
+            name: /var
+        type: partition
+    -   format: true
+        fstype: ext4
+        logicalVolume: docker
+        mount: /var/lib/docker
+        name: docker
+        owner:
+            name: docker
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: log
+        mount: /var/log
+        name: log
+        owner:
+            name: os
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: crash
+        mount: /var/crash
+        name: crash
+        owner:
+            name: os
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: nova
+        mount: /var/lib/nova
+        name: nova
+        owner:
+            name: compute
+        type: lvm
+        volumeGroup: system
+my_dns_config:
+    domain: bjitte.ericsson.se
+    search: []
+    servers: []
+my_dpdk_interfaces:
+-   bootproto: manual
+    bridge_options:
+    - external_ids:flow-restore='true'
+    create_patch: true
+    datapath_type: netdev
+    device: br-int
+    fail_mode: secure
+    mtu: 4000
+    patch_ports:
+    -   name: patch_br-int_br_prv
+        peer: patch_br_prv_br-int
+-   address: 2409:8097:104:c81::20
+    bond_options:
+        bond_mode: balance-slb
+        lacp: active
+        other_config:
+        -   key: bond-miimon-interval
+            value: 200
+    bond_primary: null
+    bond_slaves:
+    - data0
+    - data1
+    bootproto: static
+    cidr: 2409:8097:0104:C81::0/64
+    create_patch: true
+    data0_options:
+    -   dpdk-lsc-interrupt: true
+    data1_options:
+    -   dpdk-lsc-interrupt: true
+    datapath_type: netdev
+    device: br_prv
+    dpdk_port: true
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+    patch_ports:
+    -   name: patch_br_prv_br-int
+        peer: patch_br-int_br_prv
+    port: bond_prv
+my_ether_interfaces: []
+my_host_config:
+    kernel: kernel-default
+    kernelBootParameters: console=tty0 console=ttyS0,115200 net.ifnames=0 biosdevname=0
+        rootdelay=90 nomodeset crashkernel=256M transparent_hugepage=never intel_iommu=on
+        iommu=pt nomdmonddf nomdmonisw plymouth.ignore-serial-consoles elevator=deadline
+    lldp:
+        enabled: true
+        msgTxHold: 4
+        msgTxInterval: 30
+    name: compute-host-config
+    sysctlOptions:
+    -   fs.aio-max-nr: 1048576
+    -   net.nf_conntrack_max: 1048576
+    -   kernel.panic: 60
+    -   net.ipv4.ip_local_reserved_ports: 35357,41055-41056,49000-49001,49152-49215,55572,58882
+    -   vm.swappiness: 10
+    -   net.ipv4.conf.default.arp_accept: 1
+    -   net.core.netdev_max_backlog: 261144
+    -   net.ipv4.tcp_keepalive_intvl: 3
+    -   net.ipv4.tcp_keepalive_time: 30
+    -   net.ipv4.tcp_keepalive_probes: 8
+    -   net.ipv4.conf.all.arp_accept: 1
+    -   net.ipv4.tcp_retries2: 5
+    -   net.bridge.bridge-nf-call-arptables: 1
+    -   net.bridge.bridge-nf-call-iptables: 1
+    -   net.bridge.bridge-nf-call-ip6tables: 1
+    -   net.ipv4.neigh.default.gc_thresh1: 4096
+    -   net.ipv4.neigh.default.gc_thresh2: 8192
+    -   net.ipv4.neigh.default.gc_thresh3: 16384
+    -   net.ipv6.neigh.default.gc_thresh1: 4096
+    -   net.ipv6.neigh.default.gc_thresh2: 8192
+    -   net.ipv6.neigh.default.gc_thresh3: 16384
+    -   net.ipv4.ip_forward: 1
+    -   net.ipv4.conf.all.arp_filter: 1
+    -   net.ipv4.conf.all.arp_announce: 2
+    -   net.ipv4.conf.all.arp_notify: 1
+    -   net.ipv4.conf.default.log_martians: 0
+    -   net.ipv4.conf.all.secure_redirects: 0
+    -   net.ipv4.conf.all.rp_filter: 1
+    -   net.ipv4.conf.all.accept_source_route: 0
+    -   net.ipv4.conf.default.secure_redirects: 0
+    -   net.ipv4.conf.all.accept_redirects: 0
+    -   net.ipv4.conf.default.rp_filter: 1
+    -   net.ipv4.conf.default.accept_source_route: 0
+    -   net.ipv4.conf.default.accept_redirects: 0
+    -   net.ipv4.conf.all.log_martians: 0
+    -   net.ipv6.conf.default.disable_ipv6: 0
+    -   net.ipv6.conf.all.disable_ipv6: 0
+    -   vm.max_map_count: 262144
+    -   net.ipv4.ip_nonlocal_bind: 1
+    -   net.ipv6.ip_nonlocal_bind: 1
+    -   net.unix.max_dgram_qlen: 128
+    -   net.ipv6.conf.default.forwarding: 1
+    -   net.ipv6.conf.all.forwarding: 1
+    -   kernel.numa_balancing: 0
+my_lldp_ports:
+-   busAddress: 0000:3b:00.0
+    lldp:
+        adminStatus: tx-only
+    name: control0
+-   busAddress: 0000:b0:00.1
+    lldp:
+        adminStatus: tx-only
+    name: control1
+-   busAddress: 0000:3b:00.1
+    driver: vfio-pci
+    lldp:
+        adminStatus: tx-only
+    name: data0
+-   busAddress: 0000:af:00.0
+    driver: vfio-pci
+    lldp:
+        adminStatus: tx-only
+    name: data1
+-   busAddress: 0000:b0:00.0
+    lldp:
+        adminStatus: tx-only
+    name: storage0
+-   busAddress: 0000:af:00.1
+    lldp:
+        adminStatus: tx-only
+    name: storage1
+my_memory_assignment:
+    default_huge_page_size: 1G
+    name: compute_memory
+    non_numa_huge_pages: []
+    numa_huge_pages:
+    -   count: 4096
+        numa_node: 0
+        size: 2M
+        size_in_k: 2048
+    -   count: 4096
+        numa_node: 1
+        size: 2M
+        size_in_k: 2048
+    -   count: 164
+        numa_node: 0
+        size: 1G
+        size_in_k: 1048576
+    -   count: 164
+        numa_node: 1
+        size: 1G
+        size_in_k: 1048576
+    total_huge_pages:
+    -   count: 8192
+        mountpoint: /mnt/huge_ovs_2M
+        owner: ovs
+        size: 2M
+    -   count: 328
+        mountpoint: /mnt/huge_nova_1G
+        owner: nova-libvirt
+        size: 1G
+my_ovs_interfaces: []
+my_ovs_other_config:
+-   key: n-dpdk-rxqs
+    value: '64'
+-   key: default-mtu
+    value: '4000'
+my_port_mappings:
+-   busAddress: 0000:3b:00.0
+    lldp:
+        adminStatus: tx-only
+    name: control0
+-   busAddress: 0000:b0:00.1
+    lldp:
+        adminStatus: tx-only
+    name: control1
+-   busAddress: 0000:3b:00.1
+    driver: vfio-pci
+    lldp:
+        adminStatus: tx-only
+    name: data0
+-   busAddress: 0000:af:00.0
+    driver: vfio-pci
+    lldp:
+        adminStatus: tx-only
+    name: data1
+-   busAddress: 0000:b0:00.0
+    lldp:
+        adminStatus: tx-only
+    name: storage0
+-   busAddress: 0000:af:00.1
+    lldp:
+        adminStatus: tx-only
+    name: storage1
+my_repos:
+-   name: ericsson-css
+    priority: 80
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXP9039202_4-R1F-cfba274/ericsson-css
+-   name: hostos
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/host-os
+-   name: cee-host-extras
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/cee-host-extras
+-   name: h3c-sdn-plugin
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC008646001-R1A03-E3603P15/h3c-sdn-plugin
+my_vlan_interfaces:
+-   bootproto: manual
+    device: cee0
+    mtu: 1500
+    vlanid: 820
+    vlanrawdevice: control0
+-   bootproto: manual
+    device: cee1
+    mtu: 1500
+    vlanid: 820
+    vlanrawdevice: control1
+-   address: 2409:1616:e2e:835::26
+    bootproto: static
+    cidr: 2409:1616:e2e:835::0/64
+    device: bond_glance
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+    vips:
+    -   address: 2409:1616:e2e:835::a001
+        loadBalancer: glance_internal_haproxy
+        name: glance_int_vip
+    vlanid: 835
+    vlanrawdevice: bond_storage
+-   address: 2409:1616:e2e:830::29
+    bootproto: static
+    cidr: 2409:1616:e2e:830::0/64
+    device: bond_cephA
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+    vlanid: 830
+    vlanrawdevice: bond_storage
+-   address: 2409:1616:e2e:831::29
+    bootproto: static
+    cidr: 2409:1616:e2e:831::0/64
+    device: bond_cephB
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+    vlanid: 831
+    vlanrawdevice: bond_storage
+-   address: 2409:1616:e2e:827::20
+    bootproto: static
+    cidr: 2409:1616:e2e:827::0/64
+    device: bond_migration
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+    vlanid: 827
+    vlanrawdevice: bond_storage
+-   bootproto: manual
+    device: sdnc_sbi0
+    mtu: 1500
+    vlanid: 833
+    vlanrawdevice: control0
+-   bootproto: manual
+    device: sdnc_sbi1
+    mtu: 1500
+    vlanid: 833
+    vlanrawdevice: control1
+oobm_args:
+    oobmAddress: 2409:1616:e2e:836::15
+    oobmExtra:
+        certVerify: false
+        control0: b4:05:5d:1a:07:1e
+        control1: b4:05:5d:1a:07:25
+    oobmPassword: admin
+    oobmType: ipmi
+    oobmUser: admin
+ovs_provider: null
+passthrough_devices: []
+portProfile: Inspur_SNF5280M5
+profile: compute-c0104
+routes:
+-   cidr: ::/0
+    device: br_cee_ctrl
+    gateway: 2409:1616:e2e:820::1
+    netmask: ::/0
+    network: ::/0
+-   cidr: 2409:8080:1:260::/64
+    device: bond_cephA
+    gateway: 2409:1616:e2e:830::1
+    netmask: 'ffff:ffff:ffff:ffff::'
+    network: '2409:8080:1:260::'
+-   cidr: 2409:8097::/32
+    device: br_prv
+    gateway: 2409:8097:0104:c81::10
+    netmask: 'ffff:ffff::'
+    network: '2409:8097::'
+-   cidr: 2409:8098::/32
+    device: br_prv
+    gateway: 2409:8097:0104:c81::10
+    netmask: 'ffff:ffff::'
+    network: '2409:8098::'
+swift_info: {}
+timezone: Asia/Shanghai
+virtual_machines: []
+volume_path_info:
+    compute: /var/lib/nova
+    docker: /var/lib/docker
+    os: /var/crash

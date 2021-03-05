@@ -1,0 +1,2 @@
+---
+- include_tasks: "{{ cee_action | d('deploy') }}.yml"

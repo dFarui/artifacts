@@ -1,0 +1,11 @@
+---
+- name: Copying over log-generator logrotate config file
+  vars:
+    container_name: "rsyslog_log_generator"
+  template:
+    src: "cee.log_generator.nodaily.j2"
+    dest: "{{ logrotate_cee_config_file_path }}"
+    mode: "{{ logrotate_config_file_mode }}"
+  become: true
+  when:
+    - enable_rsyslog | bool

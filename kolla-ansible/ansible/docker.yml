@@ -1,0 +1,8 @@
+---
+- name: Ensure docker is configured
+  hosts: localhost
+  connection: local
+  tags:
+    - docker
+  roles:
+    - role: docker

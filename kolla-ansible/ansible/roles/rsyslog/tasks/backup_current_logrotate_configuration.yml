@@ -1,0 +1,13 @@
+---
+- name: Check existence of /etc/logrotate.conf
+  become: True
+  stat:
+    path: /etc/logrotate.conf
+  register: logrotate_conf
+
+- name: Backup /etc/logrotate.conf
+  become: True
+  copy:
+    src: "{{ logrotate_main_config_file_path }}"
+    dest: "{{ logrotate_main_config_backup_file_path }}"
+  when: logrotate_conf.stat.exists

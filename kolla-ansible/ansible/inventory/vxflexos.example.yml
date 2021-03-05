@@ -1,0 +1,224 @@
+# vim: ft=yaml
+all:
+  children:
+    vxflexos_all:
+      hosts:
+        controller1: {}
+        controller2: {}
+        controller3: {}
+        compute1: {}
+        compute2: {}
+        compute3: {}
+        compute4: {}
+        compute5: {}
+      vars:
+        vxflexos_all:
+          password: Ericsson123@
+          gateway_ip: "192.168.10.23"
+          gateway_user: admin
+          gateway_password: Ericsson123@
+          gateway_admin_password: Ericsson123@
+          gateway_port: 443
+          lia_token: Ericsson123@
+          manage_java: true
+          gateway_be_ports:
+            ssl: 443
+            http: 80
+          mdm_mgmt_ip_list:
+            - 192.168.10.23
+            - 192.168.10.24
+            - 192.168.10.25
+          firewall_persist: netfilter_persistent
+    vxflexos_gw:
+      hosts:
+        compute1: {}
+    vxflexos_mdm:
+      hosts:
+        compute1: {}
+        compute2: {}
+        compute3: {}
+    vxflexos_tb:
+      hosts:
+        compute4: {}
+        compute5: {}
+    vxflexos_sds:
+      hosts:
+        compute1: {}
+        compute2: {}
+        compute3: {}
+        compute4: {}
+        compute5: {}
+    vxflexos_cluster:
+      hosts:
+        compute1:
+          vxflexos:
+            roles:
+              mdm:
+        compute2:
+          vxflexos:
+            roles:
+              mdm:
+        compute3:
+          vxflexos:
+            roles:
+              mdm:
+        compute4:
+          vxflexos:
+            roles:
+              tb:
+        compute5:
+          vxflexos:
+            roles:
+              tb:
+      vars:
+        vxflexos_cluster:
+          # Will be generated info from higher model
+          users:
+            - name: cinder
+              pwd: Ericsson123@
+              role: FrontendConfig
+            - name: admin
+              pwd: Ericsson123@
+              role: FrontendConfig
+          roles:
+            mdm:
+              - compute1:
+                  mgmt:
+                    - 192.168.10.23
+                  fe:
+                    - 192.168.17.43
+                    - 192.168.18.43
+              - compute2:
+                  mgmt:
+                    - 192.168.10.24
+                  fe:
+                    - 192.168.17.44
+                    - 192.168.18.44
+              - compute3:
+                  mgmt:
+                    - 192.168.10.25
+                  fe:
+                    - 192.168.17.45
+                    - 192.168.18.45
+            tb:
+              - compute4:
+                  mgmt:
+                    - 192.168.10.26
+                  fe:
+                    - 192.168.17.46
+                    - 192.168.18.46
+              - compute5:
+                  mgmt:
+                    - 192.168.10.27
+                  fe:
+                    - 192.168.17.47
+                    - 192.168.18.47
+            sds:
+              - compute1:
+                  fe:
+                    - 192.168.17.43
+                    - 192.168.18.43
+                  be:
+                    - 192.168.15.43
+                    - 192.168.16.43
+                  sds:
+                    - protection_domain: 'protection_domain1'
+                      devices:
+                        - name: '/dev/scaleio/sds_dev'
+                          pool: 'pool1'
+              - compute2:
+                  fe:
+                    - 192.168.17.44
+                    - 192.168.18.44
+                  be:
+                    - 192.168.15.44
+                    - 192.168.16.44
+                  sds:
+                    - protection_domain: 'protection_domain1'
+                      devices:
+                        - name: '/dev/scaleio/sds_dev'
+                          pool: 'pool1'
+              - compute3:
+                  fe:
+                    - 192.168.17.45
+                    - 192.168.18.45
+                  be:
+                    - 192.168.15.45
+                    - 192.168.16.45
+                  sds:
+                    - protection_domain: 'protection_domain1'
+                      devices:
+                        - name: '/dev/scaleio/sds_dev'
+                          pool: 'pool1'
+              - compute4:
+                  fe:
+                    - 192.168.17.46
+                    - 192.168.18.46
+                  be:
+                    - 192.168.15.46
+                    - 192.168.16.46
+                  sds:
+                    - protection_domain: 'protection_domain1'
+                      devices:
+                        - name: '/dev/scaleio/sds_dev'
+                          pool: 'pool2'
+              - compute5:
+                  fe:
+                    - 192.168.17.47
+                    - 192.168.18.47
+                  be:
+                    - 192.168.15.47
+                    - 192.168.16.47
+                  sds:
+                    - protection_domain: 'protection_domain2'
+                      devices:
+                        - name: '/dev/scaleio/sds_dev'
+                          pool: 'pool1'
+          protection_domains:
+          - name: protection_domain1
+            pools:
+              - name: pool1
+                zeropadding: enabled
+                types:
+                  - name: vxflexos_type1
+                    provisioning_type: thin
+                  - name: vxflexos_type2
+                    provisioning_type: thin
+                  - name: vxflexos_type3
+                    provisioning_type: thick
+              - name: pool2
+                zeropadding: enabled
+                types:
+                  - name: vxflexos_type4
+                    provisioning_type: thick
+                  - name: vxflexos_type5
+                    provisioning_type: thin
+                  - name: vxflexos_type6
+                    provisioning_type: thick
+          - name: protection_domain2
+            pools:
+              - name: pool1
+                zeropadding: enabled
+                types:
+                  - name: vxflexos_type7
+                    provisioning_type: thin
+                  - name: vxflexos_type8
+                    provisioning_type: thin
+                  - name: vxflexos_type9
+                    provisioning_type: thick
+    vxflexos_sdc:
+      hosts:
+        compute1: {}
+        compute2: {}
+        compute3: {}
+        compute4: {}
+        compute5: {}
+        controller1: {}
+        controller2: {}
+        controller3: {}
+      vars:
+        vxflexos_sdc:
+          gateway_ip: "192.168.10.23"
+          gateway_user: admin
+          gateway_password: Ericsson123@
+          gateway_port: 443

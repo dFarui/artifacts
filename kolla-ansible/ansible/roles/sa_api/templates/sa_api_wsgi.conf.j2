@@ -1,0 +1,36 @@
+{% set binary_path = '/usr/bin' %}
+{% set binary_name = 'cee-sa-wsgi' %}
+{% set log_dir = '/var/log/sa_api' %}
+{% if kolla_base_distro in ['sles'] %}
+    {% set python_path = '/usr/lib/python3.6/site-packages' %}
+{% else %}
+    {% set python_path = '/usr/lib/python3/dist-packages' if kolla_base_distro in ['debian', 'ubuntu'] else '/usr/lib/python2.7/site-packages' %}
+{% endif %}
+
+Listen {{ api_interface_address | put_address_in_context('url') }}:{{ sa_api_listen_port }}
+
+ServerSignature Off
+ServerTokens Prod
+TraceEnable off
+
+{% if sa_api_logging_debug | bool %}
+LogLevel info
+{% endif %}
+
+<VirtualHost *:{{ sa_api_listen_port }}>
+    WSGIDaemonProcess sa-api threads=1 user=sa group=sa display-name=%{GROUP} python-path={{ python_path }}
+    WSGIProcessGroup sa-api
+    WSGIScriptAlias / {{ binary_path }}/{{ binary_name }}
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization On
+    <Directory {{ binary_path }}>
+        <FilesMatch "^{{ binary_name }}$">
+            AllowOverride None
+            Options None
+            Require all granted
+        </FilesMatch>
+    </Directory>
+    ErrorLog "{{ log_dir }}/sa_api_error.log"
+    LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %b %D \"%{Referer}i\" \"%{User-Agent}i\"" logformat
+    CustomLog "{{ log_dir }}/sa_api_access.log" logformat
+</VirtualHost>

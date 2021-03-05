@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer for CEE log rotation
+
+[Timer]
+OnBootSec={{ logrotate_systemd_timer_boot_execution_delay }}
+OnUnitActiveSec={{ logrotate_systemd_timer_execution_interval }}
+
+[Install]
+WantedBy=timers.target

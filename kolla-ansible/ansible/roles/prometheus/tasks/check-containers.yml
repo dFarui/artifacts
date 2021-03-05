@@ -1,0 +1,109 @@
+---
+- name: Check prometheus containers
+  become: true
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ item.value.container_name }}"
+    image: "{{ item.value.image }}"
+    pid_mode: "{{ item.value.pid_mode|default('') }}"
+    volumes: "{{ item.value.volumes }}"
+    dimensions: "{{ item.value.dimensions }}"
+    privileged: "{{ item.privileged | default(False) }}"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ prometheus_services }}"
+  notify:
+    - "Restart {{ item.key }} container"
+
+- name: Check prometheus-server container
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-server'] }}"
+  become: true
+  register: prometheus_sever_container_differs
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ service.dimensions }}"
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: false
+
+- name: Registering prometheus-server container check results
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-server'] }}"
+  set_fact:
+    prometheus_sever_container_differs: "{{ prometheus_sever_container_differs.result }}"
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: false
+
+- name: Evaluate prometheus-server status in the cluster
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-server'] }}"
+  run_once: True
+  local_action:
+    module: set_fact
+    prometheus_sever_recreate: >-
+      {% set ns = namespace(prometheus_sever_recreate=true) -%}
+      {% for host in groups[service.group] -%}
+        {% set ns.prometheus_sever_recreate = ns.prometheus_sever_recreate and prometheus_sever_container_differs -%}
+      {% endfor -%}
+      {{ ns.prometheus_sever_recreate -}}
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: prometheus_sever_recreate
+  notify: "Restart prometheus-server container"
+
+- name: Check prometheus-alertmanager container
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-alertmanager'] }}"
+  become: true
+  register: prometheus_alertmanager_container_differs
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ service.dimensions }}"
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: false
+
+- name: Registering prometheus-alertmanager container check results
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-alertmanager'] }}"
+  set_fact:
+    prometheus_alertmanager_container_differs: "{{ prometheus_alertmanager_container_differs.result }}"
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: false
+
+- name: Evaluate prometheus-alertmanager status in the cluster
+  vars:
+    service: "{{ prometheus_pacemaker_services['prometheus-alertmanager'] }}"
+  run_once: True
+  local_action:
+    module: set_fact
+    prometheus_alertmanager_recreate: >-
+      {% set ns = namespace(prometheus_alertmanager_recreate=true) -%}
+      {% for host in groups[service.group] -%}
+        {% set ns.prometheus_alertmanager_recreate = ns.prometheus_alertmanager_recreate and hostvars[host]['prometheus_alertmanager_container_differs'] -%}
+      {% endfor -%}
+      {{ ns.prometheus_alertmanager_recreate -}}
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  changed_when: prometheus_alertmanager_recreate
+  notify: "Restart prometheus-alertmanager container"
+

@@ -1,0 +1,12 @@
+[Unit]
+Description=Scheduler Agent
+Requires=network.target docker.service apache2.service lcm-api.service
+After=network.target docker.service apache2.service lcm-api.service
+
+[Service]
+ExecStart=/usr/lib/python3.6/site-packages/cee_lcm_api/controllers/scheduler_agent.py
+ExecStop=/bin/pkill -9 -f scheduler_agent
+ExecStopPost=/bin/rm -f /var/run/scheduler_agent.pid
+
+[Install]
+WantedBy=multi-user.target

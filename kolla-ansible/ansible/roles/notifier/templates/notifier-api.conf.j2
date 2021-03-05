@@ -1,0 +1,15 @@
+[DEFAULT]
+host={{ notifier_controller_listen_address }}
+port={{ notifier_controller_listen_port }}
+specification_dir=/etc/notifier
+api_definition=notifier-api.yml
+logging_cfg_path=/etc/notifier/notifier-api-logging.conf
+sql_conn={{ notifier_database_connection }}
+
+[keystone]
+auth_url={{ notifier_keystone_auth_url }}
+auth_username={{ notifier_keystone_admin_username }}
+auth_password={{ notifier_keystone_admin_password }}
+auth_domain={{ notifier_keystone_user_domain_name }}
+auth_project={{ notifier_keystone_project_name }}
+auth_project_domain={{ notifier_keystone_domain_name }}

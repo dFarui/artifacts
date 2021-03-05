@@ -1,0 +1,4 @@
+---
+# This is main tasks file for css role
+- include_tasks: install.yml
+- include_tasks: service.yml

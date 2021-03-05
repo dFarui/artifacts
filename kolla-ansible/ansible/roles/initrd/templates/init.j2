@@ -1,0 +1,95 @@
+#!/bin/bash -eu
+
+export PATH=/usr/sbin:/sbin:/usr/bin:/bin
+
+. /init.functions
+
+# trap panic EXIT
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts
+mdev -s
+
+[[ -f /etc/hostname ]] && hostname -F /etc/hostname
+
+# Prefer panic over hang.
+sysctl -q kernel.softlockup_panic=1
+sysctl -q kernel.panic_on_oops=1
+
+check_modules
+
+echo
+echo "Starting udevd"
+/usr/lib/systemd/systemd-udevd --daemon
+udevadm trigger --type=subsystems --action=add
+udevadm trigger --type=devices --action=add
+udevadm settle --timeout=180
+
+grep -wq wipe_disks /proc/cmdline && wipe_disks
+
+echo
+echo "Starting networking"
+set_boot_mac
+set_boot_if
+set_boot_ip
+start_network
+
+base_pkgs="
+patterns-base-base
+parted
+lvm2
+kpartx
+python3
+sudo
+"
+
+echo "Updating \"base\" packages"
+echo "$BOOT_SERVER_IP cee-repo.{{ my_dns_config.domain }}" >>/etc/hosts
+res=$(zypper ar --no-gpgcheck --refresh {{ host_os_repo_url }} hostos) || panic $res
+res=$(zypper --non-interactive install --no-recommends --allow-unsigned-rpm $base_pkgs ) || panic $res
+
+setup_ssh_access
+
+cd /
+echo
+echo "Starting sshd"
+sshd-gen-keys-start &>/dev/null
+/usr/sbin/sshd -D &
+
+if grep -wq debug_ramboot_init /proc/cmdline
+#if true
+then
+
+retry=true
+while $retry
+do
+    read -ep "How to continue? [boot/exit/shell]" choice
+    case $choice in
+    boot)
+      retry=false
+      ;;
+    shell)
+      echo "Starting \"rescue\" shell"
+      /bin/bash
+      ;;
+    exit)
+      exit
+      ;;
+    *)
+      ;;
+    esac
+done
+
+else
+    while true
+    do
+        [ -f /install_in_progress ] || break
+        sleep 1
+    done
+fi
+
+stop_network
+pkill -9 sshd
+exec switch_root /installroot /usr/lib/systemd/systemd --switched-root --system

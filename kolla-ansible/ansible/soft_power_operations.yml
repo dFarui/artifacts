@@ -1,0 +1,11 @@
+- hosts: physical_hosts:virtual_hosts
+  tasks:
+    - name: Soft power operations
+      block:
+        - name: Soft reboot
+          import_tasks: roles/power_operations/tasks/soft_reboot.yml
+          when: power_state == "soft_reboot"
+        - name: Soft poweroff
+          import_tasks: roles/power_operations/tasks/soft_poweroff.yml
+          when: power_state == "soft_poweroff"
+      when: power_state == "soft_reboot" or power_state == "soft_poweroff"

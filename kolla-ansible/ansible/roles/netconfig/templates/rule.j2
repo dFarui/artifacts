@@ -1,0 +1,13 @@
+{{ file_marker }}
+{% if item.routing_table is defined %}
+{% if item.address is defined %}
+{% if item.gateway is defined %}
+from {{ item.address }} table {{ item.routing_table }}
+{% if item.vips is defined %}
+{% for vip in item.vips %}
+from {{ vip }} table {{ item.routing_table }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

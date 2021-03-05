@@ -1,0 +1,10 @@
+{{ ansible_managed | comment }}
+
+ruleset (name="{{ properties.rule_set.name }}") {
+{% for action in properties.rule_set.functions.write.actions %}
+{{ action | to_rsyslog_action | indent(width=4, indentfirst=True) }}
+{% endfor %}
+{% for action in properties.rule_set.functions.forward.actions %}
+{{ action | to_rsyslog_action | indent(width=4, indentfirst=True) }}
+{% endfor %}
+}

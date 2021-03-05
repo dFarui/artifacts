@@ -1,0 +1,10 @@
+---
+sshd_config:
+  - regexp: "^#?PermitRootLogin "
+    line: "PermitRootLogin without-password"
+  - regexp: "^#?\\s*MaxSessions\\s+"
+    line: "MaxSessions 100"
+  - regexp: "^#?\\s*MaxStartups\\s+"
+    line: "MaxStartups 50:30:100"
+  - regexp: "^#?\\s*Banner\\s+"
+    line: "Banner /etc/issue.net"

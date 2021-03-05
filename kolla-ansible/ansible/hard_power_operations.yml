@@ -1,0 +1,18 @@
+---
+- hosts: physical_hosts:virtual_hosts
+  vars:
+    ansible_connection: local
+    host_path: "/var/lib/cee/system/{{system_name}}/system/information/host_power_status.json"
+  tasks:
+    - name: Hard power operations
+      block:
+        - name: Hard poweroff
+          import_tasks: roles/power_operations/tasks/hard_poweroff.yml
+          when: power_state == "hard_poweroff"
+        - name: Hard poweron
+          import_tasks: roles/power_operations/tasks/poweron.yml
+          when: power_state == "poweron"
+        - name: Hard reboot
+          import_tasks: roles/power_operations/tasks/hard_reboot.yml
+          when: power_state == "hard_reboot"
+      when: power_state == "hard_poweroff" or power_state == "poweron" or power_state == "hard_reboot"

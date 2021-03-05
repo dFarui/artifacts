@@ -1,0 +1,35 @@
+{
+    "command": "/usr/lib/zookeeper/zkServer.sh start-foreground /etc/zookeeper/conf/zoo.cfg",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/myid",
+            "dest": "{{ zookeeper_volume_path }}/zookeeper/data/myid",
+            "owner": "zookeeper",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/zookeeper.cfg",
+            "dest": "/etc/zookeeper/conf/zoo.cfg",
+            "owner": "zookeeper",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/zookeeper_jaas.conf",
+            "dest": "/etc/zookeeper/zookeeper_jaas.conf",
+            "owner": "zookeeper",
+            "perm": "0600"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "{{ zookeeper_volume_path }}/zookeeper",
+            "owner": "zookeeper:zookeeper",
+            "recurse": true
+        },
+        {
+            "path": "/var/log/kolla/zookeeper",
+            "owner": "zookeeper:zookeeper",
+            "recurse": true
+        }
+    ]
+}

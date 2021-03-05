@@ -1,0 +1,6 @@
+---
+# marker indicating that the file is managed by LCM$
+file_marker: '# LCM-MANAGED - Managed by LCM - Do not edit'
+
+kernel_module_file: /etc/modules-load.d/kernel-modules.conf
+kernel_modprobe_file: /etc/modprobe.d/99-kernel_modules.conf

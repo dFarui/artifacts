@@ -1,0 +1,30 @@
+---
+- name: "Add SDNc DNS name to controller hosts file"
+  become: true
+  lineinfile: dest=/etc/hosts regexp='.*{{ sdnc_host }}$' line="{{ sdnc_ip }} {{ sdnc_host }}" state=present
+  when:
+    - sdnc_host != ""
+    - sdnc_ip != ""
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname in groups['neutron-server']
+    - enable_neutron_generic_sdn | bool
+
+- include_tasks: create_h3c_table.yml
+  when:
+    - enable_neutron_generic_sdn | bool
+    - inventory_hostname in groups['neutron-server']
+    - vendor == "h3c"
+
+- include_tasks: ssl_configuration.yml
+  when:
+    - enable_neutron_generic_sdn | bool
+
+- include_tasks: install_vcfplugin.yml
+  when:
+    - enable_neutron_generic_sdn | bool
+
+- include_tasks: setup_openvswitch.yml
+  when:
+    - enable_neutron_generic_sdn | bool
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']

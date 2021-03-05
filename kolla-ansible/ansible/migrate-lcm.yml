@@ -1,0 +1,28 @@
+---
+- import_playbook: migrate-lcm-data.yml
+- import_playbook: initialize-cee.yml
+  vars:
+    ceeuser_password: "{{ host_password | quote }}"
+    ceeinfra_user_password: "{{ host_password | quote }}"
+    migrate_serial: 1
+- import_playbook: migrate-db-data.yml
+- import_playbook: kickstart-setup.yml
+  vars:
+    build_discovery_image: false
+- import_playbook: cee-artifacts.yml
+  vars:
+    cee_action: migrate
+    migrate_serial: 1
+- hosts:
+  - infra_hypervisors
+  - lcm_hosts
+  become: true
+  roles:
+    - hosts_setup
+- hosts:
+  - lcm_hosts
+  become: true
+  vars:
+    kolla_action: deploy
+  roles:
+    - scheduler

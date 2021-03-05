@@ -1,0 +1,23 @@
+---
+- name: Waiting for configured nodes to join to the Corosync cluster
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  run_once: True
+  become: True
+  shell: 'docker exec corosync corosync-cmapctl | grep -c "^runtime.totem.pg.mrp.srp.members.[0-9]\+.status (str) = joined$"'
+  register: result
+  until: groups['pacemaker'] | length | string in result.stdout
+  changed_when: False
+  retries: 12
+  delay: 5
+
+- name: Waiting for configured nodes to appear in Pacemaker
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: online_members
+  register: result
+  until: result.count == groups["pacemaker"] | length
+  changed_when: False
+  retries: 20
+  delay: 5

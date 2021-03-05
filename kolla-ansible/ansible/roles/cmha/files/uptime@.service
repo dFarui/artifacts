@@ -1,0 +1,6 @@
+[Unit]
+Description=Uptime Service
+
+[Service]
+ExecStart=/bin/cat /proc/uptime
+StandardOutput=socket

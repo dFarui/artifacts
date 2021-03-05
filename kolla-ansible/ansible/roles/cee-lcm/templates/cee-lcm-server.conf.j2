@@ -1,0 +1,12 @@
+bind = 'localhost:{{ lcm_api_port }}'
+workers = 1
+worker_class = 'eventlet'
+timeout = 0
+errorlog = '{{ error_log }}'
+loglevel = 'debug'
+user = '{{ ansible_user_uid }}'
+group = '{{ ansible_user_gid }}'
+raw_env = [
+    "HOME={{ ansible_user_dir }}",
+    "USER={{ ansible_user_id }}"
+    ]

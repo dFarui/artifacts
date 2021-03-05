@@ -1,0 +1,224 @@
+---
+- name: Ensuring config directories exist
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+  file:
+    path: "{{ node_config_directory }}/{{ service_name }}"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  when:
+    - service.enabled | bool
+
+- name: Copying over RSYSLOG main config file
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+  template:
+    src: "rsyslog.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/rsyslog.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over config.json file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+  template:
+    src: "rsyslog_log_aggregator.json.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/config.json"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: "Build RSYSLOG local logging rules input"
+  set_fact:
+    rsyslog_local_logging_rules_input: "{{ rsyslog_local_logging_rules_input | default({}) | combine( {item.key: item.value.logging_rule_input} ) }}"
+  when:
+    - item.value.enable_local_logging
+  with_dict: "{{ rsyslog_cached_cee_services | with_source_type('rsyslog') }}"
+
+- name: Copying over local logging rules config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    input: "{{ rsyslog_local_logging_rules_input }}"
+    is_forward_set: "{{ rsyslog_log_behavior.forward_logs }}"
+    is_write_set: "{{ rsyslog_log_behavior.write_local_logs }}"
+    rule_set_name: "{{ rsyslog_logic.local.common_log.processing.rule_set.name }}"
+    rules_file_description: "Local logging rules"
+    rules_type: "local"
+  template:
+    src: "logging-rules.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/00-00-00-local-logging-rules.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_local_logs or
+      rsyslog_log_behavior.forward_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: "Build RSYSLOG remote logging rules input"
+  set_fact:
+    rsyslog_remote_logging_rules_input: "{{ rsyslog_remote_logging_rules_input | default({}) | combine( {item.key: item.value.logging_rule_input} ) }}"
+  when:
+    - item.value.enable_remote_logging
+  with_dict: "{{ rsyslog_cached_cee_services | with_source_type('rsyslog') }}"
+
+- name: Copying over remote logging rules config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    input: "{{ rsyslog_remote_logging_rules_input }}"
+    is_forward_set: "{{ rsyslog_log_behavior.forward_logs }}"
+    is_write_set: "{{ rsyslog_log_behavior.write_received_logs }}"
+    rule_set_name: "{{ rsyslog_logic.remote.common_log.processing.rule_set.name }}"
+    rules_file_description: "Remote logging rules"
+    rules_type: "remote"
+  template:
+    src: "logging-rules.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/01-00-00-remote-logging-rules.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_received_logs
+    - hostvars | is_any_rsyslog_log_generator_forwarding_logs(groups["rsyslog-log-aggregator"])
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over local logging write config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.local.common_log.functions }}"
+  template:
+    src: "logging-write.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/00-01-00-local-logging-write.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_local_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over local logging forward config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.local.common_log.functions.forward }}"
+  template:
+    src: "logging-forward.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/00-01-01-local-logging-forward.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.forward_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over local kernel logging config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+  template:
+    src: "logging-kernel.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/00-01-02-local-kernel-logging.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_local_logs or rsyslog_log_behavior.forward_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over local logging write audit config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.local.audit_log }}"
+  template:
+    src: "audit-logging.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/00-02-00-local-audit-logging.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - enable_audit | bool
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_local_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over remote logging write config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.remote.common_log.functions }}"
+  template:
+    src: "logging-write.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/01-01-00-remote-logging-write.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_received_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over remote logging forward config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.remote.common_log.functions.forward }}"
+  template:
+    src: "logging-forward.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/01-01-01-remote-logging-forward.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - service.enabled | bool
+    - rsyslog_log_behavior.forward_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket
+
+- name: Copying over remote audit logging write config file of log-aggregator node
+  become: yes
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+    properties: "{{ rsyslog_logic.remote.audit_log }}"
+  template:
+    src: "audit-logging.conf.j2"
+    dest: "{{ node_config_directory }}/{{ service_name }}/01-02-00-remote-audit-logging.conf"
+    mode: "{{ rsyslog_config_file_mode }}"
+  when:
+    - enable_audit | bool
+    - service.enabled | bool
+    - rsyslog_log_behavior.write_received_logs or rsyslog_log_behavior.forward_logs
+  notify:
+    - Check {{ service_name }} configuration
+    - Restart systemd syslog.socket

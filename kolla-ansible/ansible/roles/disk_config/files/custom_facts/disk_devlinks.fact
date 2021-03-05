@@ -1,0 +1,12 @@
+#!/bin/bash
+
+comma=''
+echo -n "{"
+for i in /dev/disk/*/*
+do
+   echo $comma
+   echo -n "  \"$i\": \"$(readlink -f $i)\""
+   comma=','
+done
+echo
+echo "}"

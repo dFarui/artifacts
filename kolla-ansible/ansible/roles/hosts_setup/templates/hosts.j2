@@ -1,0 +1,43 @@
+# Localhost Information
+127.0.0.1      localhost
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+{{ lcm_network.vip }}         lcm                      docker-registry.{{ my_dns_config.domain }}
+{{ lcm_network.vip }}         cee-repo.{{ my_dns_config.domain }}
+
+
+{% for net, records in ip_info.items() -%}
+{%   if net not in ["cee-ipv4", "cee-ipv6"] %}
+
+# network: {{ net }}
+{%     for hostname, ip in records.items() -%}
+{%       if hostname != "vip" -%}
+{{ "%-20s"|format(ip) }} {{ "%-40s"|format(hostname+"-"+net+'.'+my_dns_config.domain) }} {{ "%-30s"|format(hostname+"-"+net) }}
+{%       endif -%}
+{%     endfor %}
+{%   else %}
+
+# network: {{ net }}
+{%     for hostname, ip in records.items() %}
+{%        if hostname != "vip" %}
+{{ "%-20s"|format(ip) }}   {{ "%-30s"|format(hostname+'.'+my_dns_config.domain) }}  {{ "%-20s"|format(hostname) }}  {{ "%-40s"|format(hostname+"-"+net+'.'+my_dns_config.domain) }}  {{ "%-30s"|format(hostname+"-"+net) }}
+{%        endif %}
+{%     endfor %}
+{%   endif %}
+{%   for hostname, ip in records.items() %}
+{%     if hostname == "vip" and ip %}
+# VIPS
+{%       for vip in ip.values() %}
+{%         if vip['hostname'] is defined %}
+{{ "%-20s"|format(vip['address']) }} {{ "%-40s"|format(vip['hostname']+'.'+my_dns_config.domain) }}  {{ "%-30s"|format(vip['hostname']) }}
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endfor %}
+{% endfor %}

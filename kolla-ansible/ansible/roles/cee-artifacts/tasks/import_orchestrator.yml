@@ -1,0 +1,8 @@
+- name: Install the orchestrator playbooks
+  become: yes
+  package:
+    name: "{{ item.name }}"
+    state: latest
+  with_items:
+    - '{{ service["orchestrator"] | d([])}}'
+  when : ('lcm_hosts' in groups and inventory_hostname != 'localhost') or ('lcm_hosts' not in groups)

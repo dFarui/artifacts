@@ -1,0 +1,9 @@
+{% if kolla_base_distro in ['sles'] %}
+    {% set memcached_bin = '/usr/sbin/memcached' %}
+{% else %}
+    {% set memcached_bin = '/usr/bin/memcached' %}
+{% endif %}
+{
+    "command": "{{memcached_bin}} -v -l {{ api_interface_address }} -p {{ memcached_port }} -c {{ memcached_connection_limit }} -U 0 -m {{ memcached_max_memory }}",
+    "config_files": []
+}

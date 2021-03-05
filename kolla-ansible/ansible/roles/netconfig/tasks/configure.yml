@@ -1,0 +1,384 @@
+#
+# network_interface configure playbook
+#
+---
+
+- name: Set SRIOV MAX VFs on Mellanox cards pre-task
+  become: yes
+  shell: |
+    readlink /sys/bus/pci/devices/{{ item.bus_address }}/driver | grep -q mlx
+  register: is_mellanox
+  failed_when: is_mellanox.rc == 2
+  with_items: "{{ passthrough_devices }}"
+  when: passthrough_devices is defined
+
+- name: Get SRIOV MAX VFs on Mellanox cards
+  become: yes
+  shell: |
+    mstconfig -d {{ item.item.bus_address }} q | awk '/NUM_OF_VFS/ {print $2}'
+  register: max_vfs
+  when: item.rc == 0
+  with_items: "{{ is_mellanox.results }}"
+
+- name: Set SRIOV MAX VFs on Mellanox cards
+  become: yes
+  shell: |
+    /usr/bin/mstconfig -y -d {{ item.item.item.bus_address }} set SRIOV_EN=1 NUM_OF_VFS=16
+  when: item.item.rc == 0 and item.stdout != "16"
+  with_items: "{{ max_vfs.results }}"
+  notify: Soft rebooting the node
+
+- name: Create temporary shadow directory
+  command: /bin/mktemp -d
+  register: shadow_dir
+
+- name: Simplify registered values
+  set_fact:
+    shadow_dir: "{{ shadow_dir.stdout }}"
+
+- name: Ensure switchd values exist
+  set_fact:
+    switchd: { orig_checksum: '' }
+  when:
+    switchd is not defined
+
+- name: Ensure override dirs
+  file:
+    path: "/etc/systemd/system/{{item}}.service.d"
+    state: directory
+  with_items:
+    - ovsdb-server
+    - openvswitch
+
+- name: Create service override files
+  template:
+    src: "{{item}}.service.override.j2"
+    dest: "/etc/systemd/system/{{item}}.service.d/override.conf"
+  with_items:
+    - ovsdb-server
+    - openvswitch
+
+- name: Apply systemd overrides
+  command: systemctl daemon-reload
+
+- name: Start openvswitch
+  become: yes
+  service:
+    name: openvswitch
+    state: started
+    enabled: yes
+  when: my_ovs_interfaces != [] or (my_dpdk_interfaces|d([])) != []
+
+
+- name: Install linux-bridge packages
+  become: yes
+  package:
+    name: "{{ linuxbridge_packages }}"
+    state: latest
+  environment: env
+  when:
+    my_bridge_interfaces != []
+
+- name: Configure the PCI->NIC mappings
+  become: yes
+  template:
+    src: ../templates/nic_mapping.j2
+    dest: "/etc/udev/rules.d/{{ udev_prefix_nic_mapping }}-deployer-nic-mapping.rules"
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    my_port_mappings != []
+  register: udev_config_result
+
+- name: Create interface configuration directory
+  become: yes
+  file:
+    path: "{{ net_path }}"
+    state: directory
+
+- name: Remove previous .shadow configuration directory
+  become: yes
+  file:
+    path: "{{ shadow_dir }}"
+    state: absent
+
+- name: Create .shadow configuration directory
+  become: yes
+  file:
+    path: "{{ shadow_dir }}"
+    state: directory
+
+- name: Get list of routing tables
+  set_fact:
+    routing_tables: "{{ [my_ether_interfaces, my_bond_interfaces, my_vlan_interfaces, my_ovs_interfaces, my_bridge_interfaces] | routing_tables | list }}"
+
+- name: Create ovs bridges
+  become: yes
+  command: >
+    ovs-vsctl --timeout=5 -- --may-exist add-br {{ item.device }}
+    -- set bridge {{ item.device }} datapath_type={{ item.datapath_type }}
+    {% if item.fail_mode is defined %}
+    -- set bridge {{ item.device }} fail_mode={{ item.fail_mode }}
+    {% endif %}
+    {% if tem.mtu is defined and item.mtu %}
+    -- set bridge {{ item.device }} mtu_request={{ item.mtu }}
+    {% endif %}
+    {% if item.bridge_options is defined %}
+    {%-  for option in item.bridge_options %}
+    -- set bridge {{ item.device }} {{ option }}
+    {%-  endfor %}
+    {% endif %}
+  with_items:
+    - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+
+- name: Add bond to the ovs bridges
+  become: yes
+  command: >
+    ovs-vsctl --timeout=5 -- --may-exist add-bond {{ item.device }}
+    {{ item.port }} {{ item.bond_slaves[0] }} {{ item.bond_slaves[1] }}
+  with_items:
+   - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+  when: item.bond_slaves is defined
+
+- name: Create OVS-bridge configuration files
+  become: yes
+  template:
+    src: ../templates/ovs_bridge.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+
+- name: Create OVS-bridge script files
+  become: yes
+  template:
+    src: ../templates/ovs_bridge_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+
+- name: Set dpdk options
+  become: yes
+  command: >
+    ovs-vsctl --timeout=5
+    {%-   for slave in item.bond_slaves %}
+    -- set Interface {{ slave }} type=dpdk
+    options:dpdk-devargs={{ slave | pci_hw_address(my_port_mappings) }}
+    {%-     set interface_options = item.get(slave + "_options", []) %}
+    {%-     if interface_options | length > 0 %}
+    {%-      for option in interface_options %}
+    {%-        for key, value in option.items() %}
+    options:{{ key }}={{ value }}
+    {%-        endfor %}
+    {%-      endfor %}
+    {%-     endif %}
+    {%-   endfor %}
+  with_items: "{{ my_dpdk_interfaces|d([]) }}"
+  when:
+   - item.bond_slaves is defined
+
+- name: Set bond_mode for the ovs bonds
+  command: >
+    ovs-vsctl --timeout=5 -- set Port {{ item.port }}
+    bond_mode={{ item.bond_options.bond_mode }}
+  with_items:
+   - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+  when: item.bond_options is defined and item.bond_options.bond_mode is defined
+
+- name: Set lacp_mode for the ovs bonds
+  command: >
+    ovs-vsctl --timeout=5 -- set Port {{ item.port }} lacp={{ item.bond_options.lacp }}
+  with_items:
+   - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([]) }}"
+  when: item.bond_options is defined and item.bond_options.lacp is defined and item.bond_options.lacp
+
+- name: Set otherConfig for the ovs bond
+  openvswitch_db:
+    table: Port
+    record: "{{ item.0.port }}"
+    col: other_config
+    key: "{{ item.1.key }}"
+    value: "{{ item.1.value }}"
+  with_subelements:
+   - "{{ my_ovs_bond_interfaces + my_dpdk_bond_interfaces|d([])  }}"
+   - bond_options.other_config
+
+- name: Create patch ports with tag
+  command: >
+    ovs-vsctl --timeout=5 -- --may-exist add-port {{ item.0.device }}
+    {{ item.1.name }} tag={{ item.1.vlanid }} --
+    set interface {{ item.1.name }} type=patch options:peer={{ item.1.peer }}
+  with_subelements:
+   - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([])  }}"
+   - patch_ports
+  when: item.0.create_patch is defined and item.0.create_patch and item.1.vlanid is defined
+
+- name: Create patch ports without tag
+  command: >
+    ovs-vsctl --timeout=5 -- --may-exist add-port {{ item.0.device }}
+    {{ item.1.name }} -- set interface {{ item.1.name }}
+    type=patch options:peer={{ item.1.peer }}
+  with_subelements:
+   - "{{ my_ovs_interfaces + my_dpdk_interfaces|d([])  }}"
+   - patch_ports
+  when: item.0.create_patch is defined and item.0.create_patch
+
+- name: Configure openvswitch other_config options
+  become: yes
+  command: "ovs-vsctl set Open_vSwitch . other_config:{{ item.key }}={{ item.value }}"
+  with_items: "{{ my_ovs_other_config }}"
+
+- name: Set vtep IP
+  openvswitch_db:
+    table: Open_vswitch
+    record: .
+    col: other_config
+    key: local_ip
+    value: "{{ vtep_ip }}"
+  when: vtep_ip is defined
+
+- name: Create ethernet configuration files
+  become: yes
+  template:
+    src: ../templates/ethernet.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ my_ether_interfaces }}"
+  register: ether_result
+
+- name: Create ethernet scripts
+  become: yes
+  template:
+    src: ../templates/ethernet_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ my_ether_interfaces }}"
+  register: ether_result
+
+- name: Create Linux-bridge configuration files
+  become: yes
+  template:
+    src: ../templates/bridge.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ my_bridge_interfaces }}"
+
+- name: Create Linux-bridge scripts
+  become: yes
+  template:
+    src: ../templates/bridge_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ my_bridge_interfaces }}"
+
+- name: Create bond configuration files
+  become: yes
+  template:
+    src: ../templates/bond.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ my_bond_interfaces }}"
+  register:
+    bond_result
+
+- name: Create bond scripts
+  become: yes
+  template:
+    src: ../templates/bond_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ my_bond_interfaces }}"
+
+- name: Ensure the bonding module is loaded
+  become: yes
+  modprobe:
+    name: bonding
+    state: present
+  when:
+    bond_result is changed
+
+- name: Create bond-slave configuration files
+  become: yes
+  template:
+    src: ../templates/bond_slave.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.1 }}"
+  with_subelements:
+   - "{{ my_bond_interfaces }}"
+   - bond_slaves
+  when:
+    bond_result is defined
+  register: bond_port_result
+
+- name: Create bond-slave scripts
+  become: yes
+  template:
+    src: ../templates/bond_slave_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.1 }}.sh"
+    mode: 0744
+  with_subelements:
+   - "{{ my_bond_interfaces }}"
+   - bond_slaves
+  when:
+    bond_result is defined
+  register: bond_port_result
+
+- name: Create vlan configuration files
+  become: yes
+  template:
+    src: ../templates/vlan.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ my_vlan_interfaces }}"
+
+- name: Create vlan scripts
+  become: yes
+  template:
+    src: ../templates/vlan_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ my_vlan_interfaces }}"
+
+- name: Create passthrough configuration files
+  become: yes
+  template:
+    src: ../templates/pt.j2
+    dest: "{{ shadow_dir }}/ifcfg-{{ item.device }}"
+  with_items: "{{ passthrough_devices }}"
+  when: passthrough_devices is defined
+
+- name: Create passthrough scripts
+  become: yes
+  template:
+    src: ../templates/pt_script.j2
+    dest: "{{ shadow_dir }}/ifscript-{{ item.device }}.sh"
+    mode: 0744
+  with_items: "{{ passthrough_devices }}"
+  when: passthrough_devices is defined
+
+- name: Create route configuration files
+  become: yes
+  template:
+    src: ../templates/route.j2
+    dest: "{{ shadow_dir }}/ifroute-{{ item.device }}"
+  with_items: "{{ routes }}"
+
+- name: Restart networking
+  become: yes
+  restart_networking:
+    interfaces_path: "{{ net_path }}"
+    shadow_path: "{{ shadow_dir }}"
+    force_restart: "{{ udev_config_result.changed | default(False) }}"
+    management_pattern: "{{ file_marker }}"
+    routing_tables: "{{ routing_tables }}"
+    routing_table_file: "{{ routing_table_file }}"
+    routing_table_marker: "{{ routing_table_marker }}"
+    routing_table_id_start: "{{ routing_table_id_start }}"
+  register: net_restart_result
+  tags:
+    - netconfig_restart_network
+
+- name: Reconnect vms into linux bridges
+  become: yes
+  script:
+    cmd: reconnect_bridge_ifaces.sh
+
+- name: Delete temporary shadow directory
+  become: yes
+  file:
+    path: "{{ shadow_dir }}"
+    state: absent

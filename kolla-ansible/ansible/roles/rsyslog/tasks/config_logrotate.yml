@@ -1,0 +1,15 @@
+---
+- include_tasks: backup_current_logrotate_configuration.yml
+  when: inventory_hostname in groups["rsyslog"]
+
+- include_tasks: config_logrotate_common.yml
+  when: inventory_hostname in groups["rsyslog"]
+
+- include_tasks: config_logrotate_on_log_generator.yml
+  when: rsyslog_is_log_generator
+
+- include_tasks: config_logrotate_on_log_aggregator.yml
+  when: rsyslog_is_log_aggregator
+
+- include_tasks: config_logrotate_systemd.yml
+  when: inventory_hostname in groups["rsyslog"]

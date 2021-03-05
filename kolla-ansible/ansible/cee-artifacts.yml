@@ -1,0 +1,17 @@
+#
+# Playbook to import artifacts into CEE LCM VMs.
+#
+# All copy/sync operations are done to /srv partition
+# and hence it is expected to have enough space.
+#
+---
+- name: Handle CEE artifacts
+  hosts:
+    - localhost
+    - lcm_hosts
+  serial: '{{ migrate_serial | d(0) }}'
+  tags:
+    - cee-artifacts
+  roles:
+    - role: cee-artifacts
+      cee_artifacts_action: "{{ cee_action }}"

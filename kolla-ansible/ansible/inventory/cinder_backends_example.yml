@@ -1,0 +1,39 @@
+# vim: ft=yaml
+all:
+  children:
+    cinder-volume:
+      vars:
+        cinder_volume_extra_volumes: "{{ cinder_extra_volumes + ['/opt:/opt','/bin/emc:/bin/emc'] }}"
+        cinder_volume_backends:
+          vxflexos:
+            type: vxflexos
+            san_thin_provision: true
+            storage_pools: protection_domain1:pool1,protection_domain1:pool2,protection_domain2:pool1
+            default_protection_domain_name: protection_domain1
+            default_storage_pool_name: pool1
+            max_over_subscription_ratio: 10
+            round_volume_capacity: true
+            unmap_volume_before_deletion: true
+            verify_server_certificate: False
+            server_certificate_path: None
+            allow_non_padded_volumes: true
+            password: Ericsson123@
+            gateway_ip: "192.168.10.23"
+            gateway_user: admin
+            gateway_password: Ericsson123@
+            gateway_port: 443
+          nexentanfs-1:
+            volume_backend_name: nexentanfs-1
+            volume_driver: cinder.volume.drivers.nexenta.ns5.nfs.NexentaNfsDriver
+            nexenta_password: Nexenta@1
+            nas_mount_options: vers=3,minorversion=0,timeo=100,nolock
+            nas_host: 192.168.17.101
+            nexenta_user: admin
+            nexenta_rest_port: 8443
+            nexenta_rest_connect_timeout: 10
+            nexenta_rest_address: 192.168.17.101
+            nas_share_path: ericsson/cinder
+    nova-compute:
+      vars:
+        nova_compute_extra_volumes: "{{ nova_extra_volumes + ['/opt:/opt','/bin/emc:/bin/emc'] }}"
+        enable_shared_var_lib_nova_mnt: True

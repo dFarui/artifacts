@@ -1,0 +1,12 @@
+---
+- name: Creating admin openrc file for the deployed cluster
+  hosts: localhost
+  become: true
+  tasks:
+    - template:
+        src: "roles/common/templates/admin-openrc.sh.j2"
+        dest: "{{ node_custom_config }}/../admin-openrc.sh"
+        owner: "{{ host_username }}"
+        group: "{{ host_username }}"
+        mode: "0600"
+      run_once: True

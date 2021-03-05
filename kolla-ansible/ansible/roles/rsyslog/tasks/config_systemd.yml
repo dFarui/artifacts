@@ -1,0 +1,14 @@
+---
+- name: Copying over systemd syslog service unit file
+  become: yes
+  vars:
+    container_name: "{{ 'rsyslog_log_aggregator' if rsyslog_is_log_aggregator else 'rsyslog_log_generator' }}"
+  template:
+    src: "syslog.service.j2"
+    dest: "/usr/lib/systemd/system/syslog.service"
+    mode: "0644"
+  when:
+    - enable_rsyslog | bool
+  notify:
+    - Restart systemd syslog.socket
+  changed_when: true

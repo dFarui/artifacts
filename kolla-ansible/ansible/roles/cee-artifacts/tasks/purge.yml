@@ -1,0 +1,47 @@
+---
+- name: Load the artifact metadata files
+  action: shell echo "{{ item }}"
+  with_fileglob: /srv/www/artifacts/metadata/*.yaml
+  register: res
+
+- name: Registering the loaded files
+  include_vars: "{{ item.item }}"
+  with_items: "{{ res.results }}"
+  when: item.changed == True
+  register: loaded_files
+
+- name: Getting the details of the product
+  set_fact:
+    repo_data: "{{item.ansible_facts}}"
+  when: "{{ item.ansible_facts.product.name == product_name}}"
+  with_items: "{{ loaded_files.results }}"
+
+- name: Deleting the zypper local repositories
+  become: yes
+  zypper_repository:
+    name: "{{ item.name }}"
+    state: absent
+  with_items:
+    - "{{ repo_data.repositories }}"
+  when: repo_data.repositories is defined
+
+- name: Delete the images from docker registry
+  become: yes
+  file:
+    path: /srv/www/docker_registry/docker/registry/v2/repositories/{{ item.1.name }}
+    state: absent
+  with_subelements:
+    - '{{ repo_data.containerImages }}'
+    - images
+  when: repo_data.containerImages is defined
+
+- name: Delete the docker images locally
+  become: yes
+  shell:
+    cmd:
+      docker rmi  "{{ item.1.name }}:{{ item.1.tag }}" -f
+      docker rmi "{{ local_docker_registry }}/{{ item.1.name }}:{{ item.1.tag }}" -f
+  with_subelements:
+    - '{{ repo_data.containerImages }}'
+    - images
+  when: repo_data.containerImages is defined

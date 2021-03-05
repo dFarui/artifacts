@@ -1,0 +1,68 @@
+---
+#- name: scp connector.py to compute hosts
+#  copy:
+#    src: connector.py
+#    remote_src: no
+#    dest: "/home/ceeinfra/connector.py"
+#    force: no
+
+#- name: iscsi login after server reboot
+#  become: yes
+#  become_method: sudo
+#  copy:
+#    src: after.local
+#    remote_src: no
+#    dest: "/etc/init.d/after.local"
+#    force: yes
+#    mode: '0755'
+
+#- name: docker cp connector.py to nova_compute container
+#  shell: "docker cp nova_compute:/usr/lib/python2.7/site-packages/os_brick/initiator/connector.py connector.py.bak && docker cp connector.py nova_compute:/usr/lib/python2.7/site-packages/os_brick/initiator/connector.py"
+
+#- name: copy initiatorname.iscsi to nova_compute
+#  become: yes
+#  become_method: sudo
+#  copy:
+#    src: /etc/iscsi/initiatorname.iscsi
+#    remote_src: yes
+#    dest: /etc/kolla/nova-compute/initiatorname.iscsi
+#    mode: '0600'
+
+- name: Copy installation_info to nova compute
+  become: yes
+  template:
+    src: "installation_info.j2"
+    dest: "/etc/kolla/nova-compute/installation_info"
+    owner: root
+    group: root
+    mode: "0660"
+  when:
+    - inventory_hostname in groups['nova-compute']
+
+- name: copy nova compute config backup
+  become: yes
+  become_method: sudo
+  copy:
+    src: /etc/kolla/nova-compute/config.json
+    remote_src: yes
+    dest: /etc/kolla/nova-compute/config.json.bak
+
+- name: modify nova compute config
+  become: yes
+  become_method: sudo
+  lineinfile:
+    path: /etc/kolla/nova-compute/config.json
+    insertafter: '    \"config_files\"\: \['
+    line: "{{ item }}"
+  with_items:
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0777",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/iscsi/initiatorname.iscsi",'
+  - '           "source": "/var/lib/kolla/config_files/initiatorname.iscsi",'
+  - '       {'
+
+- name: docker restart nova_compute
+  shell: "docker restart nova_compute"
+

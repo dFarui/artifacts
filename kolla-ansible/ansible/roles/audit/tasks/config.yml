@@ -1,0 +1,79 @@
+---
+- name: Collect executables with elevated privileges
+  become: true
+  command: find / -xdev \( -perm -4000 -o -perm -2000 \) -type f -o -path /var/lib/docker/overlay2 -prune
+  register: files_with_setuid_rights_flag
+  failed_when: files_with_setuid_rights_flag.rc != 0
+
+- name: Postprocess result of collect executables with elevated privileges command
+  set_fact:
+    files_with_setuid_rights_flag: "{{ files_with_setuid_rights_flag.stdout.splitlines() }}"
+
+- name: Check existence of files to be audited
+  become: true
+  stat:
+    path: "{{ item }}"
+  loop: "{{ audit_rule_groups | json_query(query) | flatten }}"
+  vars:
+    query: "[*].rules[*].path"
+  register: file_existence_check_results
+
+- name: Postprocess file-existence check results
+  set_fact:
+    audit_file_path_to_existence: "{{ audit_file_path_to_existence | default({}) | combine({item.item: item.stat.exists}) }}"
+  with_items: "{{ file_existence_check_results.results }}"
+
+- name: Check existence of audit config
+  become: true
+  stat:
+    path: "{{ audit_service_config_dir_path }}"
+  register: audit_config_existence_check_result
+
+- name: Remove previous audit config
+  become: true
+  file:
+    path: "{{ audit_service_config_dir_path }}"
+    state: "absent"
+  when:
+    - audit_config_existence_check_result.stat.exists
+
+- name: Ensure config directories exist
+  become: true
+  file:
+    path: "{{ item }}"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0750"
+  loop:
+    - "{{ audit_service_config_dir_path }}"
+    - "{{ audit_service_rules_dir_path }}"
+
+- name: Copying over auditd.conf config file
+  become: true
+  template:
+    src: "auditd.conf.j2"
+    dest: "{{ audit_service_config_dir_path }}/auditd.conf"
+    mode: "0600"
+  notify:
+    - Restart {{ project_name }} service
+
+- name: Copying over audit.rules config file
+  become: true
+  vars:
+    files_with_setuid_rights_flag: "{{ files_with_setuid_rights_flag }}"
+  template:
+    src: "audit.rules.j2"
+    dest: "{{ audit_service_rules_dir_path }}/audit.rules"
+    mode: "0640"
+  notify:
+    - Restart {{ project_name }} service
+
+- name: Copying over auditsp syslog.conf config file
+  become: true
+  template:
+    src: "syslog.conf.j2"
+    dest: "{{ audit_dispatcher_config_dir_path }}/plugins.d/syslog.conf"
+    mode: "0640"
+  notify:
+    - Restart {{ project_name }} service

@@ -1,0 +1,55 @@
+---
+- name: Get details of containers
+  become: yes
+  shell: docker ps -a --filter "label=service-component={{ item }}" --format {%raw%}"table {{.Names}}\t{{.Status}}"{%endraw%} | sed "1 d"
+  register: containers_info
+  with_items:
+    - "{{ host_services[inventory_hostname] }}"
+
+- name: Get running containers list
+  set_fact:
+    running_containers: "{{ running_containers + [item.item] }}"
+  when:
+    - item.stdout != ""
+    - "'Up' in item.stdout"
+  with_items: "{{ containers_info.results }}"
+
+- name: Get missing container list
+  set_fact:
+    missing_containers: "{{ missing_containers + [item.item] }}"
+  when:
+    - item.stdout != ""
+    - "'Up' not in item.stdout"
+  with_items: "{{ containers_info.results }}"
+
+- name: Get systemd services status
+  shell: systemctl status {{item.service}}
+  ignore_errors: yes
+  register: status
+  with_items:
+    - "{{ services.systemd_services }}"
+  when: item.name in host_services[inventory_hostname]
+
+- name: Get running systemd services list
+  set_fact:
+    running_systemd: "{{ running_systemd + [item.item.name] }}"
+  with_items:
+    - "{{ status.results }}"
+  when: item.stdout is defined and 'dead' not in item.stdout
+
+- name: Get missing systemd services list
+  set_fact:
+    missing_systemd: "{{ missing_systemd + [item.item.name] }}"
+  with_items:
+    - "{{ status.results }}"
+  when: item.stdout is defined and 'dead' in item.stdout
+
+- name: Set output fact
+  set_fact:
+    output: "{{ output | combine({'running_containers': running_containers, 'missing_containers': missing_containers, 'running_systemd_services': running_systemd, 'missing_systemd_services': missing_systemd}) }}"
+
+- name: Write output to json file
+  copy:
+    content: "{{ output }}"
+    dest: "{{ info_dir }}/healthcheck_report.json"
+  delegate_to: localhost

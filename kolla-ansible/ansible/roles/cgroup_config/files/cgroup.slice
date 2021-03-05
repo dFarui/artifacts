@@ -1,0 +1,7 @@
+[Unit]
+Description=Slice definition generated from the CEE configuration. Do not edit!
+Documentation=man:systemd.special(7)
+Before=slices.target
+
+[Install]
+WantedBy=slices.target

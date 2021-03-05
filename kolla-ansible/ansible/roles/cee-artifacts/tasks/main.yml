@@ -1,0 +1,2 @@
+---
+- include_tasks: "{{ cee_artifacts_action }}.yml"

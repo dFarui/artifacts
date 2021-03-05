@@ -1,0 +1,10 @@
+---
+- name: Lookup for RabbitMQ cluster
+  run_once: True
+  become: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  changed_when: False
+  pacemaker:
+    action: resource_exists
+    name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+  register: rabbitmq_cluster_exist

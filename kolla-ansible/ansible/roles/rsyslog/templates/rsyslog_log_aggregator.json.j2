@@ -1,0 +1,67 @@
+{
+    "command": "/usr/sbin/rsyslogd -n",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/rsyslog.conf",
+            "dest": "/etc/rsyslog.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% if rsyslog_log_behavior.write_local_logs or rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-00-00-local-logging-rules.conf",
+            "dest": "/etc/rsyslog.d/00-00-00-local-logging-rules.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-00-local-logging-write.conf",
+            "dest": "/etc/rsyslog.d/00-01-00-local-logging-write.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-00-local-logging-forward.conf",
+            "dest": "/etc/rsyslog.d/00-01-00-local-logging-forward.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs or rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-02-local-kernel-logging.conf",
+            "dest": "/etc/rsyslog.d/00-01-02-local-kernel-logging.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs and enable_audit | bool %},
+        {
+            "source": "{{ container_config_directory }}/00-02-00-local-audit-logging.conf",
+            "dest": "/etc/rsyslog.d/00-02-00-local-audit-logging.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if
+                rsyslog_log_behavior.write_received_logs and
+                hostvars | is_any_rsyslog_log_generator_forwarding_logs(groups["rsyslog-log-aggregator"]) | bool %},
+        {
+            "source": "{{ container_config_directory }}/01-00-00-remote-logging-rules.conf",
+            "dest": "/etc/rsyslog.d/01-00-00-remote-logging-rules.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_received_logs %},
+        {
+            "source": "{{ container_config_directory }}/01-01-00-remote-logging-write.conf",
+            "dest": "/etc/rsyslog.d/01-01-00-remote-logging-write.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/01-01-01-remote-logging-forward.conf",
+            "dest": "/etc/rsyslog.d/01-01-01-remote-logging-forward.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_received_logs and enable_audit | bool %},
+        {
+            "source": "{{ container_config_directory }}/01-02-00-remote-audit-logging.conf",
+            "dest": "/etc/rsyslog.d/01-02-00-remote-audit-logging.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}
+    ]
+}

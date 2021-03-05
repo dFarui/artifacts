@@ -1,0 +1,7 @@
+{{ ansible_managed | comment }}
+
+{{ logrotate_main_config_options }}
+
+{{ logrotate_common_options }}
+
+include "{{ logrotate_config_include_directory_path }}"

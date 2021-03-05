@@ -1,0 +1,40 @@
+# ---------------------------------------------------- #
+# Configuration file for the Watchmen Webhook Service. #
+# ---------------------------------------------------- #
+
+[DEFAULT]
+
+# Path to the logging configuration file
+logconfig={{ watchmen_webhook_logging_conf }}
+
+# The number of worker processes for handling requests
+workers={{ watchmen_webhook_number_of_workers }}
+
+# List of sockets to bind
+{% if watchmen_webhook_listen_address | ipv4 %}
+bind={{ watchmen_webhook_listen_address }}:{{ watchmen_webhook_listen_port }}
+{% elif watchmen_webhook_listen_address | ipv6 %}
+bind=[{{ watchmen_webhook_listen_address }}]:{{ watchmen_webhook_listen_port }}
+{% endif %}
+
+# Webhook VIP address for AAL sync
+{% if kolla_internal_vip_address | ipv4 %}
+aal_address={{ kolla_internal_vip_address }}:{{ watchmen_webhook_listen_port }}
+{% elif kolla_internal_vip_address | ipv6 %}
+aal_address=[{{ kolla_internal_vip_address }}]:{{ watchmen_webhook_listen_port }}
+{% endif %}
+
+# Prometheus Alertmanager v2 alerts URL
+alertmanager_url={{ prometheus_alertmanager_v2_alerts_url }}
+
+# Prometheus Alertmanager user
+alertmanager_user={{ prometheus_alertmanager_user }}
+
+# Prometheus Alertmanager password
+alertmanager_password={{ prometheus_alertmanager_password }}
+
+# Name of the monitored system
+system={{ system_name }}
+
+# Mapping of hosts to clusters
+clusters={{ cluster_hosts_map }}

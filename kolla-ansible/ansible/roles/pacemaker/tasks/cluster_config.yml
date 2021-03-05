@@ -1,0 +1,12 @@
+---
+- name: Configure cluster properties
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  run_once: True
+  become: True
+  pacemaker:
+    action: set_property
+    property: "{{ item.key }}"
+    value: "{{ item.value }}"
+  when:
+    - "enable_pacemaker | bool"
+  with_dict: "{{ pacemaker.cluster.property }}"

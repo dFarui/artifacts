@@ -1,0 +1,14 @@
+# Playbook to enable-disable netboot for cobbler system
+# Parameters:
+#   action: enable/disable
+---
+
+- name: Disable netboot in Cobbler
+  become: yes
+  command: "cobbler system edit --name={{ inventory_hostname }} --netboot-enabled=0"
+  when: action == "disable"
+
+- name: Allow netboot in Cobbler
+  become: yes
+  command: "cobbler system edit --name={{ inventory_hostname }} --netboot-enabled=1"
+  when: action == "enable"

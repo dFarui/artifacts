@@ -1,0 +1,5 @@
+host_os_repo_url: "{%- for item in my_repos -%}
+                   {%- if item.name == 'hostos' -%}
+                   {{ item.uri }}
+                   {%- endif -%}
+                   {%- endfor -%}"

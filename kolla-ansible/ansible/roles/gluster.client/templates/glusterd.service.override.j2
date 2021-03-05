@@ -1,0 +1,2 @@
+[Service]
+ExecStartPost=/bin/bash -c 'while ! /usr/sbin/gluster peer status | grep Connected;do echo "waiting 3 sec"; sleep 3;done; /usr/sbin/gluster volume list; sleep 10'

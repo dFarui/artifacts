@@ -1,0 +1,335 @@
+address_family: ipv6
+ansible_host: 2409:1616:e2e:821::98
+cluster: openstack
+control_groups:
+-   name: container
+custom_properties:
+    h3c-storage:
+        onestor_block_service_ip: 2409:8080:1:260::8
+        onestor_diskpool: DiskPoolB
+        onestor_nodepool: NodePool
+        onestor_poolname: BlockPoolB
+        password: Lab@ITTE!312
+        user: admin
+        vendor: h3c
+        volume_backend_name: H3C_onestor
+dpdk_devices: {}
+hostname: cinderB-3
+hostname_full: cinderB-3.bjitte.ericsson.se
+id: undef
+interface_addresses:
+    bond_swift: 2409:1616:e2e:826::2b
+    br_cee_ctrl: 2409:1616:e2e:820::5c
+    cee_om: 2409:1616:e2e:822::2e
+    cephA: 2409:1616:e2e:830::59
+    cephB: 2409:1616:e2e:831::59
+    glance: 2409:1616:e2e:835::56
+    lcm: 2409:1616:e2e:821::98
+ip: 2409:1616:e2e:821::98
+kopts: console=tty0 console=ttyS0,115200 net.ifnames=0 biosdevname=0 rootdelay=90
+    nomodeset crashkernel=256M transparent_hugepage=never intel_iommu=on iommu=pt
+    nomdmonddf nomdmonisw plymouth.ignore-serial-consoles
+lcm_network:
+    cidr: 2409:1616:e2e:821::1ff/64
+    name: lcm-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:821::100-2409:1616:e2e:821::1000
+    subnet: '2409:1616:e2e:821::'
+    vip: 2409:1616:e2e:821::a001
+lcm_public_network:
+    cidr: 2409:1616:e2e:823::0/64
+    name: lcm-om-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:823::20-2409:1616:e2e:823::1000
+    subnet: '2409:1616:e2e:823::'
+    vip: 2409:1616:e2e:823::a001
+logging_details:
+    forward_logs_to: internalAggregator
+    profile_name: write_and_forward_log_generator
+    remote_servers:
+    -   host: 2409:1616:e2e:820::a002
+        port: '{{ rsyslog_log_aggregator_port }}'
+    write_local_logs: true
+    write_received_logs: false
+my_bond_interfaces: []
+my_bridge_interfaces: []
+my_disk_assignments:
+    drives:
+    -   bootable: true
+        diskBackend:
+            imagetype: raw
+            path: /var/lib/nova/cinderB_images
+            preallocate: falloc
+            size: 200GiB
+            type: image
+        id: /dev/vda
+        labelType: gpt
+        name: disk1
+        partitions:
+        -   name: btrfs
+            size: 20%
+        -   name: lvm_pv_1
+            size: 80%
+            type: lvm
+            vg: system
+        type: virtual
+    name: cinderB-disks
+    volumeGroups:
+    -   logicalVolumes:
+        -   filesystem: ext4
+            mount: /var/log
+            name: log
+            size: 15%
+        -   filesystem: ext4
+            mount: /var/crash
+            name: crash
+            size: 22%
+        -   filesystem: ext4
+            mount: /var/lib/docker
+            name: docker
+            size: 15%
+        -   filesystem: ext4
+            mount: /var/lib/cinder
+            name: cinder_volume
+            size: 100%FREE
+        name: system
+        physicalVolumes:
+        -   partname: lvm_pv_1
+            type: partition
+    volumes:
+    -   devices:
+        -   partname: btrfs
+            type: partition
+        format: true
+        fstype: btrfs
+        mount: /
+        name: root
+        owner:
+            name: os
+        partname: btrfs
+        subvolumes:
+        -   cow: false
+            name: /home
+        -   cow: false
+            name: /tmp
+        -   cow: false
+            name: /srv
+        -   cow: false
+            name: /opt
+        -   cow: false
+            name: /var
+        type: partition
+    -   format: true
+        fstype: ext4
+        logicalVolume: log
+        mount: /var/log
+        name: log
+        owner:
+            name: os
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: crash
+        mount: /var/crash
+        name: crash
+        owner:
+            name: os
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: cinder_volume
+        mount: /var/lib/cinder
+        name: cinder_volume
+        owner:
+            name: os
+        type: lvm
+        volumeGroup: system
+    -   format: true
+        fstype: ext4
+        logicalVolume: docker
+        mount: /var/lib/docker
+        name: docker
+        owner:
+            name: docker
+        type: lvm
+        volumeGroup: system
+my_dns_config:
+    domain: bjitte.ericsson.se
+    search: []
+    servers: []
+my_dpdk_interfaces: []
+my_ether_interfaces:
+-   address: 2409:1616:e2e:821::98
+    bootproto: static
+    cidr: 2409:1616:e2e:821::1ff/64
+    device: lcm
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+-   address: 2409:1616:e2e:820::5c
+    bootproto: static
+    cidr: 2409:1616:e2e:820::11/64
+    device: br_cee_ctrl
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+-   address: 2409:1616:e2e:822::2e
+    bootproto: static
+    cidr: 2409:1616:e2e:822::0/64
+    device: cee_om
+    family: IPv6
+    mtu: 1500
+    netmask: 64
+-   address: 2409:1616:e2e:835::56
+    bootproto: static
+    cidr: 2409:1616:e2e:835::0/64
+    device: glance
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+-   address: 2409:1616:e2e:826::2b
+    bootproto: static
+    cidr: 2409:1616:e2e:826::0/64
+    device: bond_swift
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+-   address: 2409:1616:e2e:830::59
+    bootproto: static
+    cidr: 2409:1616:e2e:830::0/64
+    device: cephA
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+-   address: 2409:1616:e2e:831::59
+    bootproto: static
+    cidr: 2409:1616:e2e:831::0/64
+    device: cephB
+    family: IPv6
+    mtu: 4000
+    netmask: 64
+my_host_config:
+    kernel: kernel-default
+    kernelBootParameters: console=tty0 console=ttyS0,115200 net.ifnames=0 biosdevname=0
+        rootdelay=90 nomodeset crashkernel=256M transparent_hugepage=never intel_iommu=on
+        iommu=pt nomdmonddf nomdmonisw plymouth.ignore-serial-consoles
+    lldp:
+        enabled: false
+        msgTxHold: 0
+        msgTxInterval: 0
+    name: vm-host-config
+    sysctlOptions:
+    -   fs.aio-max-nr: 1048576
+    -   net.nf_conntrack_max: 1048576
+    -   kernel.panic: 60
+    -   net.ipv4.ip_local_reserved_ports: 35357,41055-41056,49000-49001,49152-49215,55572,58882
+    -   vm.swappiness: 10
+    -   net.ipv4.conf.default.arp_accept: 1
+    -   net.core.netdev_max_backlog: 261144
+    -   net.ipv4.tcp_keepalive_intvl: 3
+    -   net.ipv4.tcp_keepalive_time: 30
+    -   net.ipv4.tcp_keepalive_probes: 8
+    -   net.ipv4.conf.all.arp_accept: 1
+    -   net.ipv4.tcp_retries2: 5
+    -   net.bridge.bridge-nf-call-arptables: 1
+    -   net.bridge.bridge-nf-call-iptables: 1
+    -   net.bridge.bridge-nf-call-ip6tables: 1
+    -   net.ipv4.neigh.default.gc_thresh1: 4096
+    -   net.ipv4.neigh.default.gc_thresh2: 8192
+    -   net.ipv4.neigh.default.gc_thresh3: 16384
+    -   net.ipv6.neigh.default.gc_thresh1: 4096
+    -   net.ipv6.neigh.default.gc_thresh2: 8192
+    -   net.ipv6.neigh.default.gc_thresh3: 16384
+    -   net.ipv4.ip_forward: 1
+    -   net.ipv4.conf.all.arp_filter: 1
+    -   net.ipv4.conf.all.arp_announce: 2
+    -   net.ipv4.conf.all.arp_notify: 1
+    -   net.ipv4.conf.default.log_martians: 0
+    -   net.ipv4.conf.all.secure_redirects: 0
+    -   net.ipv4.conf.all.rp_filter: 1
+    -   net.ipv4.conf.all.accept_source_route: 0
+    -   net.ipv4.conf.default.secure_redirects: 0
+    -   net.ipv4.conf.all.accept_redirects: 0
+    -   net.ipv4.conf.default.rp_filter: 1
+    -   net.ipv4.conf.default.accept_source_route: 0
+    -   net.ipv4.conf.default.accept_redirects: 0
+    -   net.ipv4.conf.all.log_martians: 0
+    -   net.ipv6.conf.default.disable_ipv6: 0
+    -   net.ipv6.conf.all.disable_ipv6: 0
+    -   vm.max_map_count: 262144
+    -   net.ipv4.ip_nonlocal_bind: 1
+    -   net.ipv6.ip_nonlocal_bind: 1
+    -   net.unix.max_dgram_qlen: 128
+    -   net.ipv6.conf.default.forwarding: 1
+    -   net.ipv6.conf.all.forwarding: 1
+    -   kernel.numa_balancing: 0
+my_lldp_ports: []
+my_memory_assignment: {}
+my_ovs_interfaces: []
+my_ovs_other_config: []
+my_port_mappings:
+-   busAddress: '0000:01:00.0'
+    name: lcm
+    networkInterface: br_lcm_ctrl
+-   busAddress: '0000:02:00.0'
+    name: br_cee_ctrl
+    networkInterface: br_cee_ctrl
+-   busAddress: '0000:06:00.0'
+    name: cee_om
+    networkInterface: br_cee_om
+-   busAddress: '0000:07:00.0'
+    name: bond_swift
+    networkInterface: br_swift
+-   busAddress: '0000:08:00.0'
+    name: glance
+    networkInterface: br_glance
+-   busAddress: '0000:09:00.0'
+    name: cephA
+    networkInterface: br_cephA
+-   busAddress: '0000:10:00.0'
+    name: cephB
+    networkInterface: br_cephB
+my_repos:
+-   name: hostos
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/host-os
+-   name: cee-host-extras
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/cee-host-extras
+my_vlan_interfaces: []
+oobm_args:
+    oobmAddress: 2409:1616:e2e:821::22
+    oobmExtra:
+        bootPci:
+        - '0000:01:00.0'
+        vmName: cinderB-3
+    oobmPassword: '{{host_password}}'
+    oobmType: virsh
+    oobmUser: '{{host_username}}'
+ovs_provider: null
+passthrough_devices: []
+portProfile: VIRTUAL_CINDERVOLUME
+profile: cinderVolumeB
+routes:
+-   cidr: ::/0
+    device: br_cee_ctrl
+    gateway: 2409:1616:e2e:820::1
+    netmask: ::/0
+    network: ::/0
+-   cidr: 2409:8080:1:260::/64
+    device: cephB
+    gateway: 2409:1616:e2e:831::1
+    netmask: 'ffff:ffff:ffff:ffff::'
+    network: '2409:8080:1:260::'
+swift_info: {}
+timezone: Asia/Shanghai
+virtual_machines: []
+volume_path_info:
+    docker: /var/lib/docker
+    os: /var/lib/cinder

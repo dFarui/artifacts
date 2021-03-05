@@ -1,0 +1,15 @@
+info_dir: "/var/lib/cee/system/{{ system_name }}/system/information"
+
+host_services: "{{ lookup('file','{{ info_dir }}/hostservices.json') | from_json }}"
+
+services: "{{ lookup('file','roles/healthcheck/files/services.json') | from_json }}"
+
+output: {}
+
+running_containers: []
+
+missing_containers: []
+
+running_systemd: []
+
+missing_systemd: []

@@ -1,0 +1,18 @@
+---
+- name: Get container facts
+  become: true
+  kolla_container_facts:
+    name:
+      - aetos
+  register: container_facts
+
+- name: Checking free port for Aetos
+  wait_for:
+    host: "{{ api_interface_address }}"
+    port: "{{ aetos_port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - container_facts['aetos'] is not defined
+    - inventory_hostname in groups['aetos']

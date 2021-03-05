@@ -1,0 +1,6 @@
+{{ file_marker }}
+{% include 'if_ipinfo.j2' %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+ETHTOOL_OPTIONS='lro off'

@@ -1,0 +1,6 @@
+{{ file_marker }}
+{% for i in routes %}
+{% if item.device == i.device%}
+{{ i.cidr }} {{ i.gateway }} - {{ i.device }}
+{% endif %}
+{% endfor %}

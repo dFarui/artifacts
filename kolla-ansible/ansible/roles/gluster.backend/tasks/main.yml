@@ -1,0 +1,73 @@
+---
+- name: Ensure mkfs tools are installed
+  package:
+    name: "{{mkfs_tools[gluster_bricks[item].filesystem]}}"
+    state: latest
+  with_items: "{{gluster_bricks}}"
+
+- name: Create filesystem on brick devices
+  filesystem:
+    fstype: "{{gluster_bricks[item].filesystem}}"
+    dev: "{{gluster_bricks[item].blockdev}}"
+    force: "{{ force_init_bricks | d(false) }}"
+  with_items: "{{gluster_bricks}}"
+#gluster_bricks is a dict. with_items iterates over the keys of the dict, item will hold the key
+
+- name: Mount bricks
+  mount:
+    path: "{{gluster_bricks[item].mountpoint}}/{{item}}"
+    fstype: "{{gluster_bricks[item].filesystem}}"
+    src: "{{gluster_bricks[item].blockdev}}"
+    state: mounted
+  with_items: "{{gluster_bricks}}"
+
+- name: Ensure glusterfs and rpcbind packages are insalled
+  package:
+    name:
+    - glusterfs
+    - rpcbind
+    state: latest
+
+- name: Ensure glusterd is running
+  service:
+    name: glusterd
+    state: started
+    enabled: yes
+
+- name: Enable IPv6 for GlusterD
+  become: yes
+  lineinfile:
+    path: /etc/glusterfs/glusterd.vol
+    regexp: '^.*#?.*transport.address-family.*$'
+    line: '    option transport.address-family inet6'
+    insertbefore: 'end-volume'
+  when: gluster_address_family == 'ipv6'
+  notify: restart glusterd
+
+- name: Enable IPv6 for Gluster thin-arbiter
+  become: yes
+  lineinfile:
+    path: /etc/glusterfs/thin-arbiter.vol
+    regexp: '^.*#?.*transport.address-family.*$'
+    line: '    option transport.address-family inet6'
+    insertbefore: 'end-volume'
+  when: gluster_address_family == 'ipv6'
+  notify: restart glusterd
+
+- meta: flush_handlers
+
+- name: Create gluster volumes
+  gluster_volume:
+    state: present
+    name: "{{item}}"
+    bricks: "{{gluster_bricks[gluster_volumes[item].brick].mountpoint}}/{{gluster_volumes[item].brick}}/{{item}}"
+    cluster: "{{gluster_cluster_hosts}}"
+    transport: "{{ gluster_cluster_transport | default('tcp') }}"
+    replicas: "{{ gluster_cluster_hosts | length  }}"
+#    arbiters: "{{ gluster_cluster_arbiter_count | default(0)}}"
+#    disperses: "{{ gluster_cluster_disperse_count | default(0) }}"
+#    redundancies: "{{ gluster_cluster_redundancy_count | default(0) }}"
+#    force: "{{ gluster_cluster_force | default('no') }}"
+#    options: "{{ gluster_cluster_options | default({}) }}"
+  with_items: "{{gluster_volumes}}"
+  run_once: true

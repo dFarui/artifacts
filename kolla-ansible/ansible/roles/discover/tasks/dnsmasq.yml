@@ -1,0 +1,13 @@
+---
+
+- name: Support PXE boot from both control NICs
+  become: yes
+  notify: Restart dnsmasq
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "dhcp-host=net:x86_64,{{hostvars[item].macaddr.mac|join(',')}},{{hostvars[item].ip | ipwrap}}"
+    insertafter: EOF
+  run_once: true
+  loop: "{{ansible_play_batch}}"
+
+- meta: flush_handlers

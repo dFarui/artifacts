@@ -1,0 +1,39 @@
+# ------------------------------------------------- #
+# Configuration file for the Watchmen SNMP Service. #
+# ------------------------------------------------- #
+
+[DEFAULT]
+
+# Path to the logging configuration file
+logging_conf={{ watchmen_snmpagent_logging_conf }}
+
+# A URL representing the database connection and its full configuration
+database_connection={{ watchmen_database_connection }}
+
+# Binding address of the watchmen-snmpagent process
+# NOTE: this UDP service should be sitting on the cloud public interface
+watchmen_snmpagent_address={{ watchmen_snmpagent_listen_address }}
+
+# Binding port of the watchmen-snmpagent process, default value is 30165
+watchmen_snmpagent_port={{ watchmen_snmpagent_listen_port }}
+
+# Community name of the watchmen snmpagent, default value is "traps"
+watchmen_snmpagent_community_name={{ watchmen_snmpagent_community_name }}
+
+# Security model of the watchmen snmpagent, default value is: '2,3'
+watchmen_snmpagent_security_model={{ watchmen_snmpagent_security_model|join(',') }}
+
+# SNMPv3 user
+watchmen_snmpagent_v3_user={{ watchmen_snmpagent_v3_user }}
+
+# SNMPv3 authority key, at least 8 characters
+watchmen_snmpagent_v3_auth_key={{ watchmen_snmpagent_v3_auth_key }}
+
+# SNMPv3 priv key, at least 8 characters
+watchmen_snmpagent_v3_priv_key={{ watchmen_snmpagent_v3_priv_key }}
+
+# MIB refresh (read data from DB and update SNMP MIB) interval in seconds
+watchmen_snmpagent_mib_refresh_interval={{ watchmen_snmpagent_mib_refresh_interval }}
+
+# List of ids names with full access to the Watchmen Events (alarms, alerts)
+watchmen_full_access_tenants={{ get_admin_project_id_result.project.id }}

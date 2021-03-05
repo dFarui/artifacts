@@ -1,0 +1,42 @@
+#
+# css install playbook
+#
+---
+- name: Install the CSS dependent packages
+  become: yes
+  package:
+    name: "{{ dependent_pkgs }}"
+    state: latest
+
+- name: Uninstall already existing CSS packages
+  become: yes
+  package:
+    name: "{{ css_packages }}"
+    state: absent
+
+- name: Install new CSS packages
+  become: yes
+  package:
+    name: "{{ css_packages }}"
+    state: latest
+
+- name: Get numa count
+  shell:
+    cmd: numactl -H | grep cpus | wc -l
+  register: numa_count
+
+- name: Simplify registered values
+  set_fact:
+    ovs_socket_mem: "{%- if numa_count.stdout == '2' -%}
+                       {{ (ovs_hugepages_2MB_size | int) * (ovs_numa['node0_count'] | int) }},{{ (ovs_hugepages_2MB_size | int) * (ovs_numa['node1_count'] | int) }}
+                     {%- else -%}
+                       {{ (ovs_hugepages_2MB_size | int) * (ovs_numa['node0_count'] | int) }}
+                     {%- endif -%}"
+
+- name: Copying over ovs-dpdk file for CSS
+  become: true
+  template:
+    src: ../templates/ovs-dpdk.j2
+    dest: /etc/default/ovs-dpdk
+    mode: 0755
+  notify: Start openvswitch-switch service

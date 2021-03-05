@@ -1,0 +1,8 @@
+{% include 'ifscript_header.j2' %}
+{% if item.ovs_bridge is defined %}
+  $PRE_UP || ip link set {{ item.device }} up || true
+{% endif %}
+
+{% if item.mtu is defined %}
+  $POST_UP || ip link set dev {{ item.device }} mtu {{ item.mtu }} || true
+{% endif %}

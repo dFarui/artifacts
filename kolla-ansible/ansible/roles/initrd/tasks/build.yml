@@ -1,0 +1,84 @@
+---
+- name: Remove build dir if exists
+  become: true
+  file:
+    path: "{{initrd_builddir}}"
+    state: absent
+  when: remove_builddir | d(true) | bool
+
+- name: Ensure build and destination folders
+  become: true
+  file:
+    path: "{{item}}"
+    state: directory
+  loop:
+    - "{{initrd_builddir}}"
+    - "{{initrd_destdir}}"
+
+- name: Install base packages
+  become: true
+  zypper:
+    name: "{{ initrd_base_packages + [discovery_image.value] }}"
+    type: package
+    state: installed
+    extra_args_precommand: "--installroot {{initrd_builddir}}"
+
+- name: Create busybox links
+  become: true
+  file:
+    path: "{{initrd_builddir}}{{item}}"
+    src: "/usr/bin/busybox"
+    state: link
+    force: true
+    follow: false
+  loop:
+    - "/usr/bin/ip"
+    - "/usr/bin/hostname"
+    - "/usr/bin/tftp"
+    - "/sbin/mdev"
+
+- name: Add files
+  become: true
+  copy:
+    src: initrdfiles/
+    dest: "{{initrd_builddir}}"
+    owner: root
+    group: root
+    mode: preserve
+
+- name: Add init file
+  become: true
+  template:
+    src: init.j2
+    dest: "{{initrd_builddir}}/init"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Ensure users and groups
+  become: true
+  shell: |
+    cat << EOF | chroot {{initrd_builddir}}
+    getent group sudo || groupadd sudo
+    getent group ceeinfra || useradd  -U -G sudo ceeinfra
+    chown -R ceeinfra:ceeinfra /home/ceeinfra
+    EOF
+
+- name: Copy kernel to destination
+  become: true
+  copy:
+    src: "{{initrd_builddir}}/boot/vmlinuz"
+    dest: "{{initrd_destdir}}/{{initrd_kernel_file}}-{{ discovery_image.key }}"
+
+- name: Build the image
+  become: true
+  shell: >
+    cd {{initrd_builddir}} &&
+    find . | cpio -H newc -o | xz --format=lzma > {{initrd_destdir}}/{{initrd_initrd_file}}-{{ discovery_image.key }}
+
+- name: Remove build dir
+  become: true
+  file:
+    path: "{{initrd_builddir}}"
+    state: absent
+  when: remove_builddir | d(true) | bool

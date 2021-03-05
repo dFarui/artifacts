@@ -1,0 +1,13 @@
+---
+# TODO avoid jinja templating warning in when statement
+- name: Gather group facts
+  run_once: true
+  setup:
+  delegate_to: "{{ item }}"
+  delegate_facts: True
+  with_items: "{{ groups[project_name] }}"
+  when: '{{ project_name }}_facts_gathered is undefined'
+
+# TODO avoid jinja templating warning in when statement
+- set_fact: {"{{ project_name }}_group_facts_gathered":"True"}
+  when: '{{ project_name }}_facts_gathered is undefined'

@@ -1,0 +1,7 @@
+---
+- name: Cloning cmha source repository for development
+  git:
+    repo: "{{ cmha_git_repository }}"
+    dest: "{{ kolla_dev_repos_directory }}/{{ project_name }}"
+    update: "{{ cmha_dev_repos_pull }}"
+    version: "{{ cmha_source_version }}"

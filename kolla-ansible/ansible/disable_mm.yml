@@ -1,0 +1,357 @@
+---
+- name: Disable MM
+  hosts: all
+  become: yes
+  vars:
+    enable_services: false
+    umm_off: false
+  tasks:
+    - name: Get compute service list
+      command: >
+        openstack compute service list -f json
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: compute_list
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: enable nova-compute
+      command: >
+        openstack compute service set --enable {{ item.Host }} nova-compute
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      when:
+        - enable_services | bool
+        - item.Binary == "nova-compute"
+        - item.Host == ansible_nodename
+        - item.Status == "disabled"
+        - "inventory_hostname not in groups['lcm_hosts']"
+      with_items: "{{ compute_list.stdout | default([]) }}"
+      delegate_to: localhost
+
+    - name: Get server list
+      command: >
+        openstack server list --host {{ ansible_nodename }} -f json
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: servers
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: Get details of each server
+      command: >
+        openstack server show "{{ item.Name }}" -f json --noindent
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        --os-endpoint-type publicURL
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: details
+      loop:
+        "{{ servers.stdout | default([]) }}"
+      when:
+        - (enable_services | bool) and servers.stdout != ""
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: Check server properties
+      set_fact:
+        properties: "{{ properties|default({}) | combine({item.item.Name : ((item.stdout) | from_json).properties}) }}"
+      with_items: "{{ details.results }}"
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: check if compute service is enabled
+      command: >
+        openstack compute service list --service nova-compute --host {{ ansible_nodename }} -f json
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: service_status
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - set_fact:
+         compute_status=True
+      with_items: "{{ service_status.stdout | default([]) }}"
+      when:
+        - enable_services | bool
+        - item.Status == 'enabled'
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: Start vm if ha-policy is managed-on-host
+      command: >
+        openstack server start {{ item.key }}
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        --os-endpoint-type publicURL
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      with_dict: "{{ properties | default({}) }}"
+      when:
+        - enable_services | bool
+        - compute_status | bool
+        - properties is defined and 'managed-on-host' in item.value
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: Get Network agent list
+      command: >
+        openstack network agent list -f json
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: network_list
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: enable neutron-openvswitch-agent
+      command: >
+        openstack network agent set --enable {{ item.ID }}
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      when:
+        - enable_services | bool
+        - item.Binary == "neutron-openvswitch-agent" or item.Binary == "neutron-dhcp-agent"
+        - item.Host == ansible_nodename
+        - item.State == false
+        - "inventory_hostname not in groups['lcm_hosts']"
+      with_items: "{{ network_list.stdout | default([]) }}"
+      delegate_to: localhost
+
+    - name: Get volume services list
+      command: >
+        openstack volume service list -f json
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      delegate_to: localhost
+      register: volume_list
+      when:
+        - enable_services | bool
+        - "inventory_hostname not in groups['lcm_hosts']"
+
+    - name: enable cinder-volume service
+      command: >
+        openstack volume service set --enable {{ item.Host }} cinder-volume
+        --os-auth-url {{ openstack_auth.auth_url }}/v3
+        --os-identity-api-version 3
+        --os-project-domain-name {{ openstack_auth.domain_name }}
+        --os-project-name {{ openstack_auth.project_name }}
+        --os-username {{ openstack_auth.username }}
+        --os-password {{ openstack_auth.password }}
+        --os-user-domain-name {{ openstack_auth.user_domain_name }}
+        --os-region-name {{ openstack_region_name }}
+        {% if cee_admin_endpoint_external | bool %}
+        --os-interface public
+        {% else %}
+        --os-interface internal
+        {% endif %}
+        {% if enable_manila | bool %}--os-manila-endpoint-type internalURL{% endif %}
+        {% if cee_admin_endpoint_external | bool %}
+        {% if  kolla_enable_tls_external | bool and kolla_external_fqdn_cacert %} --os-cacert {{ kolla_external_fqdn_cacert }}{% endif %}
+        {% else %}
+        {%if kolla_enable_tls_internal | bool and kolla_internal_fqdn_cacert %} --os-cacert {{ kolla_internal_fqdn_cacert }}{% endif %}
+        {% endif %}
+      when:
+        - enable_services | bool
+        - item.Binary == "cinder-volume"
+        - ansible_nodename in item.Host
+        - item.Status == "disabled"
+        - "inventory_hostname not in groups['lcm_hosts']"
+      with_items: "{{ volume_list.stdout | default([]) }}"
+      delegate_to: localhost
+
+    - name: Check if umm package is installed
+      command: rpm -q cee-umm
+      register: is_installed
+      when: umm_off | bool
+      failed_when: false
+
+    - name: Set UMM off
+      command: umm off
+      async: 1
+      poll: 0
+      when:
+        - umm_off | bool
+        - is_installed.rc == 0
+      failed_when: false
+
+    - name: Wait for ssh
+      vars:
+        ansible_connection: ssh
+      wait_for_connection:
+        delay: 60
+        timeout: 600
+      when: umm_off | bool
+
+    - name: Check services status
+      docker_container_info:
+        name: "pacemaker"
+      register: status
+      when: enable_services | bool
+
+
+    - name: Put Pacemaker node in online mode
+      command: docker exec -it pacemaker bash -c 'crm node online {{ ansible_nodename }}'
+      when:
+        - enable_services | bool
+        - status is defined
+        - status.exists | bool
+        - status.container.State.Running | bool
+      with_items: "{{ status | default([]) }}"

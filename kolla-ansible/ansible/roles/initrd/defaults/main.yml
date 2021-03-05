@@ -1,0 +1,21 @@
+initrd_builddir: "/tmp/initrdbuild"
+initrd_destdir: "/srv/www/discovery_image"
+
+initrd_base_packages:
+ - busybox
+ - procps
+ - zypper
+ - kernel-firmware
+
+initrd_initrd_file: "initrd"
+initrd_kernel_file: "vmlinuz"
+discovery_images: >-
+  {% set discovery_images = {} -%}
+  {% set provisionable_hosts =
+       groups['physical_hosts'] + groups['virtual_hosts'] -%}
+  {% for provisionable_host in provisionable_hosts -%}
+    {% set kernel = hostvars[provisionable_host]['my_host_config']['kernel'] -%}
+    {% set distribution = distribution_name ~ '-' ~ kernel -%}
+    {{ discovery_images.update({distribution: kernel}) -}}
+  {% endfor -%}
+  {{ discovery_images -}}

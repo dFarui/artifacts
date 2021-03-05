@@ -1,0 +1,19 @@
+{
+    "_comment": "# FIXME: portal apache logging will be added",
+    "command": "/usr/sbin/start_portal",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/portal.conf",
+            "dest": "/etc/portal/portal.conf",
+            "owner": "portal",
+            "perm": "0600"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/log/kolla/portal",
+            "owner": "portal:portal",
+            "recurse": true
+        }
+    ]
+}

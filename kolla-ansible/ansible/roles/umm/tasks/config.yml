@@ -1,0 +1,5 @@
+---
+- name: Copy Configuration File
+  template:
+    src: umm_conf.j2
+    dest: /etc/umm.conf

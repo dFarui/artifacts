@@ -1,0 +1,6 @@
+---
+- name: Install logrotate package
+  become: yes
+  package:
+    name: "{{ logrotate_package_name }}"
+    state: present

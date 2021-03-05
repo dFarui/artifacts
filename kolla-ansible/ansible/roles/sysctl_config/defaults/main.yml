@@ -1,0 +1,11 @@
+---
+# marker indicating that the file is managed by LCM$
+file_marker: '# LCM-MANAGED - Managed by LCM - Do not edit'
+
+#  kernel module file for modules needed by all servers
+sysctl_kernel_module_file: /etc/modules-load.d/sysctl-modules.conf
+
+sysctl_conf_file: /etc/sysctl.d/sysctl.conf
+
+# fs.file-max as percent of total system memory
+fs_file_max_percent: 0.10

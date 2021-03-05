@@ -1,0 +1,26 @@
+[DEFAULT]
+sa_api_wsgi_address={{ api_interface_address }}
+sa_api_wsgi_port={{ sa_api_listen_port }}
+
+# Name of the Keystone role required to access SA Rest resources
+sa_api_role_ids={{ service_ks_register_role_result.results | selectattr('item', 'search', sa_api_keystone_role) | list | map(attribute='role') | list | map(attribute='id') | join(',') }}
+
+[keystone]
+
+# Keystone auth url
+auth_url={{ sa_api_keystone_auth_url }}
+
+# Keystone auth username
+auth_username={{ sa_api_keystone_users[0].user }}
+
+# Keystone auth password
+auth_password={{ sa_api_keystone_users[0].password }}
+
+# Keystone auth domain
+auth_domain={{ sa_api_keystone_auth.user_domain_name }}
+
+# Keystone auth project
+auth_project={{ sa_api_keystone_users[0].project }}
+
+# Keystone auth project domain
+auth_project_domain={{ sa_api_keystone_auth.domain_name }}

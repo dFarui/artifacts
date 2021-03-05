@@ -1,0 +1,12 @@
+---
+- name: Export backup {{ backupname }}
+  backup_restore:
+    action: "export"
+    uri: "{{ destination_uri }}"
+    backupname: "{{ backupname }}"
+    location: "{{ backup_path }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  delegate_to: localhost
+  when: inventory_hostname == groups[brf_group][0]

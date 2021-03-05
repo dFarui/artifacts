@@ -1,0 +1,55 @@
+---
+- name: Check cobbler profile for discovery
+  become: yes
+  command: cobbler profile report --name={{ item.key }}
+  register: profile_exists
+  changed_when: false
+  failed_when: false
+  loop: "{{ profiles | dict2items }}"
+
+- name: Remove cobbler profile for discovery
+  become: yes
+  command: cobbler profile remove --name={{ item.item.key }}
+  when: item.rc == 0
+  loop: "{{ profile_exists.results }}"
+
+- name: Check cobbler distro for discovery
+  become: yes
+  command: cobbler distro report --name={{ item.key }}
+  register: distro_exists
+  changed_when: false
+  failed_when: false
+  loop: "{{ distributions | dict2items }}"
+
+- name: Remove cobbler distro for discovery
+  become: yes
+  command: cobbler distro remove --name={{ item.item.key }}
+  when: item.rc == 0
+  loop: "{{ distro_exists.results }}"
+
+  # We don't create a SUSE/SLES distro since we don't want Cobbler to
+  # automagically add the autoyast stuff to the cobbler systems.
+- name: Create cobbler distro for discovery
+  become: yes
+  command: >
+    cobbler distro add --name={{ item.key }}
+    --kernel={{initrd_destdir}}/{{ initrd_kernel_file }}-{{ item.key }}
+    --initrd={{initrd_destdir}}/{{ initrd_initrd_file }}-{{ item.key }}
+    --arch={{ item.value.arch }} --breed={{ item.value.breed }}
+  loop: "{{ distributions | dict2items }}"
+
+- name: Create cobbler profile for discovery
+  become: yes
+  command: cobbler profile add --name={{ item.key }} --distro={{ item.value.distribution }}
+  loop: "{{ profiles | dict2items }}"
+
+- name: Restart services
+  become: yes
+  service:
+    name={{ item }}
+    state=restarted
+    enabled=yes
+  loop:
+  - dnsmasq
+  - cobblerd
+  - xinetd

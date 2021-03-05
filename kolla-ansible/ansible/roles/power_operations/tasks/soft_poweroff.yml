@@ -1,0 +1,12 @@
+---
+- name: Initiate soft power-off
+  become: yes
+  shell: "sleep 5 && /sbin/shutdown -h now"
+  async: 1
+  poll : 0
+  when: power_state == "soft_poweroff"
+
+- name: Wait for power-off
+  local_action: wait_for host={{ ansible_ssh_host }} port=22 state=stopped delay=15 timeout=120
+  become: False
+  when: power_state == "soft_poweroff"

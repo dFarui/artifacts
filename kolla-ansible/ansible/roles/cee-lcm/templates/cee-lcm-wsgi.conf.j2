@@ -1,0 +1,29 @@
+WSGISocketPrefix /var/run/wsgi
+Listen {{ interface_addresses.control  }}:{{ lcm_api_port }}
+<VirtualHost {{ interface_addresses.control }}:{{ lcm_api_port }}>
+    <Directory /usr/bin>
+        <FilesMatch "cee-lcm-wsgi">
+            Require all granted
+        </FilesMatch>
+    </Directory>
+
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization On
+    WSGIChunkedRequest On
+    ErrorLogFormat "%M"
+    ErrorLog {{ error_log }}
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI}  ^/socket.io            [NC]
+    RewriteCond %{QUERY_STRING} transport=websocket     [NC]
+    RewriteRule /(.*) ws://localhost:{{ lcm_api_port }}/$1 [L,P]
+
+    ProxyPass / http://localhost:{{ lcm_api_port }}/
+    ProxyPassReverse / http://localhost:{{ lcm_api_port }}/
+
+    # Header always set access-control-allow-origin "*"
+    Header always set access-control-allow-methods "POST, GET, OPTIONS, PUT"
+    Header always set access-control-allow-headers "x-auth-token, content-type, origin, authorization, accept"
+    Header always set access-control-expose-headers "x-subject-token"
+    Header always set access-control-max-age "600"
+</VirtualHost>

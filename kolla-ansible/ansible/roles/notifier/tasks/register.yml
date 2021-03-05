@@ -1,0 +1,9 @@
+---
+- import_role:
+    name: service-ks-register
+  vars:
+    service_ks_register_auth: "{{ notifier_keystone_auth }}"
+    service_ks_register_services: "{{ notifier_keystone_services }}"
+    service_ks_register_users: "{{ notifier_keystone_users }}"
+    service_ks_register_roles: "{{ notifier_keystone_roles }}"
+  tags: always

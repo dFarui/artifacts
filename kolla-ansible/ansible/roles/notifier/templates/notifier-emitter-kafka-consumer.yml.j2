@@ -1,0 +1,8 @@
+bootstrap.servers: {{ notifier_kafka_bootstrap_servers }}
+group.id: notifier-emitter-group
+auto.offset.reset: earliest
+session.timeout.ms: 10000
+security.protocol: SASL_PLAINTEXT
+sasl.mechanism: PLAIN
+sasl.username: {{ kafka_admin_username }}
+sasl.password: {{ kafka_admin_password }}

@@ -1,0 +1,10 @@
+---
+- hosts: all
+  tasks:
+  - name: ovs-appctl ofproto/trace command
+    command: "{{command}}"
+    register: flow_trace
+
+  - name: ovs-appctl output with stdout
+    debug:
+      var: flow_trace.stdout_lines

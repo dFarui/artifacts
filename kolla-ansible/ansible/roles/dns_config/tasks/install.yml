@@ -1,0 +1,29 @@
+---
+- name: Install bind-utils on all hosts
+  become: yes
+  package:
+    name: bind-utils
+    state: latest
+  when: my_dns_config.servers | length > 0
+
+- name: Config DNS servers
+  become: yes
+  lineinfile:
+    path: /etc/sysconfig/network/config
+    regexp: NETCONFIG_DNS_STATIC_SERVERS
+    line: NETCONFIG_DNS_STATIC_SERVERS="{{ my_dns_config.servers | join(' ') }}"
+  register: network_dns_config
+  when: my_dns_config.servers | length > 0
+
+- name: Config DNS searchlist
+  become: yes
+  lineinfile:
+    path: /etc/sysconfig/network/config
+    regexp: NETCONFIG_DNS_STATIC_SEARCHLIST
+    line: NETCONFIG_DNS_STATIC_SEARCHLIST="{{ my_dns_config.search | join(' ') }}"
+  when: my_dns_config.search | length > 0
+  register: network_dns_config
+
+- name: Update DNS netconfig
+  command: netconfig update -m dns
+  when: network_dns_config is defined and network_dns_config.changed

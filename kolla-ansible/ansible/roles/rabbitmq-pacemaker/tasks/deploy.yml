@@ -1,0 +1,11 @@
+---
+- include_tasks: lookup-service.yml
+
+- include_tasks: config.yml
+
+- include_tasks: deploy-service.yml
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- include_tasks: check-service.yml

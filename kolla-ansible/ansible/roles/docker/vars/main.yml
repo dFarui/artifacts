@@ -1,0 +1,13 @@
+---
+# Retention settings for Docker logs
+docker_log_driver: "local"
+docker_log_max_file: "5"
+docker_log_max_size: "50m"
+docker_config:
+  log-driver: "{{ docker_log_driver }}"
+  log-opts:
+    max-file: "{{ docker_log_max_file }}"
+    max-size: "{{ docker_log_max_size }}"
+docker_registry_insecure: "yes"
+domain: "{{ my_dns_config.domain | d('cee.tld') }}"
+docker_registry: "docker-registry.{{ domain }}:{{docker_registry_port}}"

@@ -1,0 +1,7 @@
+---
+- name: "Configure haproxy for cee lcm api"
+  import_role:
+    role: haproxy-config
+  vars:
+    project_services: "{{ lcm_services }}"
+  tags: always

@@ -1,0 +1,27 @@
+[loggers]
+keys=root
+
+[handlers]
+keys=consoleHandler, syslogHandler
+
+[formatters]
+keys=logFormatter
+
+[logger_root]
+level={{ aetos_log_level | upper }}
+handlers=consoleHandler, syslogHandler
+
+[handler_consoleHandler]
+class=StreamHandler
+level={{ aetos_log_level | upper }}
+formatter=logFormatter
+args=(sys.stdout,)
+
+[handler_syslogHandler]
+class=handlers.SysLogHandler
+level={{ aetos_log_level | upper }}
+formatter=logFormatter
+args=('/dev/log', handlers.SysLogHandler.LOG_LOCAL0)
+
+[formatter_logFormatter]
+format={{ project_name }}: %(name)s - %(levelname)s - %(message)s

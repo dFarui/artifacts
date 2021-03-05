@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Run system-install
+    command: >
+      cee-system-install --system "{{system_name}}" --job-id "{{job_id}}"
+      {% if (force | d(false)) -%} --force {%-endif %}
+      {% if (verbose | d(false)) -%} --verbose {%-endif %}
+      {% if (uris | d(false)) -%} --tar-uri {{uris}} {%-endif %}

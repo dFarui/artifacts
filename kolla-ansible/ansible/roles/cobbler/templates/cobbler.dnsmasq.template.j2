@@ -1,0 +1,37 @@
+# Cobbler generated configuration file for dnsmasq
+# $date
+#
+
+# No DNS
+port=0
+no-resolv
+no-poll
+no-hosts
+
+interface={{ host_server_interface }}
+{% if ip | ipv6 %}
+dhcp-range={{ lcm_network['range'][0] | regex_replace('-.*$', '') }},static,{{ lcm_network['cidr'] | ipaddr('prefix') }},6h
+{% else %}
+dhcp-range={{ lcm_network['range'][0] | regex_replace('-.*$', '') }},static,{{ lcm_network['cidr'] | ipaddr('netmask') }},6h
+{% endif %}
+dhcp-lease-max=1000
+dhcp-authoritative
+dhcp-option=66,{{ host_server_ip_addr }}
+
+{% if ip | ipv6 %}
+dhcp-match=set:x86_64,option6:61,7 #x86-64
+dhcp-option=tag:x86_64,option6:bootfile-url,tftp://[{{ host_server_ip_addr }}]/shim.efi
+
+dhcp-match=set:yx86_64,option6:61,6 #EFI x86-64
+dhcp-option=tag:yx86_64,option6:bootfile-url,tftp://[{{ host_server_ip_addr }}]/grub.efi
+{% else %}
+dhcp-match=set:intel_x86pc,option:client-arch,0 #Intel x86PC
+dhcp-match=set:efi_ia32,option:client-arch,6 #EFI IA32
+dhcp-match=set:efi_bc,option:client-arch,7 #EFI BC
+
+dhcp-option=tag:intel_x86pc,option:bootfile-name,pxelinux.0
+dhcp-option=tag:efi_ia32,option:bootfile-name,grub.efi
+dhcp-option=tag:efi_bc,option:bootfile-name,shim.efi
+{% endif %}
+
+#per-host entries follows below

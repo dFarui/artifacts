@@ -1,0 +1,8 @@
+{% include 'ifscript_header.j2' %}
+
+{% if item.vf_count is defined %}
+
+  if [[ "$PRE_UP" == "false" ]]; then
+        echo {{ item.vf_count }} >/sys/class/net/{{ item.device }}/device/sriov_numvfs
+  fi
+{% endif %}

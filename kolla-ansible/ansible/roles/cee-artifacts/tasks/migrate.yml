@@ -1,0 +1,46 @@
+---
+- name: Fetch all the artifact metadata files
+  find:
+    paths: /srv/www/artifacts/metadata
+    patterns: '*.yaml'
+  register: metadata
+
+- name: Load all metadata files
+  set_fact:
+    artifacts_list: "{{ artifacts_list + [lookup('file', item.path) | from_yaml ] }}"
+  loop: "{{ metadata.files }}"
+
+- name: Load the repositories list from the metadata
+  set_fact:
+    repo_metadata: "{{ repo_metadata + item.repositories }}"
+  when: item.repositories is defined
+  loop: "{{ artifacts_list }}"
+
+- name: Load the services list from the metadata
+  set_fact:
+    service_metadata: "{{ service_metadata + item.services }}"
+  when: item.services is defined
+  loop: "{{ artifacts_list }}"
+
+- name: Remove old repos
+  become: yes
+  file:
+    state: absent
+    path: "/etc/zypp/repos.d/"
+
+- name: Setup local repos
+  include_tasks: setup_repos.yml
+  vars:
+    type: ""
+  loop_control:
+    loop_var: metadatafile
+  when: metadatafile.repositories is defined
+  loop: "{{ artifacts_list }}"
+
+- name: Import orchestrators
+  include_tasks: import_orchestrator.yml
+  loop_control:
+    loop_var: service
+  when: service.orchestrator is defined
+  with_items:
+    - '{{ service_metadata | d([]) }}'

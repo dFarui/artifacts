@@ -1,0 +1,29 @@
+{
+    "command": "/usr/bin/kafka-server-start.sh /etc/kafka/kafka.server.properties",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/kafka.server.properties",
+            "dest": "/etc/kafka/kafka.server.properties",
+            "owner": "kafka",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/kafka_server_jaas.conf",
+            "dest": "/etc/kafka/kafka_server_jaas.conf",
+            "owner": "kafka",
+            "perm": "0600"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "{{ kafka_volume_path }}/kafka",
+            "owner": "kafka:kafka",
+            "recurse": true
+        },
+        {
+            "path": "/var/log/kolla/kafka",
+            "owner": "kafka:kafka",
+            "recurse": true
+        }
+    ]
+}

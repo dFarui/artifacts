@@ -1,0 +1,140 @@
+error_log: '/var/log/cee/lcm-api.log'
+trace_port: 8082
+trace_error_log: '/var/log/cee/trace-api.log'
+lcm_system: "{{ system_name | d('seed') }}"
+
+lcm_api_version: 0
+lcm_api_region_name: "{{ openstack_region_name }}"
+lcm_api_project_name: lcm-api
+lcm_api_internal_client_username: cee-lcm-client
+lcm_api_server_username: cee-lcm-api
+lcm_keystone_admin_username: ceeadmin
+lcm_api_service_name: "lcm-api-v{{ lcm_api_version }}"
+
+# These below are the auth hash and the auth URL of the LCM-cluster-local Keystone.
+lcm_api_auth: "{{ openstack_auth }}"
+lcm_api_auth_url: "{{ lcm_api_auth.auth_url }}/v3"
+
+# Kolla Toolbox and service-ks-register role registers the default domain name
+# "Domain" with ID "domain". The domain name (instead of ID) is preferred in the
+# config files, but it can't be passed over to service-ks-register, so just
+# hard-coded here, not directly connected to the source.
+lcm_api_project_domain_name: Default
+lcm_api_user_domain_name: "{{ lcm_api_project_domain_name }}"
+
+lcm_ks_services:
+  - name: "{{ lcm_api_service_name }}"
+    description: "CEE LCM API"
+    type: "lcm-api"
+    endpoints:
+      - interface: 'admin'
+        url: "{{ admin_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ lcm_api_port }}/v{{ lcm_api_version }}"
+      - interface: 'internal'
+        url: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ lcm_api_port }}/v{{ lcm_api_version }}"
+      - interface: 'public'
+        url: "{{ public_protocol }}://{{ kolla_external_fqdn | put_address_in_context('url') }}:{{ lcm_api_port }}/v{{ lcm_api_version }}"
+
+lcm_ks_users:
+  - project: "{{ lcm_api_project_name }}"
+    user: "{{ lcm_api_internal_client_username }}"
+    password: "{{ lcm_api_internal_client_password }}"
+    role: member
+  - project: service
+    user: "{{ lcm_api_server_username }}"
+    password: "{{ lcm_api_server_password }}"
+    role: admin
+  - project: "{{ lcm_api_project_name }}"
+    user: "{{ lcm_keystone_admin_username }}"
+    password: "{{ lcm_keystone_admin_password }}"
+    role: admin
+
+lcm_services:
+  cee-lcm:
+    group: "cee-lcm"
+    enabled: true
+    haproxy:
+      cee_lcm_internal:
+        enabled: "{{ enable_cee_lcm }}"
+        mode: "http"
+        external: false
+        port: "{{ lcm_api_port }}"
+        listen_port: "{{ lcm_api_port }}"
+        custom_member_list: "{{ haproxy_members.split(';') }}"
+      cee_lcm_external:
+        enabled: "{{ enable_cee_lcm }}"
+        mode: "http"
+        external: true
+        port: "{{ lcm_api_port }}"
+        listen_port: "{{ lcm_api_port }}"
+        custom_member_list: "{{ haproxy_members.split(';') }}"
+
+####################
+# HAProxy
+####################
+haproxy_members: "{% for host in groups['cee-lcm'] %}server {{ hostvars[host]['ansible_hostname'] }} {{ 'api' | kolla_address(host) }}:{{ lcm_api_port }} check inter 2000 rise 2 fall 5{% if not loop.first %} backup{% endif %};{% endfor %}"
+
+lcm_database_user: lcm
+lcm_database: lcm
+lcm_database_driver: "mysql+pymysql"
+mysql_socket: '/var/run/mysql/mysql.sock'
+
+lcm_required_packages:
+  - aaa_base-extras
+  - adjtimex
+  - ansible
+  - apache2-mod_wsgi-python3
+  - apache2
+  - apparmor-profiles
+  - audit
+  - bash-completion
+  - btrfsmaintenance
+  - bzip2
+  - cee-lcm
+  - cee-lcm-api
+  - cee-lcm-client
+  - cee-config-model
+  - cee-registry
+  - cee-trace-api
+  - chrony
+  - cobbler
+  - createrepo_c
+  - docker
+  - docker-bash-completion
+  - firewalld
+  - git-core
+  - hostname
+  - iputils
+  - kernel-firmware
+  - kolla-ansible-doc
+  - less
+  - lsof
+  - mlocate
+  - netcat-openbsd
+  - oobm-tools
+  - parted
+  - python3-Cheetah3
+  - python3-kolla-ansible-tests
+  - python3-kolla-ansible
+  - python3-netaddr
+  - python3-neutronclient
+  - python3-openstackclient
+  - python3-passlib
+  - python3-pbr
+  - python3-requests
+  - python3-simplejson
+  - python3-keystonemiddleware
+  - screen
+  - shim
+  - sudo
+  - suse-build-key
+  - syslinux
+  - systemd-bash-completion
+  - systemd-coredump
+  - terminfo
+  - terminfo-screen
+  - traceroute
+  - util-linux
+  - vim
+  - vim-data
+  - wget
+  - xinetd

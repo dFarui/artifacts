@@ -1,0 +1,8 @@
+---
+- name: Stopping RabbitMQ service
+  vars:
+    resource_name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  shell: 'docker exec pacemaker crm resource stop {{ resource_name }}'

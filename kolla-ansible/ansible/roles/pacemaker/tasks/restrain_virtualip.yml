@@ -1,0 +1,95 @@
+---
+- name: Configure HAProxy health reporter primitive
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_resource
+    name: "p_{{ haproxy_health.resource.name }}"
+    type: primitive
+    agent: "ocf:cee:haproxy-health"
+    parameter: "{{ haproxy_health.resource.parameter }}"
+    operation: "{{ haproxy_health.resource.operation }}"
+    meta: "{{ haproxy_health.resource.meta }}"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "haproxy_health.enabled | bool"
+  tags: always
+
+- name: Create clone from the HAProxy health reporter primitive
+  vars:
+    service_name: "haproxy"
+    nodes: "{{ groups[service_name] | length }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "clone_{{ haproxy_health.resource.name }}"
+    type: clone
+    agent: "p_{{ haproxy_health.resource.name }}"
+    meta:
+      clone-max: "{{ nodes }}"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "haproxy_health.enabled | bool"
+  tags: always
+
+- name: Add HAProxy health reporter role to the nodes
+  vars:
+    service_name: "haproxy"
+  become: True
+  throttle: 1
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ hostvars[inventory_hostname]['hostname_full'] }}"
+    attribute: "{{ haproxy_health.resource.name }}-role"
+    value: "true"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "inventory_hostname in groups[service_name]"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "haproxy_health.enabled | bool"
+  tags: always
+
+- name: Add location constraint for the HAProxy health reporter
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-clone_{{ haproxy_health.resource.name }}"
+    resource: "clone_{{ haproxy_health.resource.name }}"
+    attribute:
+      resource-discovery: exclusive
+    rules: "rule 100: {{ haproxy_health.resource.name }}-role eq true"
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "haproxy_health.enabled | bool"
+  tags: always
+
+- name: Keep Virtual IPs away from nodes where HAProxy is not healthy
+  run_once: True
+  become: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ item.key }}_haproxy"
+    resource: "{{ item.key }}"
+    attribute:
+      resource-discovery: exclusive
+    rules: >-
+      rule -inf: {{ item.key }}-role eq true and
+      {{ haproxy_health.resource.parameter.attribute_name }}
+      ne {{ haproxy_health.resource.parameter.attribute_value }}
+  when:
+    - "inventory_hostname in groups['pacemaker']"
+    - "not (enable_keepalived | bool)"
+    - "enable_pacemaker | bool"
+    - "haproxy_health.enabled | bool"
+    - "item.value.enable"
+  with_dict: "{{ virtual_ip }}"
+  tags: always

@@ -1,0 +1,2 @@
+repositories=({{ my_repos | selectattr("name", "equalto", "h3c-sdn-plugin") | map(attribute='uri') | first }}?ssl_verify=no)
+packages=(SeerEngine_DC_PLUGIN)

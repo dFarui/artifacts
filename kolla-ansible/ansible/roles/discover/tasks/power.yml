@@ -1,0 +1,23 @@
+#---
+# Get the power status of the physical hosts
+#
+- name: Get power status
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'status'
+  register: oobm_connectivity
+  when: action == "status"
+
+- name: Power on the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'on'
+    sleep: '3'
+  when: action == "on"
+
+- name: Power off the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'off'
+    sleep: '1'
+  when: action == "off"

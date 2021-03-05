@@ -1,0 +1,52 @@
+---
+- name: Set variables for product version from metadata file
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    product_number: '{{ metadatafile["product"]["number"] | replace("/", "_") | replace(" ", "")}}'
+    product_version: '{{ metadatafile["product"]["version"] }}'
+
+- name: Set the product variable
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    product: '{{ product_number }}-{{ product_version }}-{{ metadatafile["product"]["buildInfo"] }}'
+
+- name: Create a product directory for repos
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  file:
+    path: "{{ default_repo_path }}/{{ product }}/"
+    state: directory
+
+- name: Rsync repos from mounted artifacts ISO
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  synchronize:
+    src: "{{ mnt_tmpdir }}/{{ item.uri }}"
+    dest: "{{ default_repo_path }}/{{ product }}/{{ item.name }}"
+  when: type == "iso"
+  with_items: '{{ metadatafile["repositories"] }}'
+
+- name: Copy repos for case type directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  synchronize:
+    src: "{{ artifact_uri_path }}/{{ item.uri }}"
+    dest: "{{ default_repo_path }}/{{ product }}/{{ item.name }}"
+  when: type == "directory"
+  with_items: '{{ metadatafile["repositories"] }}'
+
+- name: Add the local repos to zypper
+  become: yes
+  zypper_repository:
+    name: "{{ item.name }}"
+    state: present
+    description: "{{ item.name }}"
+    repo: "{{ default_repo_path }}/{{ product }}/{{ item.name }}"
+    disable_gpg_check: yes
+  when: item.localRepo is defined and item.localRepo == True and (('lcm_hosts' in groups and inventory_hostname != 'localhost') or ('lcm_hosts' not in groups))
+  with_items: '{{ metadatafile["repositories"] }}'

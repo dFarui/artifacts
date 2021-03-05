@@ -1,0 +1,13 @@
+---
+- name: Install chrony packages
+  become: yes
+  package:
+    name: "{{ chrony_packages }}"
+    state: latest
+
+- name: Start chrony service
+  become: yes
+  service:
+    name: chronyd
+    state: started
+    enabled: yes

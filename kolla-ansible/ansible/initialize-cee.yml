@@ -1,0 +1,21 @@
+---
+# Initialize CEE
+- hosts:
+    - localhost
+    - lcm_hosts
+  roles:
+    - base-config
+    - sudo_config
+    - ssh_config
+    - systemd_config
+    - misc_config
+    - docker
+- hosts:
+    - localhost
+    - lcm_hosts
+  serial: '{{ migrate_serial | d(0) }}'
+  roles:
+    - cee-lcm
+- import_playbook: docker-registry.yml
+  vars:
+    cee_action: deploy

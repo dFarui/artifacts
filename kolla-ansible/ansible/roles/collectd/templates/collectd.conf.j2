@@ -1,0 +1,64 @@
+FQDNLookup false
+LoadPlugin cpu
+LoadPlugin df
+LoadPlugin interface
+LoadPlugin load
+LoadPlugin network
+LoadPlugin processes
+LoadPlugin syslog
+LoadPlugin table
+LoadPlugin virt
+LoadPlugin write_prometheus
+
+<Plugin "network">
+	Server "{{ 'api' | kolla_address }}" "{{ collectd_udp_port }}"
+</Plugin>
+
+<Plugin cpu>
+	ReportByCpu true
+	ReportByState true
+	ValuesPercentage true
+</Plugin>
+
+<Plugin df>
+	FSType rootfs
+	FSType sysfs
+	FSType proc
+	FSType devtmpfs
+	FSType devpts
+	FSType tmpfs
+	FSType fusectl
+	FSType cgroup
+	IgnoreSelected true
+	ReportByDevice false
+	ReportInodes false
+	ValuesAbsolute false
+	ValuesPercentage true
+</Plugin>
+
+<Plugin table>
+	<Table "/proc/meminfo">
+		Instance "meminfo"
+		Separator ": "
+		<Result>
+			Type memory
+			InstancesFrom 0
+			ValuesFrom 1
+		</Result>
+	</Table>
+</Plugin>
+
+<Plugin "virt">
+	{% if libvirt_tls | bool %}
+	Connection "qemu+tls://{{ migration_hostname }}/system"
+	{% else %}
+	Connection "qemu+tcp://{{ migration_interface_address | put_address_in_context('url') }}/system"
+	{% endif %}
+	RefreshInterval 60
+	HostnameFormat "uuid"
+	ExtraStats "cpu_util disk pcpu"
+</Plugin>
+
+<Plugin write_prometheus>
+	Port "9103"
+</Plugin>

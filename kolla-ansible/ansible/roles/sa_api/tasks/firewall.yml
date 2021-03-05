@@ -1,0 +1,9 @@
+---
+- name: Enable sa_api in the firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "{{ sa_api_listen_port }}/tcp"

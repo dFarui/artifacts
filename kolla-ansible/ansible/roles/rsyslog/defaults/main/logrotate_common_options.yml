@@ -1,0 +1,54 @@
+logrotate_main_config_options: |-
+  # The current taboo extension list is changed (see the include
+  # directive for information on the taboo extensions). If a + precedes
+  # the list of extensions, the current taboo extension list is augmented,
+  # otherwise it is replaced.
+  tabooext + .nodaily
+
+logrotate_common_options: |-
+  # Old versions of log files are compressed with gzip(1) by default.
+  compress
+
+  # Truncate  the  original log file to zero size in place after creating a
+  # copy, instead of moving the old log file and optionally creating a new one.
+  copytruncate
+
+  # Archive old versions of log files adding a date extension instead of
+  # simply adding a number.
+  dateext
+  # Specify the extension for dateext using the notation similar to
+  # strftime(3) function.
+  dateformat -%Y%m%d-%s
+
+  # Log files are rotated 4 times before being removed.
+  rotate 4
+
+  # Log files are rotated when they grow bigger than size bytes even
+  # before the additionally specified time interval (daily, weekly,
+  # monthly, or yearly).
+  maxsize 100M
+
+  # Log files are rotated when they grow bigger than size bytes, but not
+  # before the additionally specified time interval (daily, weekly,
+  # monthly, or yearly).
+  minsize 10M
+
+  # If the log file is missing, go on to the next one without issuing
+  # an error message.
+  missingok
+
+  # Do not rotate the log if it is empty.
+  notifempty
+
+  # Log files are rotated if the current weekday is less than the
+  # weekday of the last rotation or if more than a week has passed
+  # since the last rotation.
+  weekly
+
+logrotate_hup_signal_to_rsyslog_config: |-
+  # RSYSLOG will reopen files whenever it receives a HUP signal. This allows
+  # the file to be externally rotated (using a tool like logrotate): after each
+  # rotation, make sure a HUP signal is sent to rsyslogd.
+  postrotate
+      /bin/kill -HUP `docker exec {{ container_name }} cat /run/rsyslogd.pid 2> /dev/null` 2> /dev/null || true
+  endscript

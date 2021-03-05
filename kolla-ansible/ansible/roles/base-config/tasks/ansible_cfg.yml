@@ -1,0 +1,39 @@
+---
+- name: Install the ansible package
+  become: yes
+  package:
+    name: ansible
+    state: latest
+- name: Setting up ansible configuration
+  become: yes
+  vars:
+    ansible_config:
+      - option: interpreter_python
+        value: /usr/bin/python3
+      - option: forks
+        value: 100
+      - option: sudo_user
+        value: root
+      - option: host_key_checking
+        value: False
+      - option: timeout
+        value: 60
+      - option: log_path
+        value: /var/log/cee/ansible.log
+      - option: ssh_args
+        value: "-o ControlMaster=auto -o ControlPersist=30m -o ForwardAgent=yes -o GSSAPIAuthentication=false"
+        section: ssh_connection
+      - option: verbosity
+        value: 2
+      - option: callback_whitelist
+        value: "timer, profile_tasks, profile_tasks"
+      - option: any_errors_fatal
+        value: true
+  ini_file:
+    path: "{{ansible_cfg_path}}"
+    section: "{{ item.section |d('defaults') }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items: "{{ ansible_config }}"
+  tags:
+    - ansible_config

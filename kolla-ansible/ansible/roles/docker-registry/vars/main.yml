@@ -1,0 +1,2 @@
+domain: "{{ my_dns_config.domain | d('cee.tld') }}"
+docker_registry_url: "docker-registry.{{ domain }}:{{docker_registry_port}}"

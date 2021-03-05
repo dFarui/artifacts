@@ -1,0 +1,28 @@
+openstack:
+  nova:
+    - instance.*
+    - compute.*
+  neutron:
+    - network.*
+    - subnet.*
+    - port.*
+    - router.*
+    - floatingip.*
+    - pool.*
+    - vip.*
+  cinder:
+    - volume.*
+  glance:
+    - image.*
+  keystone:
+    - identity.*
+  heat:
+    - orchestration.*
+
+infrastructure:
+  lcm:
+    - lcm.*
+
+alarm:
+  alarm:
+    - alarm.*

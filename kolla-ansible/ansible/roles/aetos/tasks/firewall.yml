@@ -1,0 +1,7 @@
+---
+- name: Enable Aetos in the firewall
+  firewalld:
+    port: "{{ aetos_listen_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes

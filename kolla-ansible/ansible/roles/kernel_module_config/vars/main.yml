@@ -1,0 +1,6 @@
+ default_kernel_modules:
+   - name: nf_conntrack
+   - name: br_netfilter
+   - name: configfs
+ configured_kernel_modules: "{{ my_host_config.kernelModules | default([]) }}"
+ kernel_modules: "{{ default_kernel_modules + configured_kernel_modules }}"

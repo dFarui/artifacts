@@ -1,0 +1,11 @@
+[Unit]
+Wants=cgroup-resources@{{ item.name }}.service
+
+{% if item.dimensions is defined %}
+[Slice]
+{% for key, value in item.dimensions.items() %}
+{% if key in resource_map and 'slice_directive' in resource_map[key] %}
+{{ resource_map[key]['slice_directive'] }}={{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}

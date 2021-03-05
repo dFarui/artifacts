@@ -1,0 +1,94 @@
+#
+# This is a POSIX shell fragment                -*- sh -*-
+#
+# This file contains the settings for ovs.
+#
+# NOTE: Special support is present at upgrade of the ovs debian package.
+#
+# New and mandatory parameters which are not already present
+# are added automatically to /etc/default/ovs configuration file if
+# it differs from the default version for the previous installed package,
+# i.e. if the file has not been changed by scripts or the user.
+#
+# Changes in comments are not automatically updated. This applies
+# also to new parameters only mentioned in a comment.
+#
+# Mandatory parameters are listed in /usr/share/ovs/ovs.mandatory
+#
+# The default settings and comments for the currently installed
+# ovs package can be found in /usr/share/ovs/ovs.default (The
+# values there are for reference only, and do not describe the
+# actual configuration of ovs.)
+#
+# The configuration of ovs is specified in /etc/default/ovs-dpdk
+#
+
+# OVS_DPDK_ENABLE
+#   yes - Specifies that OVS built with DPDK support should be started.
+#    no - Specifies that kernel mode OVS without DPDK support should be
+#         started. The rest of the settings in this file are not used
+#         in this case.
+OVS_DPDK_ENABLE="{{ovs_dpdk_enabled}}"
+#OVS_DPDK_ENABLE="no"
+
+# Parameters below are for the dpdk mode openvswitch.
+# They may remain in the file when OVS_DPDK_ENABLE=no,
+# but are only used when OVS_DPDK_ENABLE=yes.
+
+# OVS_DPDK_VERBOSE
+#   yes - openvswitch DPDK EAL startup messages are printed
+#    no - The DPDK EAL startup messages are not printed
+OVS_DPDK_VERBOSE="{{ovs_dpdk_verbose}}"
+
+# Tenant interface(s) of openvswitch
+OVS_DATA0="{{ovs_data0}}"
+OVS_DATA1="{{ovs_data1}}"
+
+# OVS_NON_PMD_CPUS
+# Numerical list of CPUs that should be allowed for OVS non-pmd (normal) processes.
+# It seems like OVS currently doesn't honor the specific mask and instead sets
+# the affinity mask to one core, and then the one with the lowest number in the
+# DPDK core mask. Until this changes in OVS, specify it as the lowest number
+# on the NUMA node that should poll the vhost-user ports.
+OVS_NON_PMD_CPUS="{{ovs_non_pmd_cpus}}"
+
+# OVS_PMD_CPUS
+# Numerical list with at least one CPU from each physical core that should be used
+# for the PMD threads in OVS.
+# The list may contain multiple items, separated by comma. Ranges are not supported.
+# For example, 0,5,7.
+# The list must contain at least one CPU from each NUMA node that has
+# a physical interface attached and that should be handled by OVS.
+OVS_PMD_CPUS="{{ovs_pmd_cpus}}"
+
+# OVS_PMD_CPUS_HT
+# Numerical list containing the hyperthread CPU for each CPU listed in OVS_PMD_CPUS.
+# The list may contain multiple items, separated by comma. Ranges are not supported.
+# The number of entries and the order in the list must be the same as in OVS_PMD_CPUS.
+# If the HT is not enabled or should not be used then specify that position with a -.
+# If HT is not enabled or should not be used in the system then leave empty.
+OVS_PMD_CPUS_HT="{{ovs_pmd_cpus_ht}}"
+
+# OVS_SOCKET_MEM
+# How much memory to allocate on each NUMA node. Each NUMA node that should have
+# a pmd thread must have memory allocated.
+OVS_SOCKET_MEM="{{ovs_socket_mem}}"
+
+# OVS_HUGE_DIR
+#   Path to the mount point for the huge pages.
+OVS_HUGE_DIR="{{ovs_hugepage_mountpoint}}"
+
+# OVS_PHYS_RXQ
+#   The number of receive queues for the physical ports.
+OVS_PHYS_RXQ=""
+
+# OVS_DPDK_IO_DRIVER
+# DPDK IO driver for physical interfaces
+# Available drivers are: [vfio-pci, mlx5_core, uio_pci_generic] (default is uio_pci_generic)
+# vfio-pci driver is not supported on HP servers.
+OVS_DPDK_IO_DRIVER="{{ovs_dpdk_io_driver}}"
+
+# DPDK_DEF_MTU_SIZE
+# Configuration parameter for setting the default MTU size.
+# If nothing is configured here, MTU value of 2140 will be used.
+DPDK_DEF_MTU_SIZE="{{ovs_dpdk_def_mtu_size}}"

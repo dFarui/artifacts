@@ -1,0 +1,20 @@
+---
+- name: Running Watchmen Consumer bootstrap container
+  vars:
+    watchmen_consumer: "{{ watchmen_services['watchmen-consumer'] }}"
+  become: true
+  kolla_docker:
+    action: "start_container"
+    common_options: "{{ docker_common_options }}"
+    detach: False
+    environment:
+      KOLLA_BOOTSTRAP:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+    image: "{{ watchmen_consumer.image }}"
+    labels:
+      BOOTSTRAP:
+    name: "bootstrap_watchmen_consumer"
+    restart_policy: no
+    volumes: "{{ watchmen_consumer.volumes|reject('equalto', '')|list }}"
+  run_once: True
+  delegate_to: "{{ groups[watchmen_consumer.group][0] }}"

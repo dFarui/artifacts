@@ -1,0 +1,359 @@
+openapi: 3.0.0
+info:
+  title: CEE Service Subscription API  (Version 0.1)
+  description: |
+    <h3>Introduction</h3>
+    <p>This is the CEE Service Subscription REST API specification.</p>
+    <p>The API includes a set of different resource collections, documented below.</p>
+    <h4>method request scoping parameters</h4>
+    <h4>api version</h4>
+    The Service Subscription API version consisting major and minor version.
+
+    <h4>Notification - CEE Fault</h4>
+      <li> create-subscription </li>
+      <li> update-subscription </li>
+      <li> delete-subscription </li>
+      <li> search-subscription </li>
+
+  version: "1.0"
+servers:
+# - url: http://api.cee-sa.example.org/v0/
+- url: http://localhost:9999/v1/
+tags:
+- name: Api version
+  description: API Major and Minor Version
+- name: Subscription
+  description: Client for accessing the public Subscription -CEE Fault Management- Services.
+paths:
+  /subscriptions:
+    get:
+      tags:
+        - Event subscriptions
+      description: Get all subscriptions
+      operationId: SubscribeController.get_subscriptions
+      parameters:
+        - name: subscriptionid
+          in: query
+          description: query for subscriptions with ID
+          required: false
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SubscriptionId'
+        - name: tenant_id
+          in: query
+          description: query for subscriptions with tenant_id
+          required: false
+          explode: true
+          schema:
+            $ref: '#/components/schemas/SubscriptionTopic'
+      responses:
+        "200":
+          description: List subscriptions
+          content:
+            application/json:
+              schema:
+                title: subscriptions
+                type: array
+                example:
+                  subscriptions:
+                  - id: 1
+                    body:
+                      topic: Openstack
+                      protocol: HTTPS
+                      subscriber: https://[2100::1234:5678]:8000/
+                      parameters:
+                      - key: username
+                        value: subscriber1
+                      - key: password
+                        value: '{SHA1}95fceb7a0bb38419ed4b0622807151cc2690d2da'
+                      - key: insecure
+                        value: true
+                  - id: 2
+                    body:
+                      topic: Infrastructure
+                      protocol: HTTPS
+                      subscriber: https://10.123.456.78:8002/
+                      parameters:
+                      - key: username
+                        value: None
+                      - key: password
+                        value: None
+                      - key: insecure
+                        value: true
+                items:
+                  $ref: '#/components/schemas/Subscription'
+                x-content-type: application/json
+      security:
+      - ApiKeyAuth: []
+      x-openapi-router-controller: notifier.api.controllers.subscription
+    post:
+      tags:
+      - Event subscriptions
+      description: create subscription subscrption
+      operationId: SubscribeController.create_subscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionBody'
+            example:
+              topic: Openstack
+              protocol: HTTPS
+              subscriber: https://10.123.456.78:8003/
+              parameters:
+              - key: insecure
+                value: true
+        required: true
+      responses:
+        "201":
+          description: update subscription and return subscription ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionId'
+              example:
+                subscription-id: 2
+        "400":
+          description: Bad Request, not understood due to erroneous syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, not understood due to erroneous syntax
+        "401":
+          description: Unauthorized, insufficient credentials for request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                id: 123
+                message: Unauthorized, insufficient credentials for request
+        "409":
+          description: Bad Request, conflicted with existing subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, conflicted with existing subscription
+        "500":
+          description: The server encountered an unexpected condition that prevented
+            it from fulfilling the request.
+      security:
+      - ApiKeyAuth: []
+      x-openapi-router-controller: notifier.api.controllers.subscription
+  /subscriptions/{subscriptionid}:
+    put:
+      tags:
+      - Event subscriptions
+      description: Update subscription
+      operationId: SubscribeController.update_subscription
+      parameters:
+      - name: subscriptionid
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/SubscriptionId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+            example:
+              id: 2
+              body:
+                topic: Openstack
+                protocol: HTTPS
+                subscriber: https://10.123.456.78:8003/
+                parameters:
+                - key: username
+                  value: subscriber1
+                - key: password
+                  value: '{SHA1}95fceb7a0bb38419ed4b0622807151cc2690d2da'
+                - key: insecure
+                  value: true
+        required: true
+      responses:
+        "201":
+          description: Updated subscription and return subscription ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionId'
+              example:
+                subscription-id: 2
+        "304":
+          description: Bad Request, conflicted with existing subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, conflicted with existing subscription
+        "400":
+          description: Bad Request, not understood due to erroneous syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, not understood due to erroneous syntax
+        "401":
+          description: Unauthorized, insufficient credentials for request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Unauthorized, insufficient credentials for request
+        "500":
+          description: The server encountered an unexpected condition that prevented
+            it from fulfilling the request.
+      security:
+      - ApiKeyAuth: []
+      x-openapi-router-controller: notifier.api.controllers.subscription
+    delete:
+      tags:
+      - Event subscriptions
+      description: Delete existing subscription
+      operationId: SubscribeController.delete_subscription
+      parameters:
+      - name: subscriptionid
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/SubscriptionId'
+      responses:
+        "204":
+          description: Delete a subscription
+        "404":
+          description: Bad Request, not found such scription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, not found such scription
+        "500":
+          description: The server encountered an unexpected condition that prevented
+            it from fulfilling the request.
+      security:
+      - ApiKeyAuth: []
+      x-openapi-router-controller: notifier.api.controllers.subscription
+    get:
+      tags:
+      - Event subscriptions
+      description: Delete existing subscription
+      operationId: SubscribeController.get_subscriptions_by_id
+      parameters:
+      - name: subscriptionid
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/SubscriptionId'
+      responses:
+        "204":
+          description: find a subscription by id
+        "404":
+          description: Bad Request, not found such scription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Bad Request, not found such scription
+        "500":
+          description: The server encountered an unexpected condition that prevented
+            it from fulfilling the request.
+      security:
+      - ApiKeyAuth: []
+      x-openapi-router-controller: notifier.api.controllers.subscription
+components:
+  schemas:
+    Auth:
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        user_domain_name:
+          type: string
+        project_name:
+          type: string
+        project_domain_name:
+          type: string
+    AuthToken:
+      properties:
+        auth_token:
+          type: string
+      example:
+        auth_token: auth_token
+    SubscriptionId:
+      type: integer
+    SubscriptionTopic:
+      type: string
+    SubscriptionProtocol:
+      type: string
+    SubscriptionSubscriber:
+      type: string
+    Error:
+      type: string
+    SubscriptionBody:
+      properties:
+        topic:
+          type: string
+          enum:
+          - Alarm
+          - Openstack
+          - Infrastructure
+          - All
+        protocol:
+          type: string
+          enum:
+          - SNMPv2c
+          - SNMPv3
+          - HTTP
+          - HTTPS
+          - HTTP2
+          - Socket
+        subscriber:
+          type: string
+        tenant_id:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValuePair'
+    KeyValuePair:
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    Subscription:
+      properties:
+        id:
+          $ref: '#/components/schemas/SubscriptionId'
+        body:
+          $ref: '#/components/schemas/SubscriptionBody'
+  responses: {}
+  parameters: {}
+  examples: {}
+  requestBodies: {}
+  headers: {}
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: X-AUTH-TOKEN
+      in: header
+      x-apikeyInfoFunc: notifier.api.authorization_controller.check_ApiKeyAuth
+  links: {}
+  callbacks: {}

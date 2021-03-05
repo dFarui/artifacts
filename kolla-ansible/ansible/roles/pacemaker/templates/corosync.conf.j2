@@ -1,0 +1,39 @@
+{% for section, options in corosync.items() %}
+{{ section }} {
+{% for option, value in options.items() %}
+{% if value is mapping %}
+{% if section == "totem" and option == "interfaces" %}
+{% for ring_id, ring in value.items() %}
+  interface {
+    ringnumber: {{ ring_id }}
+{% for ring_option, ring_value in ring.items() %}
+{% if ring_option != "interface" %}
+    {{ ring_option }}: {{ ring_value }}
+{% endif %}
+{% endfor %}
+  }
+{% endfor %}
+{% else %}
+  {{ option }} {
+{% for nested_option, nested_value in value.items() %}
+    {{ nested_option }}: {{ nested_value }}
+{% endfor %}
+  }
+{% endif %}
+{% else %}
+  {{ option }}: {{ value }}
+{% endif %}
+{% endfor %}
+}
+{% endfor %}
+nodelist {
+{% for host in groups['pacemaker'] %}
+  node {
+    nodeid: {{ loop.index }}
+{% set rings = hostvars[host]['corosync']['totem']['interfaces'].items() %}
+{% for ring_id, ring in rings %}
+    ring{{ ring_id }}_addr: {{ hostvars[host].interface_addresses[ring['interface']] }}
+{% endfor %}
+  }
+{% endfor %}
+}

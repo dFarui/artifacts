@@ -1,0 +1,15 @@
+---
+- name: "Copying over Watchmen Producer files to {{ dest_dir }}"
+  become: true
+  vars:
+    dest_dir: "{{ node_config_directory }}/{{ service_name }}"
+    dest_mode: "0660"
+  template:
+    src: "{{ config_file.template }}"
+    dest: "{{ dest_dir }}/{{ config_file.render }}"
+    mode: "{{ dest_mode }}"
+  loop:
+    - { render: "watchmen-producer.conf", template: "watchmen-producer.conf.j2" }
+    - { render: "watchmen-extra-whitelist.yml", template: "watchmen-extra-whitelist.yml.j2" }
+  loop_control:
+    loop_var: "config_file"

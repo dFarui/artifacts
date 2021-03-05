@@ -1,0 +1,7 @@
+---
+- name: Gather group facts
+  setup:
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  with_items: "{{ groups[project_name] }}"
+  when: not (groups[project_name] is subset(ansible_play_batch))

@@ -1,0 +1,4 @@
+---
+- include: pre_config_model_run.yml
+- include: run_config_model.yml
+- include: save_config_model_output.yml

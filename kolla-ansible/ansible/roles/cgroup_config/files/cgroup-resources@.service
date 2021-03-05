@@ -1,0 +1,15 @@
+[Unit]
+Description=Configure cgroup controllers not managed by systemd
+DefaultDependencies=no
+Requires=sysinit.target
+After=sysinit.target
+Requires=%i.slice
+After=%i.slice
+Before=slices.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Slice=system.slice
+EnvironmentFile=/etc/sysconfig/cgroup-resources/%i
+ExecStart=/usr/lib/cee/cgroup_configure %i.slice

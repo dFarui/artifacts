@@ -1,0 +1,6 @@
+---
+- name: Restart openvswitch-switch service
+  service: name=openvswitch-switch state=restarted
+
+- name: Start openvswitch-switch service
+  service: name=openvswitch-switch state=started

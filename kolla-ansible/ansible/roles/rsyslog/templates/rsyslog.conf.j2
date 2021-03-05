@@ -1,0 +1,179 @@
+{{ ansible_managed | comment }}
+
+{{ "GLOBAL DIRECTIVES" | comment }}
+
+$EscapeControlCharactersOnReceive off
+$MaxOpenFiles {{ rsyslog_max_open_files }}
+
+global(
+    LocalHostName="{{ hostname_full }}"
+    MaxMessageSize="{{ rsyslog_max_message_size }}"
+    preserveFQDN="on"
+    umask="{{ rsyslog_process_umask }}"
+    workDirectory="{{ rsyslog_work_directory }}"
+)
+
+main_queue(
+    queue.type="LinkedList"
+    queue.filename="mainmsgqueue"
+    queue.saveonshutdown="on"
+    queue.dequeueslowdown="1000"
+    queue.workerthreads="1"
+    queue.timeoutworkerthreadshutdown="-1"
+    queue.dequeuebatchsize="128"
+    queue.maxfilesize="10m"
+    queue.maxdiskspace="500m"
+    queue.size="{{ rsyslog_max_available_memory // rsyslog_max_message_size }}"
+    queue.discardmark="{{ (rsyslog_max_available_memory // rsyslog_max_message_size) - 1000 }}"
+    queue.discardseverity="0"
+    queue.highwatermark="{{ ((rsyslog_max_available_memory // rsyslog_max_message_size) * (rsyslog_queue_high_watermark_percent / 100)) | int }}"
+    queue.lowwatermark="{{ ((rsyslog_max_available_memory // rsyslog_max_message_size) * (rsyslog_queue_low_watermark_percent / 100)) | int }}"
+)
+
+{{ "TEMPLATES" | comment }}
+
+# RFC3164 emulation with long tags (32+)
+template(name="{{ rsyslog_local_common_log_format_template_name }}" type="list") {
+    constant(value="<")
+    property(name="pri")
+    constant(value=">")
+    property(name="timestamp" dateFormat="rfc3339")
+    constant(value=" ")
+    property(name="hostname")
+    constant(value=" ")
+    property(name="syslogtag" position.from="1" position.to="36")
+    property(name="msg" spifno1stsp="on" )
+    property(name="msg")
+    constant(value="\n")
+}
+
+{% if enable_audit | bool %}
+template(name="{{ rsyslog_audit_log_format_template_name }}" type="list") {
+    property(name="msg" position.from="2")
+    constant(value="\n")
+}
+{% endif %}
+
+template(name="{{ rsyslog_forwarded_common_log_message_template_name }}" type="list") {
+    constant(value="<")
+    property(name="pri")
+    constant(value=">")
+    property(name="timestamp" dateFormat="rfc3339")
+    constant(value=" ")
+    property(name="hostname")
+    constant(value=" ")
+    property(name="syslogtag" position.from="1" position.to="36")
+    property(name="msg" spifno1stsp="on" )
+    property(name="msg")
+}
+
+{% if rsyslog_log_behavior.write_local_logs %}
+{% for template_and_action in rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.templates_and_actions %}
+{{ template_and_action.template | to_rsyslog_template | indent(width=0, indentfirst=True) }}
+{% endfor %}
+{% for template_and_action in rsyslog_logic.local.common_log.functions.write_to_path.rule_set.templates_and_actions %}
+{{ template_and_action.template | to_rsyslog_template | indent(width=0, indentfirst=True) }}
+{% endfor %}
+{% endif %}
+
+{% if rsyslog_log_behavior.write_received_logs and rsyslog_is_log_aggregator %}
+{{ rsyslog_logic.remote.common_log.template | to_rsyslog_template | indent(width=0, indentfirst=True) }}
+{% for template_and_action in rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.templates_and_actions %}
+{{ template_and_action.template | to_rsyslog_template | indent(width=0, indentfirst=True) }}
+{% endfor %}
+{% for template_and_action in rsyslog_logic.remote.common_log.functions.write_to_path.rule_set.templates_and_actions %}
+{{ template_and_action.template | to_rsyslog_template | indent(width=0, indentfirst=True) }}
+{% endfor %}
+{% endif %}
+
+{{ "MODULES" | comment }}
+
+module(
+    load="imuxsock"
+    SysSock.Use="off"
+    SysSock.UsePIDFromSystem="on"
+)
+module(
+    load="imklog"
+)
+module(
+    load="imtcp"
+    KeepAlive="on"
+    KeepAlive.Interval="15"
+    KeepAlive.Probes="3"
+    KeepAlive.Time="60"
+)
+{% if enable_audit | bool %}
+module(
+    load="omprog"
+)
+{% endif %}
+{%
+    if (
+        enable_audit | bool and
+        rsyslog_log_behavior.forward_logs
+    )
+%}
+{% if rsyslog_is_log_aggregator %}
+module(
+    load="imrelp"
+)
+{% endif %}
+{% if rsyslog_is_log_generator %}
+module(
+    load="omrelp"
+)
+{% endif %}
+{% endif %}
+{% if rsyslog_cached_cee_services | is_any_service_logging_to_file_directly %}
+module(
+    load="imfile"
+)
+{% endif %}
+
+{{ "INPUTS" | comment }}
+
+input(
+    type="imuxsock"
+    Socket="/run/systemd/journal/syslog"
+    UsePIDFromSystem="on"
+    ruleset="{{ rsyslog_logic.local.common_log.processing.rule_set.name }}"
+)
+input(
+    type="imtcp"
+    ruleset="{{ rsyslog_logic.local.common_log.processing.rule_set.name }}"
+    address="{{ rsyslog_logic.local.common_log.bind.address }}"
+    port="{{ rsyslog_logic.local.common_log.bind.port }}"
+)
+{%
+    if (
+        rsyslog_log_behavior.forward_logs and
+        rsyslog_is_log_aggregator
+    )
+%}
+input(
+    type="imtcp"
+    ruleset="{{ rsyslog_logic.remote.common_log.processing.rule_set.name }}"
+    address="{{ rsyslog_logic.remote.common_log.bind.address }}"
+    port="{{ rsyslog_logic.remote.common_log.bind.port }}"
+)
+{% if enable_audit | bool %}
+input(
+    type="imrelp"
+    ruleset="{{ rsyslog_logic.remote.audit_log.rule_set.name }}"
+    address="{{ rsyslog_logic.remote.audit_log.bind.address }}"
+    port="{{ rsyslog_logic.remote.audit_log.bind.port }}"
+    KeepAlive="on"
+    KeepAlive.Interval="15"
+    KeepAlive.Probes="3"
+    KeepAlive.Time="60"
+)
+{% endif %}
+{% endif %}
+
+{{ "INCLUDES" | comment }}
+
+# Include all config files in /etc/rsyslog.d/
+include(
+    file="/etc/rsyslog.d/*.conf"
+)

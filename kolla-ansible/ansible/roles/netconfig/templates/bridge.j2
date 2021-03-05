@@ -1,0 +1,53 @@
+{{ file_marker }}
+STARTMODE=auto
+{% if item.bootproto == 'static' %}
+BOOTPROTO=static
+BRIDGE_PORTS={{ item.ports | join("") }}
+BRIDGE=yes
+{% if item.stp is defined %}
+STP={{ item.stp }}
+{% endif %}
+{% if item.address is defined %}
+IPADDR={{ item.address }}
+{% endif %}
+{% if item.netmask is defined %}
+PREFIXLEN={{ item.netmask }}
+{% endif %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+{% endif %}
+
+{% if item.bootproto == 'manual' %}
+BOOTPROTO=none
+BRIDGE_PORTS={{ item.ports | join("") }}
+BRIDGE=yes
+{% if item.stp is defined %}
+STP={{ item.stp }}
+{% endif %}
+{% if item.address is defined %}
+IPADDR={{ item.address }}
+{% endif %}
+{% if item.netmask is defined %}
+PREFIXLEN={{ item.netmask }}
+{% endif %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+{% endif %}
+
+{% if item.bootproto == 'dhcp' %}
+BRIDGE_PORTS={{ item.ports | join("") }}
+BRIDGE=yes
+BOOTPROTO=dhcp
+{% if item.stp is defined %}
+STP={{ item.stp }}
+{% endif %}
+{% if item.mtu is defined %}
+MTU={{ item.mtu }}
+{% endif %}
+{% endif %}
+PRE_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+PRE_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'

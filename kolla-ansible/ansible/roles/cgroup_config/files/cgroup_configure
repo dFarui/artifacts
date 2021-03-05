@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Proto: configure the cgroup controller parameters of a slice.
+# TODO:
+# . generalize for other controllers if needed
+#   currently only the cpuset controller is supported
+
+set -o errexit
+set -o nounset
+
+
+# Create the cgroup folder if it does not exist yet
+# Arguments:
+#   path - full path to the cgroup folder
+# Returns:
+#   none
+create_folder() {
+  if [[ -d "$1" ]]; then
+    if [[ -n "$(< "$1/cgroup.procs")" ]]; then
+      echo "Warning: cgroup folder ($1) exists and non-empty." >&2
+    fi
+  else
+    /bin/mkdir "$1"
+  fi
+}
+
+
+# Update a cgroup attribute if a value is provided
+# Arguments:
+#   value
+#   file name
+# Returns:
+#   none
+set_attr() {
+  if [[ "$1" != "_undef_" ]]; then
+    /bin/echo "$1" > "$2"
+  fi
+}
+
+
+cgroup_v1_prefix="/sys/fs/cgroup"
+
+if [[ "$#" -ne 1 ]]; then
+  echo "Error: Wrong number of arguments ($#). Exactly one argument is expected." >&2
+  exit 1
+fi
+slice="$1"
+
+if ! systemctl --quiet is-active "$slice"; then
+  echo "Error: Slice (${slice}) is not active." >&2
+  exit 1
+fi
+cgroup_path="$(systemctl show --property=ControlGroup --value -- "$slice")"
+
+controller="cpuset"
+cgroup="${cgroup_v1_prefix}/${controller}${cgroup_path}"
+
+if [[ "$slice" != "-.slice" ]]; then
+  create_folder "${cgroup}"
+  set_attr "${CPUSET_CPUS:-_undef_}" "${cgroup}/cpuset.cpus"
+  set_attr "${CPUSET_MEMS:-_undef_}" "${cgroup}/cpuset.mems"
+fi
+set_attr "${CPUSET_SCHED_LOAD_BALANCE:-_undef_}" "${cgroup}/cpuset.sched_load_balance"

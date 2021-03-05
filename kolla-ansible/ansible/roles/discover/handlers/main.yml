@@ -1,0 +1,17 @@
+---
+- name: Cobbler sync
+  become: yes
+  run_once: true
+  cobbler_sync:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+
+- name: Restart dnsmasq
+  become: yes
+  run_once: true
+  service:
+    name=dnsmasq
+    state=restarted

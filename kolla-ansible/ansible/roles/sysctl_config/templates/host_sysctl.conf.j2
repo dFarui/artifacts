@@ -1,0 +1,10 @@
+#
+{# fs.file-max set as a percentage of total system memory (in kB) #}
+fs.file-max = {{ (ansible_memtotal_mb * 1024 * fs_file_max_percent)|round|int }}
+
+{% for line in my_host_config.sysctlOptions %}
+{% for key, value in line.items() %}
+{{key}} = {{value}}
+{% endfor %}
+{% endfor %}
+{# sysctl settings which should be on all servers, regardless of services #}

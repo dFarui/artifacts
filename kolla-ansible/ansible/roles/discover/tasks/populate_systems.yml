@@ -1,0 +1,114 @@
+---
+- name: Add IPv4 cobbler system, single control NIC
+  become: yes
+  notify: Cobbler sync
+  cobbler_system:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+    name: "{{inventory_hostname}}"
+    interfaces:
+      eth0:
+        macaddress: "{{bootmacs[0]}}"
+        ipaddress: "{{ ip | quote }}"
+    properties:
+      profile: "{{ profile }}"
+      hostname: "{{hostname_full}}"
+      netboot_enabled: True
+      kernel_options: >
+        boot_mac="${net_default_mac}" my_ip="${net_default_ip}" server_ip="${net_default_server}"
+        my_prefixlen="{{ lcm_network.cidr | ipaddr('prefix') }}"
+        my_key="{{lcm_ssh_pub_key}}"
+        {{ kopts | default('') | regex_replace(' default_hugepagesz=[0-9]+[mMgG] ', ' ')}}
+  when:
+  - address_family == "ipv4"
+  - bootmacs | length == 1
+
+- name: Add IPv4 cobbler system, dual control NIC
+  become: yes
+  notify: Cobbler sync
+  cobbler_system:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+    name: "{{inventory_hostname}}"
+    interfaces:
+      eth0:
+        macaddress: "{{bootmacs[0]}}"
+        ipaddress: "{{ ip | quote }}"
+      eth1:
+        macaddress: "{{bootmacs[1]}}"
+        ipaddress: "{{ ip | quote }}"
+    properties:
+      profile: "{{ profile }}"
+      hostname: "{{hostname_full}}"
+      netboot_enabled: True
+      kernel_options: >
+        boot_mac="${net_default_mac}" my_ip="${net_default_ip}" server_ip="${net_default_server}"
+        my_prefixlen="{{ lcm_network.cidr | ipaddr('prefix') }}"
+        my_key="{{lcm_ssh_pub_key}}"
+        {{ kopts | default('') | regex_replace(' default_hugepagesz=[0-9]+[mMgG] ', ' ')}}
+  when:
+  - address_family == "ipv4"
+  - bootmacs | length > 1
+
+- name: Add IPv6 cobbler system, single control NIC
+  become: yes
+  notify: Cobbler sync
+  cobbler_system:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+    name: "{{inventory_hostname}}"
+    interfaces:
+      eth0:
+        macaddress: "{{bootmacs[0]}}"
+        ipv6address: "{{ ip | quote }}"
+    properties:
+      profile: "{{ profile }}"
+      hostname: "{{hostname_full}}"
+      kernel_options: >
+        boot_mac="${net_default_mac}" my_ip="${net_default_ip}" server_ip="${net_default_server}"
+        my_prefixlen="{{ lcm_network.cidr | ipaddr('prefix') }}"
+        my_key="{{lcm_ssh_pub_key}}"
+        {{ kopts | default('') | regex_replace(' default_hugepagesz=[0-9]+[mMgG] ', ' ')}}
+  when:
+  - address_family == "ipv6"
+  - bootmacs | length == 1
+
+- name: Add IPv6 cobbler system, dual control NIC
+  become: yes
+  notify: Cobbler sync
+  cobbler_system:
+    host: localhost
+    username: cobbler
+    password: cobbler
+    use_ssl: no
+    validate_certs: no
+    name: "{{inventory_hostname}}"
+    interfaces:
+      eth0:
+        macaddress: "{{bootmacs[0]}}"
+        ipv6address: "{{ ip | quote }}"
+      eth1:
+        macaddress: "{{bootmacs[1]}}"
+        ipv6address: "{{ ip | quote }}"
+    properties:
+      profile: "{{ profile }}"
+      hostname: "{{hostname_full}}"
+      kernel_options: >
+        boot_mac="${net_default_mac}" my_ip="${net_default_ip}" server_ip="${net_default_server}"
+        my_prefixlen="{{ lcm_network.cidr | ipaddr('prefix') }}"
+        my_key="{{lcm_ssh_pub_key}}"
+        {{ kopts | default('') | regex_replace(' default_hugepagesz=[0-9]+[mMgG] ', ' ')}}
+  when:
+  - address_family == "ipv6"
+  - bootmacs | length > 1
+
+- meta: flush_handlers

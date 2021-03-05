@@ -1,0 +1,15 @@
+---
+part_power: {{ swift_part_power }}
+replication_count: {{ swift_host_config|length }}
+min_part_hours: {{ swift_min_part_hours }}
+hosts:
+{% for host_config in swift_host_config %}
+  - host: {{ host_config.host }}
+    region: {{ host_config.region }}
+    zone: {{ host_config.zone }}
+    ip: {{ host_config.ip }}
+    port: {{ host_config.ports[service_name] }}
+    devices:
+      - device: {{ host_config.block_devices.device }}
+        weight: {{ host_config.block_device_default_weight }}
+{% endfor %}

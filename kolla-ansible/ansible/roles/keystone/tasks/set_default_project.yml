@@ -1,0 +1,72 @@
+---
+# NOTE(GOro) Those tasks below serve as workaround to ease and enable
+# interworking with services which are currently not able bare with scoped
+# tokens.
+- name: Check default project for {{ openstack_auth.username }}
+  become: true
+  command: >
+    docker exec kolla_toolbox openstack
+    --os-interface internal
+    --os-auth-url {{ openstack_auth.auth_url }}
+    --os-identity-api-version 3
+    --os-project-domain-name {{ openstack_auth.domain_name }}
+    --os-project-name {{ openstack_auth.project_name }}
+    --os-username {{ openstack_auth.username }}
+    --os-password {{ openstack_auth.password }}
+    --os-user-domain-name {{ openstack_auth.user_domain_name }}
+    --os-region-name {{ openstack_region_name }}
+    {% if openstack_cacert != '' %}--os-cacert {{ openstack_cacert }}{% endif %}
+    user show {{ openstack_auth.username }} -c default_project_id -f value
+  register: keystone_check_default_project_for_user
+  changed_when: False
+  failed_when: False
+  run_once: True
+
+- name: Get id for {{ openstack_auth.project_name }} project
+  become: true
+  command: >
+    docker exec kolla_toolbox openstack
+    --os-interface internal
+    --os-auth-url {{ openstack_auth.auth_url }}
+    --os-identity-api-version 3
+    --os-project-domain-name {{ openstack_auth.domain_name }}
+    --os-project-name {{ openstack_auth.project_name }}
+    --os-username {{ openstack_auth.username }}
+    --os-password {{ openstack_auth.password }}
+    --os-user-domain-name {{ openstack_auth.user_domain_name }}
+    --os-region-name {{ openstack_region_name }}
+    {% if openstack_cacert != '' %}--os-cacert {{ openstack_cacert }}{% endif %}
+    project show {{ openstack_auth.project_name }} -c id -f value
+  register: keystone_project_id
+  failed_when:
+    - keystone_project_id.rc != 0
+  changed_when: False
+  run_once: True
+  when:
+    - keystone_check_default_project_for_user.rc == 0
+
+- name: Set {{ openstack_auth.project_name }} project to {{ openstack_auth.username }} user as the default project
+  become: true
+  command: >
+    docker exec kolla_toolbox openstack
+    --os-interface internal
+    --os-auth-url {{ openstack_auth.auth_url }}
+    --os-identity-api-version 3
+    --os-project-domain-name {{ openstack_auth.domain_name }}
+    --os-project-name {{ openstack_auth.project_name }}
+    --os-username {{ openstack_auth.username }}
+    --os-password {{ openstack_auth.password }}
+    --os-user-domain-name {{ openstack_auth.user_domain_name }}
+    --os-region-name {{ openstack_region_name }}
+    {% if openstack_cacert != '' %}--os-cacert {{ openstack_cacert }}{% endif %}
+    user set --project {{ openstack_auth.project_name }} {{ openstack_auth.username }}
+  register: keystone_assign_default_project_to_user
+  changed_when: keystone_assign_default_project_to_user is success
+  failed_when:
+    - keystone_assign_default_project_to_user.rc != 0
+  when: >
+    (keystone_check_default_project_for_user.rc == 1 and
+    keystone_check_default_project_for_user.stderr.find('No recognized column names') != -1) or
+    (keystone_check_default_project_for_user.rc == 0 and
+    keystone_check_default_project_for_user.stdout != keystone_project_id.stdout)
+  run_once: True

@@ -1,0 +1,7 @@
+---
+- name: Install docker on the node
+  become: yes
+  zypper:
+    name: "{{ docker_install_packages }}"
+    state: latest
+    disable_gpg_check: yes

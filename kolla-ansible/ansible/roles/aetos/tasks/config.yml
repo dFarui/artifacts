@@ -1,0 +1,61 @@
+---
+- name: Ensuring config directories exist
+  become: true
+  file:
+    path: "{{ node_config_directory }}/{{ item.key }}"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ aetos_services }}"
+
+- name: Copying over config.json files for services
+  become: true
+  template:
+    src: "{{ item.key }}.json.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/config.json"
+    mode: "0660"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ aetos_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- name: Copying over config files for services
+  become: true
+  merge_configs:
+    sources:
+      - "{{ role_path }}/templates/{{ item.key }}.conf.j2"
+      - "{{ node_custom_config }}/{{ item.key }}.conf"
+      - "{{ node_custom_config }}/{{ item.key }}/{{ item.key }}.conf"
+      - "{{ node_custom_config }}/{{ item.key }}/{{ inventory_hostname }}/{{ item.key }}.conf"
+    dest: "{{ node_config_directory }}/{{ item.key }}/{{ item.key }}.conf"
+    mode: "0660"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ aetos_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- name: Copying over logging config files for services
+  become: true
+  template:
+    src: "aetos-logging.conf.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/{{ item.key }}-logging.conf"
+    mode: "0660"
+  vars:
+    aetos_service_name: "{{ item.key }}"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ aetos_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- include_tasks: check-containers.yml
+  when: kolla_action != "config"

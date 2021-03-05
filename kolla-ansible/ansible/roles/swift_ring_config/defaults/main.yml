@@ -1,0 +1,21 @@
+---
+# Host on which to build Swift rings.
+swift_ring_build_host: localhost
+
+# Path to cnnfigutation for Swift.
+swift_config_path: /etc/kolla/config/swift/
+
+# Path in the container in which to build rings.
+swift_container_build_path: /etc/kolla/config/swift/
+
+# Path on the build host in which to store ring files temporarily.
+swift_ring_build_path: /etc/kolla/config/swift/temp
+
+# Docker image to use to build rings.
+swift_ring_image_tag: "{{ openstack_release }}"
+swift_base_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-binary-swift-base"
+swift_ring_build_image: "{{ swift_base_image }}:{{ swift_ring_image_tag }}"
+
+swift_part_power: 10
+
+swift_min_part_hours: 1

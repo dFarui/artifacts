@@ -1,0 +1,36 @@
+---
+- name: Create service for scheduler agent
+  become: true
+  template:
+    src: scheduler-agent.service.j2
+    dest: /etc/systemd/system/scheduler-agent.service
+  when:
+    - inventory_hostname in groups["lcm_cluster"]
+    - inventory_hostname != "localhost"
+
+- name: Add execution permissions for scheduler agent
+  become: true
+  file:
+    path: /usr/lib/python3.6/site-packages/cee_lcm_api/controllers/scheduler_agent.py
+    mode: "0755"
+  when:
+    - inventory_hostname in groups["lcm_cluster"]
+    - inventory_hostname != "localhost"
+
+- name: Enable scheduler agent service
+  become: true
+  service:
+    name: "{{ scheduler_service_name }}"
+    enabled: yes
+  when:
+    - inventory_hostname in groups["lcm_cluster"]
+    - inventory_hostname != "localhost"
+
+- name: Start scheduler agent service
+  become: true
+  service:
+    name: "{{ scheduler_service_name }}"
+    state: restarted
+  when:
+    - inventory_hostname in groups["lcm_cluster"]
+    - inventory_hostname != "localhost"

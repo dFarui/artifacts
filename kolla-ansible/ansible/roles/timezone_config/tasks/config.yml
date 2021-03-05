@@ -1,0 +1,19 @@
+#
+# Set timezone
+#
+- name: Update /etc/timezone
+  template:
+    src: ../templates/timezone.j2
+    dest: /etc/timezone
+    mode: 0644
+  become: yes
+  register: tz
+
+- name: Read tzdata
+  shell: cat /etc/timezone | grep -v \#
+  become: yes
+  register: tzlocal
+
+- name: Update tzdata
+  command: timedatectl set-timezone "{{tzlocal.stdout}}"
+  become: yes

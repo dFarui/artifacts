@@ -1,0 +1,15 @@
+- hosts: localhost
+  handlers:
+  - name: Restart systemd-journald
+    become: True
+    service:
+      name: systemd-journald
+      state: restarted
+  tasks:
+  - name: Make systemd journal persistent
+    become: yes
+    lineinfile:
+      path: /etc/systemd/journald.conf
+      regexp: 'Storage='
+      line: Storage=persistent
+    notify: Restart systemd-journald

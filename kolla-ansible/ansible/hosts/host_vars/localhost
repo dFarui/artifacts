@@ -1,0 +1,38 @@
+ansible_connection: local
+host:
+    vars:
+        my_hostname: lcm-1.bjitte.ericsson.se.bjitte.ericsson.se
+ip: 2409:1616:e2e:821::1ff
+lcm_network:
+    cidr: 2409:1616:e2e:821::1ff/64
+    name: lcm-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:821::100-2409:1616:e2e:821::1000
+    subnet: '2409:1616:e2e:821::'
+    vip: 2409:1616:e2e:821::a001
+lcm_public_network:
+    cidr: 2409:1616:e2e:823::0/64
+    name: lcm-om-ipv6
+    netmask: 'ffff:ffff:ffff:ffff::'
+    range:
+    - 2409:1616:e2e:823::20-2409:1616:e2e:823::1000
+    subnet: '2409:1616:e2e:823::'
+    vip: 2409:1616:e2e:823::a001
+my_dns_config:
+    domain: bjitte.ericsson.se
+    search: []
+    servers: []
+my_repos:
+-   name: hostos
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/host-os
+-   name: cee-host-extras
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/cee-host-extras
+-   name: cee-infra
+    priority: 99
+    type: rpm-md
+    uri: http://cee-repo.bjitte.ericsson.se/repos/CXC1737883_8-R1B09-a1c58ded-109/cee-infra

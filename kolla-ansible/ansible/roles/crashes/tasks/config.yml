@@ -1,0 +1,32 @@
+---
+- name: Create directories for crash and core
+  become: yes
+  file:
+    path: /var/crash/{{ item }}
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  loop:
+  - cores
+  - kernelcrashes
+
+- name: Crash and core handler
+  become: yes
+  template:
+    src: process-dump.j2
+    dest: /usr/sbin/process-dump
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Enable core dump generation
+  become: yes
+  template:
+    src: core-sysctl.j2
+    dest: "{{ sysctl_conf_file }}"
+    owner: root
+    group: root
+    mode: '0640'
+  notify:
+  - Load core sysctl configuration

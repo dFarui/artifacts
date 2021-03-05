@@ -1,0 +1,13 @@
+- hosts: all
+  vars:
+    brf_action: "list"
+    brf_domain: "{{ clustername | default('lcm')"
+
+  roles:
+    - role: backup_restore
+
+  tasks:
+    - name: Get host group for backup domain {{ brf_domain }}
+      set_fact:
+        brf_group: "mariadb"
+        brf_group: "{{ brf_domain }}_cluster"

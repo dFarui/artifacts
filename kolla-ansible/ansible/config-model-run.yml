@@ -1,0 +1,9 @@
+# Execute config model generator and save the output
+---
+- hosts: localhost
+  connection: local
+  vars:
+    create_system: False
+  roles:
+    - role: init-operations
+    - config_model

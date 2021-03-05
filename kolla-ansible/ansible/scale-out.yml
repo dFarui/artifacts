@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Run Scale-Out
+    command: >
+      cee-scale-out --system "{{system_name}}" --cluster "{{cluster_name}}"
+      --job-id "{{job_id}}"
+      {% if (hosts | d(false)) -%} --hosts {{hosts}} {%-endif %}
+      {% if (force | d(false)) -%} --force {%-endif %}
+      {% if (verbose | d(false)) -%} --verbose {%-endif %}

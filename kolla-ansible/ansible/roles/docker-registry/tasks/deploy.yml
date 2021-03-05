@@ -1,0 +1,37 @@
+---
+- include_tasks: pull.yml
+- name: Ensure Docker registry container is running
+  become: yes
+  docker_container:
+    env: "{{ item.value.env }}"
+    image: "{{ item.value.image }}"
+    name: "{{ item.value.container_name }}"
+    ports: "{{ item.value.ports | default(omit) }}"
+    privileged: "{{ item.value.privileged | default(omit) }}"
+    read_only: "{{ item.value.read_only | default(omit) }}"
+    restart_policy: "{{ docker_registry_restart_policy }}"
+    restart_retries: "{{ docker_registry_restart_retries | default(omit) }}"
+    state: "{{ item.value.enabled | ternary('started', 'absent') }}"
+    volumes: "{{ item.value.volumes }}"
+    labels: "{{ item.value.labels | default(omit) }}"
+  with_dict: "{{ docker_registry_services }}"
+
+- name: Setup docker insecure registries
+  vars:
+    registries: ["{{ docker_registry_url }}"]
+  set_fact:
+    docker_config: "{{ docker_config | combine({'insecure-registries': registries}) }}"
+
+# Hardcoding the IPv6 CIDR for now, as it is not exposed outside the host as of now.
+- name: Enable ipv6
+  set_fact:
+    docker_config: "{{ docker_config | combine({'ipv6': true, 'fixed-cidr-v6': '2001:db8:1::/64'}) }}"
+  when: address_family is defined and address_family == 'ipv6'
+
+- name: Write docker config
+  become: True
+  copy:
+    content: "{{ docker_config | to_nice_json }}"
+    dest: /etc/docker/daemon.json
+    mode: 0644
+  notify: reload docker service

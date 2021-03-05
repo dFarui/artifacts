@@ -1,0 +1,35 @@
+#
+# network_interface install playbook
+#
+---
+
+- name: Install the required packages
+  become: yes
+  package:
+    name: "{{ network_pkgs }}"
+    state: latest
+
+- name: Disable unsupported services
+  become: yes
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  with_items:
+    "{{ disable_svcs|default([]) }}"
+
+- name: Install openvswitch packages
+  become: yes
+  package:
+    name: "{{ openvswitch_packages }}"
+    state: latest
+  when:
+   - "'css_hosts' not in groups or inventory_hostname not in groups['css_hosts']"
+
+#openvswitch pulls python2 which breaks the alternative config, so we fix it
+#the fix is unconditional because:
+#   - if we use upstream ovs, that is installed by the above task
+#   - if we use css, ovs is expected to be installed at this point
+#   - if we do not use ovs, it does not harm to set it up again
+- name: Ensure correct python interpreter
+  command: update-alternatives --auto python

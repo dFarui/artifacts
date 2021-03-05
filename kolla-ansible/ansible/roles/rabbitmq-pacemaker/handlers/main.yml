@@ -1,0 +1,12 @@
+---
+- name: Restarting RabbitMQ
+  vars:
+    resource_name: "{{ rabbitmq_services[project_name]['pacemaker']['resource_name'] }}"
+  run_once: True
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: true
+  shell: "docker exec pacemaker crm resource restart {{ resource_name }}"
+  changed_when: False
+  when:
+    - rabbitmq_cluster_exist is defined and rabbitmq_cluster_exist.result | bool
+  listen: Restart RabbitMQ

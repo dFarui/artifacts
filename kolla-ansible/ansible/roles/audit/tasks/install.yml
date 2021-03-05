@@ -1,0 +1,6 @@
+---
+- name: Install audit package
+  become: yes
+  package:
+    name: "{{ audit_package_name }}"
+    state: present

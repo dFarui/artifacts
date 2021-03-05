@@ -1,0 +1,12 @@
+---
+cee_artifacts_action: list
+default_artifacts_path: "/srv/www/artifacts/"
+srv_path: "/srv/www/"
+default_repo_path: "/srv/www/repos/"
+docker_registry_port: 5500
+ceeuser: ceeinfra
+ceegroup: ceeinfra
+artifacts_list: []
+service_metadata: []
+repo_metadata: []
+artifacts_list_json: "/srv/www/artifacts/artifacts_json/artifacts.json"

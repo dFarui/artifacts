@@ -1,0 +1,54 @@
+---
+- name: Check redundant Watchmen containers
+  become: true
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ item.value.container_name }}"
+    image: "{{ item.value.image }}"
+    volumes: "{{ item.value.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ item.value.dimensions }}"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+    - item.key != "watchmen-consumer"
+  with_dict: "{{ watchmen_services }}"
+  notify:
+    - "Restart {{ item.key }} container"
+
+- name: Check Watchmen-Consumer container
+  vars:
+    service: "{{ watchmen_services['watchmen-consumer'] }}"
+  become: true
+  register: watchmen_consumer_container_differs
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ service.dimensions }}"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  changed_when: false
+
+- name: Registering Watchmen-Consumer container check results
+  set_fact:
+    watchmen_consumer_container_differs: "{{ watchmen_consumer_container_differs.result }}"
+  changed_when: false
+
+- name: Evaluate Watchmen-Consumer status in the cluster
+  vars:
+    service: "{{ watchmen_services['watchmen-consumer'] }}"
+  run_once: True
+  local_action:
+    module: set_fact
+    watchmen_consumer_recreate: >-
+      {% set ns = namespace(watchmen_consumer_recreate=true) -%}
+      {% for host in groups[service.group] -%}
+        {% set ns.watchmen_consumer_recreate = ns.watchmen_consumer_recreate and hostvars[host]['watchmen_consumer_container_differs'] -%}
+      {% endfor -%}
+      {{ ns.watchmen_consumer_recreate -}}
+  changed_when: watchmen_consumer_recreate
+  notify: "Restart watchmen-consumer container"

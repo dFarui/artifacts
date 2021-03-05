@@ -1,0 +1,7 @@
+---
+- name: Get container facts
+  become: true
+  kolla_container_facts:
+    name:
+      - pacemaker
+  register: container_facts

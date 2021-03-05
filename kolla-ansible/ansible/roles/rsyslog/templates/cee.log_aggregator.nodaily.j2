@@ -1,0 +1,28 @@
+{{ ansible_managed | comment }}
+
+{% if rsyslog_log_behavior.write_local_logs %}
+
+{% set log_directory_names = ['catch-all'] %}
+{% for properties in rsyslog_local_logging_rules_input.values() %}
+{{ log_directory_names.append(properties["project_name"]) }}
+{%- endfor -%}
+
+{% for directory_name in log_directory_names | unique | sort %}
+"{{ rsyslog_host_log_dir }}/{{ directory_name }}/*.log"
+{% endfor %}
+{
+{{ logrotate_common_options | indent(width=4, indentfirst=True) }}
+
+{{ logrotate_hup_signal_to_rsyslog_config | indent(width=4, indentfirst=True) }}
+}
+{% endif %}
+{% if rsyslog_log_behavior.write_received_logs %}
+
+"{{ rsyslog_host_log_dir }}/remote/*/*.log"
+"{{ rsyslog_host_log_dir }}/remote/*/*/*.log"
+{
+{{ logrotate_common_options | indent(width=4, indentfirst=True) }}
+
+{{ logrotate_hup_signal_to_rsyslog_config | indent(width=4, indentfirst=True) }}
+}
+{% endif %}

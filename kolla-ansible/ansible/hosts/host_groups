@@ -1,0 +1,1149 @@
+all:
+  children:
+    chrony_server:
+      children: {}
+      hosts:
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    css_hosts:
+      children: {}
+      hosts:
+        cic-os-1: {}
+        cic-os-2: {}
+        cic-os-3: {}
+        compute-c0104-01: {}
+        compute-c0104-02: {}
+        compute-c0104-03: {}
+        compute-c0104-04: {}
+        compute-c0104-05: {}
+        compute-c0105-01: {}
+        compute-c0105-02: {}
+        compute-c0105-03: {}
+        compute-c0105-04: {}
+        compute-c0105-05: {}
+        compute-c0105-06: {}
+        compute-c0105-07: {}
+        compute-c0105-08: {}
+        compute-c0105-09: {}
+        compute-c0105-10: {}
+        compute-c0105-11: {}
+        compute-c0105-12: {}
+        compute-c0105-13: {}
+        compute-c0105-14: {}
+        compute-c0105-15: {}
+        compute-c0106-01: {}
+        compute-c0106-02: {}
+        compute-c0106-03: {}
+        compute-c0106-04: {}
+        compute-c0106-05: {}
+        compute-c0106-06: {}
+        compute-c0106-07: {}
+        compute-c0106-08: {}
+        compute-c0106-09: {}
+        compute-c0106-10: {}
+        compute-c0106-11: {}
+        compute-c0106-12: {}
+        compute-c0106-13: {}
+        compute-c0106-14: {}
+        compute-c0106-15: {}
+        compute-c0107-05: {}
+        compute-c0107-06: {}
+        compute-c0107-07: {}
+        compute-c0107-08: {}
+        compute-c0107-09: {}
+        compute-c0107-10: {}
+        compute-c0107-11: {}
+        compute-c0107-12: {}
+        compute-c0107-13: {}
+        compute-c0107-14: {}
+        compute-c0107-15: {}
+      vars: {}
+    dns_servers:
+      children: {}
+      hosts: {}
+      vars: {}
+    gluster_hosts:
+      children: {}
+      hosts:
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    infra_hypervisors:
+      children: {}
+      hosts:
+        cic-cinderlcm-1: {}
+        cic-cinderlcm-2: {}
+        cic-cinderlcm-3: {}
+      vars: {}
+    lcm_cluster:
+      children: {}
+      hosts:
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    lcm_hosts:
+      children: {}
+      hosts:
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    monitoring_cluster:
+      children: {}
+      hosts:
+        cic-monitor-1: {}
+        cic-monitor-2: {}
+        cic-monitor-3: {}
+      vars: {}
+    monitoring_hosts:
+      children: {}
+      hosts:
+        cic-monitor-1: {}
+        cic-monitor-2: {}
+        cic-monitor-3: {}
+      vars: {}
+    openstack_cluster:
+      children: {}
+      hosts:
+        cic-cinderlcm-1: {}
+        cic-cinderlcm-2: {}
+        cic-cinderlcm-3: {}
+        cic-os-1: {}
+        cic-os-2: {}
+        cic-os-3: {}
+        cinderA-1: {}
+        cinderA-2: {}
+        cinderA-3: {}
+        cinderB-1: {}
+        cinderB-2: {}
+        cinderB-3: {}
+        compute-c0104-01: {}
+        compute-c0104-02: {}
+        compute-c0104-03: {}
+        compute-c0104-04: {}
+        compute-c0104-05: {}
+        compute-c0105-01: {}
+        compute-c0105-02: {}
+        compute-c0105-03: {}
+        compute-c0105-04: {}
+        compute-c0105-05: {}
+        compute-c0105-06: {}
+        compute-c0105-07: {}
+        compute-c0105-08: {}
+        compute-c0105-09: {}
+        compute-c0105-10: {}
+        compute-c0105-11: {}
+        compute-c0105-12: {}
+        compute-c0105-13: {}
+        compute-c0105-14: {}
+        compute-c0105-15: {}
+        compute-c0106-01: {}
+        compute-c0106-02: {}
+        compute-c0106-03: {}
+        compute-c0106-04: {}
+        compute-c0106-05: {}
+        compute-c0106-06: {}
+        compute-c0106-07: {}
+        compute-c0106-08: {}
+        compute-c0106-09: {}
+        compute-c0106-10: {}
+        compute-c0106-11: {}
+        compute-c0106-12: {}
+        compute-c0106-13: {}
+        compute-c0106-14: {}
+        compute-c0106-15: {}
+        compute-c0107-05: {}
+        compute-c0107-06: {}
+        compute-c0107-07: {}
+        compute-c0107-08: {}
+        compute-c0107-09: {}
+        compute-c0107-10: {}
+        compute-c0107-11: {}
+        compute-c0107-12: {}
+        compute-c0107-13: {}
+        compute-c0107-14: {}
+        compute-c0107-15: {}
+      vars: {}
+    physical_hosts:
+      children: {}
+      hosts:
+        cic-cinderlcm-1: {}
+        cic-cinderlcm-2: {}
+        cic-cinderlcm-3: {}
+        cic-monitor-1: {}
+        cic-monitor-2: {}
+        cic-monitor-3: {}
+        cic-os-1: {}
+        cic-os-2: {}
+        cic-os-3: {}
+        compute-c0104-01: {}
+        compute-c0104-02: {}
+        compute-c0104-03: {}
+        compute-c0104-04: {}
+        compute-c0104-05: {}
+        compute-c0105-01: {}
+        compute-c0105-02: {}
+        compute-c0105-03: {}
+        compute-c0105-04: {}
+        compute-c0105-05: {}
+        compute-c0105-06: {}
+        compute-c0105-07: {}
+        compute-c0105-08: {}
+        compute-c0105-09: {}
+        compute-c0105-10: {}
+        compute-c0105-11: {}
+        compute-c0105-12: {}
+        compute-c0105-13: {}
+        compute-c0105-14: {}
+        compute-c0105-15: {}
+        compute-c0106-01: {}
+        compute-c0106-02: {}
+        compute-c0106-03: {}
+        compute-c0106-04: {}
+        compute-c0106-05: {}
+        compute-c0106-06: {}
+        compute-c0106-07: {}
+        compute-c0106-08: {}
+        compute-c0106-09: {}
+        compute-c0106-10: {}
+        compute-c0106-11: {}
+        compute-c0106-12: {}
+        compute-c0106-13: {}
+        compute-c0106-14: {}
+        compute-c0106-15: {}
+        compute-c0107-05: {}
+        compute-c0107-06: {}
+        compute-c0107-07: {}
+        compute-c0107-08: {}
+        compute-c0107-09: {}
+        compute-c0107-10: {}
+        compute-c0107-11: {}
+        compute-c0107-12: {}
+        compute-c0107-13: {}
+        compute-c0107-14: {}
+        compute-c0107-15: {}
+      vars: {}
+    portal_hosts:
+      children: {}
+      hosts:
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    swift:
+      children: {}
+      hosts: {}
+      vars:
+        swift_host_config:
+        - block_device_default_weight: '1'
+          block_devices:
+            block_device_default_services:
+            - object
+            - account
+            - container
+            device: swiftobj
+            weight: '1'
+          host: cinderA-1
+          ip: 2409:1616:e2e:826::26
+          ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          region: '1'
+          replication_ip: 2409:1616:e2e:826::26
+          replication_ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          zone: '1'
+        - block_device_default_weight: '1'
+          block_devices:
+            block_device_default_services:
+            - object
+            - account
+            - container
+            device: swiftobj
+            weight: '1'
+          host: cinderA-2
+          ip: 2409:1616:e2e:826::27
+          ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          region: '1'
+          replication_ip: 2409:1616:e2e:826::27
+          replication_ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          zone: '1'
+        - block_device_default_weight: '1'
+          block_devices:
+            block_device_default_services:
+            - object
+            - account
+            - container
+            device: swiftobj
+            weight: '1'
+          host: cinderA-3
+          ip: 2409:1616:e2e:826::28
+          ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          region: '1'
+          replication_ip: 2409:1616:e2e:826::28
+          replication_ports:
+            account: '6001'
+            container: '6002'
+            object: '6000'
+          zone: '1'
+    umm_hosts:
+      children: {}
+      hosts:
+        cic-os-1: {}
+        cic-os-2: {}
+        cic-os-3: {}
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+    virtual_hosts:
+      children: {}
+      hosts:
+        cinderA-1: {}
+        cinderA-2: {}
+        cinderA-3: {}
+        cinderB-1: {}
+        cinderB-2: {}
+        cinderB-3: {}
+        lcm-1: {}
+        lcm-2: {}
+        lcm-3: {}
+      vars: {}
+  vars:
+    grub_password: GrUbUs#R321
+    grub_username: grubuser
+    host_password: r00tme
+    host_username: ceeinfra
+    is_log_forward_to_internal_log_aggregator_set_anywhere: true
+    legaltext:
+      local: 'Attention! Prototype system. You are not authorized to login to this
+        system.
+
+        '
+      remote: '
+
+        Attention! Prototype system. For sure, you are not authorized to login to
+        this system.
+
+
+        '
+    ntp_config:
+      external_servers:
+      - server: 2409:8080:0:9c3::8
+      internal_servers:
+      - server: 2409:1616:e2e:821::90
+      - server: 2409:1616:e2e:821::91
+      - server: 2409:1616:e2e:821::92
+      local_stratum: 9
+    persistent_store: /var/lib/cee/system/cee16/system/persisted_info
+    root_password: r00tme
+    service_component_to_nodes_map:
+      aetos:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      audit:
+      - cic-cinderlcm-1
+      - cic-cinderlcm-2
+      - cic-cinderlcm-3
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      cee-lcm:
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      chrony:
+      - cic-cinderlcm-1
+      - cic-cinderlcm-2
+      - cic-cinderlcm-3
+      cinder-api:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      cinder-backup:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      cinder-scheduler:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      cinder-volume:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      cmha-agent:
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      cmha-restapi:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      cmha-service:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      collectd:
+      - cic-cinderlcm-1
+      - cic-cinderlcm-2
+      - cic-cinderlcm-3
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      docker-registry:
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      glance-api:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      glance-registry:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      h3c-storage:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      haproxy:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      heat-api:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      heat-api-cfn:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      heat-engine:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      horizon:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      kafka:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      keystone:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      mariadb:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      memcached:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      neutron-generic-sdn:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      neutron-metadata-agent:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      neutron-openvswitch-agent:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      neutron-server:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      notifier-controller:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      notifier-emitter:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      notifier-requeuer:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      nova-api:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      nova-compute:
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      nova-conductor:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      nova-consoleauth:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      nova-libvirt:
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      nova-novncproxy:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      nova-scheduler:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      nova_ssh:
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      pacemaker:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      portal:
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      prometheus-alertmanager:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      prometheus-cadvisor:
+      - cic-cinderlcm-1
+      - cic-cinderlcm-2
+      - cic-cinderlcm-3
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      prometheus-server:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      rabbitmq:
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      rsyslog-log-aggregator:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      rsyslog-log-generator:
+      - cic-cinderlcm-1
+      - cic-cinderlcm-2
+      - cic-cinderlcm-3
+      - cic-os-1
+      - cic-os-2
+      - cic-os-3
+      - compute-c0104-05
+      - compute-c0104-04
+      - compute-c0104-03
+      - compute-c0104-02
+      - compute-c0104-01
+      - compute-c0105-01
+      - compute-c0105-02
+      - compute-c0105-03
+      - compute-c0105-04
+      - compute-c0105-05
+      - compute-c0105-06
+      - compute-c0105-07
+      - compute-c0105-08
+      - compute-c0105-09
+      - compute-c0105-10
+      - compute-c0105-11
+      - compute-c0105-12
+      - compute-c0105-13
+      - compute-c0105-14
+      - compute-c0105-15
+      - compute-c0106-01
+      - compute-c0106-02
+      - compute-c0106-03
+      - compute-c0106-04
+      - compute-c0106-05
+      - compute-c0106-06
+      - compute-c0106-07
+      - compute-c0106-08
+      - compute-c0106-09
+      - compute-c0106-10
+      - compute-c0106-11
+      - compute-c0106-12
+      - compute-c0106-13
+      - compute-c0106-14
+      - compute-c0106-15
+      - compute-c0107-05
+      - compute-c0107-06
+      - compute-c0107-07
+      - compute-c0107-08
+      - compute-c0107-09
+      - compute-c0107-10
+      - compute-c0107-11
+      - compute-c0107-12
+      - compute-c0107-13
+      - compute-c0107-14
+      - compute-c0107-15
+      - lcm-1
+      - lcm-2
+      - lcm-3
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      sa_api:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      swift-account-server:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      swift-container-server:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      swift-object-expirer:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      swift-object-server:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      swift-proxy-server:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      swift-rsyncd:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      tgtd:
+      - cinderA-1
+      - cinderA-2
+      - cinderA-3
+      - cinderB-1
+      - cinderB-2
+      - cinderB-3
+      watchmen-api:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      watchmen-consumer:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      watchmen-snmpagent:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      watchmen-webhook:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+      zookeeper:
+      - cic-monitor-1
+      - cic-monitor-2
+      - cic-monitor-3
+    system_name: cee16
+    watchmen_rabbitmq_transport_url: rabbit://watchmen:gXcM1czwS8C8EZNzNKiCozU2fL7NLi0MQrLLwH73@[2409:1616:e2e:820::26]:5672,watchmen:gXcM1czwS8C8EZNzNKiCozU2fL7NLi0MQrLLwH73@[2409:1616:e2e:820::27]:5672,watchmen:gXcM1czwS8C8EZNzNKiCozU2fL7NLi0MQrLLwH73@[2409:1616:e2e:820::28]:5672/watchmen_vhost

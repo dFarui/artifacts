@@ -1,0 +1,4 @@
+---
+- name: Cache service logging rules
+  set_fact:
+    rsyslog_cached_cee_services: "{{ cee_services }}"

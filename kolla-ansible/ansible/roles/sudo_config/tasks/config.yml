@@ -1,0 +1,33 @@
+---
+- name: Make sure we have a 'sudo' group
+  group:
+    name: sudo
+    state: present
+
+- name: Allow 'sudo' group to have passwordless sudo
+  become: yes
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: Set up /etc/sudo.conf
+  become: yes
+  lineinfile:
+    dest: /etc/sudo.conf
+    create: yes
+    owner: root
+    group: root
+    state: present
+    line: "Set probe_interfaces false"
+
+# Ensure that /usr/local/bin to secure path
+- name: Set secure_path to be consistent
+  become: yes
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: "^Defaults\\s+secure_path\\s*="
+    line: "Defaults\tsecure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin"

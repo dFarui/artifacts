@@ -1,0 +1,23 @@
+---
+- name: Copying over uptime.socket file for systemd
+  template:
+    src: "uptime.socket.j2"
+    dest: "{{ systemd_config_path }}/uptime.socket"
+    mode: "0644"
+  become: true
+  notify:
+    - "Reload uptime service file"
+    - "Restart uptime service"
+    - "Enable uptime service"
+
+
+- name: Copying over uptime@.service file for systemd
+  copy:
+    src: "uptime@.service"
+    dest: "{{ systemd_config_path }}/uptime@.service"
+    mode: "0644"
+  become: true
+  notify:
+    - "Reload uptime service file"
+    - "Restart uptime service"
+    - "Enable uptime service"

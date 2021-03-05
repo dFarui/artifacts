@@ -1,0 +1,189 @@
+---
+- name: Create directory for resource configuration script
+  become: yes
+  file:
+    path: /usr/lib/cee/
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy the script for configuring dimensions
+  become: yes
+  copy:
+    src: "../files/cgroup_configure"
+    dest: "/usr/lib/cee/cgroup_configure"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create directory for resource configuration
+  become: yes
+  file:
+    path: "/etc/sysconfig/cgroup-resources/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Install systemd-container
+  package:
+    name: systemd-container
+    state: latest
+
+- name: Create resource configuration files for slices except system slice
+  become: yes
+  template:
+    src: ../templates/resource_control.j2
+    dest: /etc/sysconfig/cgroup-resources/{{ item.name }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  when: item.name != "system"
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create resource configuration files for system slice
+  become: yes
+  template:
+    src: ../templates/resource_control.j2
+    dest: /etc/sysconfig/cgroup-resources/{{ item.name }}
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  when: item.name == "system"
+  notify: Force systemd to reload configs
+
+- name: Create service file to configure cgroup resources
+  become: yes
+  copy:
+    src: ../files/cgroup-resources@.service
+    dest: /usr/lib/systemd/system/cgroup-resources@.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create directory for parent dependency of configure cgroup resources
+  become: yes
+  file:
+    path: "/etc/systemd/system/cgroup-resources@{{ item.name }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ control_groups }}"
+  when: item.parent is defined
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Configure parent dependency of configure cgroup resources
+  become: yes
+  template:
+    src: ../templates/10-after-parent.j2
+    dest: /etc/systemd/system/cgroup-resources@{{ item.name }}.service.d/10-after-parent.conf
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  when: item.parent is defined
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create directory for modifying global systemd configuration
+  become: yes
+  file:
+    path: "/etc/systemd/system.conf.d"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Modify global systemd configuration
+  become: yes
+  template:
+    src: ../templates/system-resources.conf.j2
+    dest: /etc/systemd/system.conf.d/system-resources.conf
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  when: item.name == "system"
+  notify: Force systemd to reload configs
+
+- name: Create container.slice for resource constraints
+  become: yes
+  copy:
+    src: container.slice
+    dest: '/usr/lib/systemd/system/container.slice'
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create unit file of custom slice
+  become: yes
+  copy:
+    src: ../files/cgroup.slice
+    dest: /usr/lib/systemd/system/{{ item.name }}.slice
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  when: item.name not in ["system", "container"]
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create directory for slice configuration
+  become: yes
+  file:
+    path: "/etc/systemd/system/{{ item.name }}.slice.d"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ control_groups }}"
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Configure slice resource limits
+  become: yes
+  template:
+    src: ../templates/slice_conf.j2
+    dest: /etc/systemd/system/{{ item.name }}.slice.d/cgroup.conf
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ control_groups }}"
+  notify:
+    - Force systemd to reload configs
+    - Ensure the slices are in active state
+
+- name: Create directory for docker dependency override
+  become: yes
+  file:
+    path: "/etc/systemd/system/docker.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Ensure docker starts only after the slices.target
+  become: yes
+  copy:
+    src: ../files/10-after-slices-target.conf
+    dest: /etc/systemd/system/docker.service.d/10-after-slices-target.conf
+    owner: root
+    group: root
+    mode: 0644

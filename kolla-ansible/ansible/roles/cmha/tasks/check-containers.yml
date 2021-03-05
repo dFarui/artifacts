@@ -1,0 +1,57 @@
+---
+- name: Check cmha-restapi container
+  vars:
+    service: "{{ cmha_services['cmha-restapi'] }}"
+  become: true
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ service.dimensions }}"
+    environment: "{{ service.environment | default({}) }}"
+  when:
+    - service.enabled | bool
+    - inventory_hostname in groups[service.group]
+  notify:
+    - "Restart cmha-restapi container"
+
+- name: Check cmha-service container
+  vars:
+    service: "{{ cmha_services['cmha-service'] }}"
+  become: true
+  register: cmha_service_container_differs
+  kolla_docker:
+    action: "compare_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    dimensions: "{{ service.dimensions }}"
+    environment: "{{ service.environment | default({}) }}"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  changed_when: false
+
+- name: Registering cmha-service container check results
+  set_fact:
+    cmha_service_container_differs: "{{ cmha_service_container_differs.result }}"
+#    cmha_service_container_differs: "{{ cmha_service_container_differs.results[0].result }}"
+  changed_when: false
+
+- name: Evaluate cmha-service container status in the cluster
+  run_once: True
+  local_action:
+    module: set_fact
+    cmha_recreate: >-
+      {% set ns = namespace(cmha_recreate=true) -%}
+      {% for host in groups['cmha-service'] -%}
+        {% if 'cmha_container_differs' in hostvars[host] -%}
+          {% set ns.cmha_recreate = ns.cmha_recreate and hostvars[host]['cmha_service_container_differs'] -%}
+        {% endif -%}
+      {% endfor -%}
+      {{ ns.cmha_recreate -}}
+  changed_when: cmha_recreate
+  notify: "Restart cmha-service container"

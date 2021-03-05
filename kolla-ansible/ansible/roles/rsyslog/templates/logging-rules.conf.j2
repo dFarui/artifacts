@@ -1,0 +1,79 @@
+{{ ansible_managed | comment }}
+
+{% if input %}
+{{ rules_file_description | comment }}
+{% set base_indent = "    " %}
+ruleset(name="{{ rule_set_name }}") {
+{% set configured_syslog_facilities = [] %}
+{% for properties in input.values() %}
+{% for facility in properties["syslog_facilities"] %}
+{{ configured_syslog_facilities.append(rsyslog_facilities_name_to_number[facility]) }}
+{%- endfor -%}
+{%- endfor -%}
+
+{% for configured_syslog_facility in configured_syslog_facilities | unique | sort %}
+{{ base_indent }}# {{ "{} facility".format(rsyslog_facilities_number_to_name[configured_syslog_facility]) }}
+{{ base_indent }}{% if loop.index0 != 0 %}else {% endif %}if ($syslogfacility == {{ configured_syslog_facility }}) then {
+{% set first_facility_rule_written = {"value": False} %}
+{% for properties in input.values() %}
+{% for facility in properties["syslog_facilities"] %}
+{% if rsyslog_facilities_name_to_number[facility] == configured_syslog_facility %}
+{{ base_indent }}    {% if first_facility_rule_written["value"] %}else {% endif %}if (${{ properties.compare.property_name }} {{ properties.compare.operator }} "{{ properties.compare.expected_value }}") then {
+{% if properties["capture"] %}
+{{ base_indent }}        set $!log_dir_name = "{{ properties["project_name"] }}";
+{% if properties["write_action"][rules_type] in [rsyslog_logic.local.common_log.functions.write_to_path.rule_set.name, rsyslog_logic.remote.common_log.functions.write_to_path.rule_set.name] %}
+{{ base_indent }}        set $!log_file_name = "{{ properties["project_name"] }}";
+{% endif %}
+{% if is_write_set and properties["write_action"][rules_type] %}
+{{ base_indent }}        call {{ properties["write_action"][rules_type] }}
+{% endif %}
+{% if is_forward_set %}
+{% if rsyslog_is_log_generator %}
+{{ base_indent }}        call {{ properties.send_action.local }}
+{% endif %}
+{% if rsyslog_is_log_aggregator %}
+{{ base_indent }}        call {{ properties.send_action.remote }}
+{% endif %}
+{% endif %}
+{% else %}
+{{ base_indent }}        stop
+{% endif %}
+{{ base_indent }}    }
+{{ first_facility_rule_written.update({"value": True}) }}
+{%- endif %}
+{% endfor %}
+{% endfor %}
+{{ base_indent }}    else {
+{{ base_indent }}        set $!log_dir_name = "{{ rsyslog_leftover_logs_directory_name }}";
+{% if is_write_set %}
+{% if rules_type == "local" %}
+{{ base_indent }}        call {{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}
+{% endif %}
+{% if rules_type == "remote" %}
+{{ base_indent }}        call {{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}
+{% endif %}
+{% endif %}
+{% if is_forward_set %}
+{{ base_indent }}        call {{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}
+{% endif %}
+{{ base_indent }}    }
+{{ base_indent }}}
+{% endfor %}
+{{ base_indent }}else {
+{{ base_indent }}    set $!log_dir_name = "{{ rsyslog_leftover_logs_directory_name }}";
+{% if is_write_set %}
+{% if rules_type == "local" %}
+{{ base_indent }}        call {{ rsyslog_logic.local.common_log.functions.write_to_dir.rule_set.name }}
+{% endif %}
+{% if rules_type == "remote" %}
+{{ base_indent }}        call {{ rsyslog_logic.remote.common_log.functions.write_to_dir.rule_set.name }}
+{% endif %}
+{% endif %}
+{% if is_forward_set %}
+{{ base_indent }}    call {{ rsyslog_logic.local.common_log.functions.forward.rule_set.name }}
+{% endif %}
+{{ base_indent }}}
+
+{{ base_indent }}stop
+}
+{% endif %}

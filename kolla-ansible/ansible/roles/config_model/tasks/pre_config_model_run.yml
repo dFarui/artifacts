@@ -1,0 +1,8 @@
+---
+- name: Ensure all changes are committed in system dir
+  include_role:
+    name: git-operations
+    tasks_from: check_repo_status.yml
+  vars:
+    repo: "{{ git_repo }}"
+

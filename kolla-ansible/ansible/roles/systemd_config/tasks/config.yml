@@ -1,0 +1,18 @@
+#
+# Setup systemd
+#
+---
+
+- name: tweak systemd parameters
+  become: yes
+  lineinfile:
+    dest: /etc/systemd/system.conf
+    regexp: '^#?DefaultTasksMax=.+'
+    line: 'DefaultTasksMax=infinity'
+  register: hostconfig_setup_systemd_result
+
+- name: reload systemd configuration
+  become: yes
+  command: systemctl daemon-reload
+  when: hostconfig_setup_systemd_result is defined and
+    hostconfig_setup_systemd_result.changed

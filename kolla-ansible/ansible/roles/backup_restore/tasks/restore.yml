@@ -1,0 +1,182 @@
+---
+- name: Get file list for backup {{ backupname }}
+  backup_restore:
+    action: "filelist"
+    backupname: "{{ backupname }}"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  when: inventory_hostname == groups[brf_group][0]
+  register: backup_info
+
+- name: Copy backup files from backup storage
+  copy:
+    src: "{{ backup_path }}/{{ item }}"
+    dest: "{{ backup_temp }}/"
+  when: inventory_hostname == groups[brf_group][0]
+  with_items: "{{ backup_info.backup_list }}"
+
+- name: Collect information about temporary files
+  set_fact:
+    temp_files: "{{ backup_info.backup_list }}"
+  when: inventory_hostname == groups[brf_group][0]
+
+- name: Start directories restore
+  backup_restore:
+    action: "restore"
+    backupname: "{{ backupname }}"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_mode: "directory"
+    backup_options: "{{ domain_data.0 }}"
+    backup_db_info: "{{ backup_db_info }}"
+    encrypted: "{{ encrypt_backups }}"
+    encryption_password: "{{ encryption_password }}"
+  when:
+    - domain_data.0.directories is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Get backup info for {{ backupname }}
+  backup_restore:
+    action: "show"
+    backupname: "{{ backupname }}"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+  register: backup_info
+
+- name: Get backup info for parent backup
+  backup_restore:
+    action: "show"
+    backupname: "{{ backup_info.output.parent }}"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+    - backup_info.output.parent
+  register: parent_info
+
+- name: Copy parent backup file for incremental MariaDB backup
+  copy:
+    src: "{{ backup_path}}/{{ item.filename }}"
+    dest: "{{ backup_temp }}/"
+  with_items: "{{ parent_info.output.files_list }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+    - backup_info.output.parent
+
+- name: Append parent backup files to temporary list
+  set_fact:
+    temp_files: "{{ temp_files }} + [ {{ item.filename }} ]"
+  with_items: "{{ parent_info.output.files_list }}"
+  when:
+    - inventory_hostname == groups[brf_group][0]
+    - backup_info.output.parent
+
+- name: Stop mariadb resource
+  command: "docker exec pacemaker crm resource stop ms_mariadb"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Wait for mariadb service to shutdown
+  command: "docker exec pacemaker crm resource status ms_mariadb"
+  register: cmd_out
+  retries: 30
+  until: cmd_out.stderr_lines | select('search', 'is NOT running') | list | count == mariadb_count | int
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Remove mysql content on all nodes
+  become: yes
+  shell: "rm -rf /var/lib/mysql/* ; rm -rf /var/lib/mysql/\\.[^\\.]*"
+  when: domain_data.0.mariadb is defined
+
+- name: Start MariaDB restore
+  backup_restore:
+    action: "restore"
+    location: "{{ backup_temp }}"
+    backup_mode: "mysql"
+    backup_type: "{{ backup_info.output.type }}"
+    backupname: "{{ backupname }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+    backup_options:
+      mariadb: "{{ domain_data.0.mariadb }}"
+      mariadb_image: "{{ mariadb_image }}"
+      full_backupname: "{{ backup_info.output.parent }}"
+      exclude_cmha: "{{ domain_data.0.exclude_cmha | default(False) }}"
+    encrypted: "{{ encrypt_backups }}"
+    encryption_password: "{{ encryption_password }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Start mariadb service
+  command: "docker exec pacemaker crm resource start ms_mariadb"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Wait for galera cluster
+  command: "docker exec mariadb mysql -u root -p{{ database_password }} -Ns -e 'show global status like \"wsrep_cluster_status\"'"
+  register: cluster_status
+  retries: 30
+  until: cluster_status.stdout | regex_search('^wsrep.*') and cluster_status.stdout.split('\t')[1] == "Primary"
+  when:
+    - doman_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Wait for galera node
+  command: "docker exec mariadb mysql -u root -p{{ database_password }} -Ns -e 'show global status like \"wsrep_ready\"'"
+  register: status
+  retries: 30
+  until: status.stdout | regex_search('^wsrep.*') and status.stdout.split('\t')[1] == "ON"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+
+- name: Rebuild database from metadata
+  backup_restore:
+    action: "rebuild"
+    location: "{{ backup_path }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+    - brf_domain == "lcm"
+
+- name: Create CMHA database for openstack cluster
+  command: "{{ item }}"
+  with_items:
+    - "docker exec mariadb mysql -u root -p{{ database_password }} -e 'CREATE DATABASE `cmha` /*!40100 DEFAULT CHARACTER SET utf8 */'"
+# Workaround for CMHA tablespace error ===========
+    - "docker exec mariadb mysql -u root -p{{ database_password }} -e 'DROP DATABASE `cmha`'"
+    - "docker exec mariadb mysql -u root -p{{ database_password }} -e 'CREATE DATABASE `cmha` /*!40100 DEFAULT CHARACTER SET utf8 */'"
+# Workaround for CMHA tablespace error ===========
+    - "docker exec mariadb bash -c 'mysql -u root -p{{ database_password }} cmha < /var/lib/mysql/{{ backupname }}-mariadb-{{ backup_info.output.type }}-cmha.sql'"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+    - brf_domain == "openstack"
+
+- name: Remove files from temporary location
+  file:
+    path: "{{ backup_temp}}/{{ item }}"
+    state: absent
+  when: inventory_hostname == groups[brf_group][0]
+  with_items: "{{ temp_files }}"

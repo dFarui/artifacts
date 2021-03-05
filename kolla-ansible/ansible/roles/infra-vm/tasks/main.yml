@@ -1,0 +1,55 @@
+# sed -r -i 's/^(GRUB_CMDLINE_LINUX_DEFAULT=.*)"$/\1 hugepagesz=1G hugepages=20 default_hugepagesz=1G"/' /etc/default/grub
+# grub2-mkconfig -o /boot/grub2/grub.cfg
+# reboot
+
+- name: Install some packages
+  package:
+    name:
+    - libvirt-client
+    - qemu-kvm
+    - python3-lxml
+    - libvirt
+    - python3-libvirt-python
+    state: latest
+
+- name: Ensure libvirtd is running
+  service:
+    name: libvirtd
+    state: started
+
+- name: Update qemu config
+  template:
+    src: qemu.conf.j2
+    dest: "/etc/libvirt/qemu.conf"
+
+- name: Restart libvirtd service
+  service:
+    name: libvirtd
+    state: restarted
+
+- name: Get list of defined VMs
+  virt:
+    command: list_vms
+  register: defined_vms
+
+- include: define-vm.yml
+  when: vm_name not in defined_vms.list_vms
+
+- include: redefine-vm.yml
+  when: vm_name in defined_vms.list_vms
+
+- name: Set final result
+  set_fact:
+    domain_creation_result: >-
+      {% if domain_define_result is changed -%}
+        {{ { "changed": true, "status": "defined" } -}}
+      {% elif domain_redefine_result is not skipped -%}
+        {{ { "changed": true, "status": "redefined" } -}}
+      {% else -%}
+        {{ { "changed": false } -}}
+      {% endif -%}
+
+- name: Ensure {{ vm_name }} is running
+  virt:
+    name: "{{ vm_name }}"
+    state: running

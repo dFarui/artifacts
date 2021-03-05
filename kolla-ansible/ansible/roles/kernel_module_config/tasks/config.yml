@@ -1,0 +1,36 @@
+#
+# Configure Kernel Modules
+#
+---
+- name: Persist kernel modules for reboot
+  become: yes
+  template:
+    src: ../templates/modules_load.conf.j2
+    dest: "{{ kernel_module_file }}"
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Configure the kernel module options
+  become: yes
+  register: params
+  template:
+    src: ../templates/modprobe.conf.j2
+    dest: "{{ kernel_modprobe_file }}"
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Unload kernel modules if needed
+  become: yes
+  modprobe: name={{ mod.name }} state=absent
+  failed_when: False
+  when: params.changed and mod.moduleOptions is defined
+  loop: "{{ kernel_modules }}"
+  loop_control:
+    loop_var: mod
+
+- name: Load the kernel modules
+  become: yes
+  modprobe: name={{ item.name }} state=present
+  loop: "{{ kernel_modules }}"

@@ -1,0 +1,24 @@
+---
+- include_tasks: register.yml
+  when: inventory_hostname in groups['watchmen-api']
+
+- include_tasks: config.yml
+  when: inventory_hostname in groups['watchmen-api'] or
+        inventory_hostname in groups['watchmen-consumer'] or
+        inventory_hostname in groups['watchmen-snmpagent'] or
+        inventory_hostname in groups['watchmen-webhook']
+
+- include_tasks: install_client.yml
+  when: inventory_hostname in groups['watchmen-api'] or
+        inventory_hostname in groups['watchmen-consumer'] or
+        inventory_hostname in groups['watchmen-snmpagent'] or
+        inventory_hostname in groups['watchmen-webhook']
+
+- include_tasks: bootstrap.yml
+  when: inventory_hostname in groups['watchmen-consumer']
+
+#TODO: Enable when firewall config is in place
+#- include_tasks: firewall.yml
+
+- name: Flush handlers
+  meta: flush_handlers

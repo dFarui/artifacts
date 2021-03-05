@@ -1,0 +1,25 @@
+#jinja2: lstrip_blocks: True
+{% macro process_config(config, prefix='') %}
+    {% for option, value in config.items() %}
+        {% if value is mapping %}
+            {% if option != 'ssl_options' or option == 'ssl_options' and rabbitmq_tls_enable | default | bool %}
+{{ process_config(value, prefix ~ option ~ '.') }}
+            {% endif %}
+        {% elif value is sequence and value is not string %}
+            {% for item in value %}
+{{ prefix }}{{ option }}.{{ loop.index }} = {{ item }}
+            {% endfor %}
+        {% elif value is defined and value is not none and value | length %}
+{{ prefix }}{{ option }} = {{ value }}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+{{ process_config(rabbitmq_services[project_name].configuration) }}
+log.default.level = {{ rabbitmq_log_level }}
+log.file = false
+log.syslog = true
+log.syslog.transport = tcp
+log.syslog.protocol = rfc5424
+log.syslog.ip = 127.0.0.1
+log.syslog.port = {{ rsyslog_log_local_port }}
+log.syslog.identity = rabbitmq_{{ cluster_name }}

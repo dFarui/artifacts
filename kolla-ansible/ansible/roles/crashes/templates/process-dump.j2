@@ -1,0 +1,141 @@
+#!/bin/bash
+# This script handles dumps from "crashed" applications, kernels,
+# and virtual machines (VM:s)
+
+set -u
+set -e
+set -o pipefail
+
+TOP_DIR="{{ crashes_top_dir }}"
+CORE_DIR=$TOP_DIR/cores
+CRASH_DIR=$TOP_DIR/kernelcrashes
+GZIP_LEVEL=6
+SSH_USER="{{ remote_crash_user }}"
+SSH_ID_FILE=/root/.ssh/id_rsa
+SSH_OPTS="-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PreferredAuthentications=publickey -i $SSH_ID_FILE"
+
+info() {
+    local cmd; cmd=$(basename "$0")
+    logger --tag "$cmd" --priority user.notice "$*"
+}
+
+error() {
+    local cmd; cmd=$(basename "$0")
+    logger --tag "$cmd" --priority user.err "$*"
+    exit 1
+}
+
+remote_coredump() {
+    # If we're receving the core dump. Save it
+    if (($# == 0 )); then
+        umask 0077
+        if ! cat >"$CORE_DIR/$FILENAME"; then
+            touch "$CORE_DIR/$FILENAME.not-saved" &>/dev/null || true
+            error "Failed to save $CORE_DIR/$FILENAME"
+        fi
+        return 0
+    fi
+
+    discard_zero_limit_cores
+
+    # Even if we have specified remote core dump if we're on BSP and
+    # have a /var/crash mounted we store the core locally. Diskspace is
+    # scarce so we need to use it wisely
+    local vendor; vendor="$(cat /sys/class/dmi/id/sys_vendor)"
+    if [[ $vendor =~ Ericsson ]]; then
+        if [[ "$(awk '$2 == "$TOP_DIR"' /etc/fstab)" ]]; then
+            # BSP w/ local disk, save it locally
+            coredump || return 1
+            return 0
+        fi
+    fi
+
+    # Try and send core via SSH
+    local ip
+    for ip in "$@"; do
+        # Check if SSH's up and running
+        nmap -Pn -n -T4 -p22 "$ip" 2>&1 | grep -w ssh | grep -qw open || continue
+        # NB! Don't "" quote the SSH_OPTS, it will make the ssh fail!!
+        # shellcheck disable=SC2086
+        # shellcheck disable=SC2029
+        gzip -c -f -q -$GZIP_LEVEL | \
+            ssh $SSH_OPTS $SSH_USER@$ip \
+                "$0 $TYPE $HOSTNAME $FILENAME" || continue
+        return 0
+    done
+
+    [[ $(awk '$2 == "$TOP_DIR"' /etc/fstab) ]] || \
+        error "Failed to send core to $*, core $FILENAME not saved"
+
+    # We failed to send the log over SSH. If we have /var/crash as a separate
+    # partition we are either on single server or the CIC failed to send to
+    # also itself in the bare metal case. In either case lets save it locally
+    info "Failed to send core to $*, core $FILENAME saved locally"
+    coredump || return 1
+}
+
+coredump() {
+    discard_zero_limit_cores
+
+    # Create dumpfile locally
+    umask 0077
+    if ! gzip -c -f -q -$GZIP_LEVEL >"$CORE_DIR/$FILENAME"; then
+        touch "$CORE_DIR/$FILENAME.not-saved" &>/dev/null || true
+        error "Failed to save $CORE_DIR/$FILENAME locally"
+    fi
+    return 0
+}
+
+remote_crashdump() {
+    if ! makedumpfile -R "$CRASH_DIR/$FILENAME" &>/dev/null; then
+        local msg="Got error code when saving $CRASH_DIR/$FILENAME. "
+        msg+="It might not be complete"
+        echo "$msg" >"$CRASH_DIR/$FILENAME.not-complete" 2>/dev/null || true
+        error "$msg"
+    fi
+}
+
+discard_zero_limit_cores() {
+    # If the core file size limits (soft and hard) of the crashed
+    # process are both zeros then we have to prevent the creation of
+    # the core dump file.
+    local exec_name; exec_name=$(echo "$FILENAME" | cut -d. -f4)
+    local pid; pid=$(echo "$FILENAME" | cut -d. -f5)
+    local limits="/proc/$pid/limits"
+    if [[ -r $limits ]]; then
+        local soft_limit hard_limit; read -r soft_limit hard_limit <<< \
+            "$(awk '/^Max core file size/ {print $(NF-2),$(NF-1)}' "$limits" 2>/dev/null || true)"
+        if [[ $soft_limit == 0 && $hard_limit == 0 ]]; then
+            info "$exec_name[$pid] terminated unexpectedly. No core dump is" \
+                 "generated due to the zero core file size limits."
+            exit 0
+        fi
+    fi
+}
+
+if [[ ${1:-} == -c && $# -eq 2 ]]; then
+    # We're the command interpreter and then the argument passed
+    # to us ends up like this. Re-create them so the arguments
+    # are as we've been called normally.
+    shift
+    read -r -a ARRAY <<< "$@"
+    set -- "${ARRAY[@]}"
+    unset ARRAY
+fi
+
+TYPE=${1:-}
+HOSTNAME=${2:-}
+FILENAME=${3:-}
+[[ $TYPE && $HOSTNAME && $FILENAME ]] || error "Three arguments expected: got $*"
+shift 3
+
+case $TYPE in
+   coredump)
+      $TYPE "$@" || error "$TYPE failed for $FILENAME"
+      ;;
+   *)
+      error "$TYPE is an unknown type of crash/core handling"
+      ;;
+esac
+
+exit 0

@@ -1,0 +1,7 @@
+os_install_wait_seconds: 10
+os_install_retries: 140
+
+ssh_wait_seconds: 900
+
+batch_size: 25
+ansible_connection: local

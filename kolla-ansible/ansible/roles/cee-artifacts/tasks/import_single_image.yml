@@ -1,0 +1,42 @@
+- name: Load image {{ image.name }} from mounted iso
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  shell:
+    cmd: |
+      docker load --input "{{ mnt_tmpdir }}/{{ image.uri }}/{{ image.sourceBinary }}"
+  when: type == "iso"
+
+- name: Load image {{ image.name }} from archive from local directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  shell:
+    cmd: |
+      docker load --input "{{ artifact_uri_path }}/{{ image.uri }}/{{ image.sourceBinary }}"
+  when: type == "directory" and mode == "local"
+
+- name: Load image from  {{ image.name }} from archive from downloaded directory
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  shell:
+    cmd: |
+      docker load --input "{{ artifact_tmpdir }}/{{ image.uri }}/{{ image.sourceBinary }}"
+  when: type == "directory" and mode == "remote"
+
+- name: Push the images of the service components to private local registry
+  include_tasks: push_image.yml
+  loop_control:
+    loop_var: service
+  when: service.serviceComponentTypes is defined
+  with_items:
+    - '{{ artifact_metadata.services | d([]) }}'
+
+- name: Purge unused images
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  shell:
+    cmd: |
+      docker image prune --all --force

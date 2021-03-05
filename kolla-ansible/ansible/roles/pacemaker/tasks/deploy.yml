@@ -1,0 +1,14 @@
+---
+- include_tasks: config.yml
+
+- include_tasks: firewall.yml
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- include_tasks: check.yml
+
+- include_tasks: cluster_config.yml
+
+- include_tasks: virtualip.yml
+  when: not (enable_keepalived | bool)

@@ -1,0 +1,130 @@
+panic() {
+    local timeout=15
+    echo "${1:-}" >&2
+    echo "Rebooting in $timeout seconds..."
+    sleep $timeout
+    reboot -f
+}
+
+check_modules() {
+   local ver; ver=$(uname -r)
+   [[ -d /lib/modules/$ver ]] && return 0
+   pusdh /lib/modules
+   (($(ls -1 | wc -l) == 1)) || panic "Unexpected contents under /lib/modules"
+   echo "Regenerate module dependencies due to unexpected kernel version $ver"
+   mv * $ver
+   depmod
+   popd
+}
+
+set_boot_mac() {
+    set +e
+    if grep -q BOOTIF=01 /proc/cmdline; then
+        # pxelinux
+        BOOT_MAC=$(grep -o ' BOOTIF=01-[^ ]*' /proc/cmdline | \
+                   sed 's| BOOTIF=01-||g' | \
+                   tr '[:lower:]' '[:upper:]' | \
+                   sed 's/-/:/g')
+    else
+        # grub (UEFI) we need to pick up the grub params we added to the kernel command line
+        BOOT_MAC=$(grep -o 'boot_mac=[^ ]*' /proc/cmdline | sed 's|boot_mac=||')
+    fi
+    set -e
+    [[ $BOOT_MAC ]] && return 0
+    panic "Failed to determine MAC address for interface we booted from"
+}
+
+set_boot_if() {
+    local cnt=5
+
+    BOOT_IF=
+    while [[ -z $BOOT_IF ]]; do
+        BOOT_IF=$(ip -o link | grep -i "eth[0-9].*$BOOT_MAC" | grep -o "eth[0-9]")
+        [[ $BOOT_IF ]] && return
+        cnt=$((cnt - 1))
+        if ((cnt > 0)); then
+            echo Network interface with $BOOT_MAC driver is not loaded yet
+            sleep 1
+        else
+            panic Network interface with MAC $BOOT_MAC does not exist
+        fi
+    done
+}
+
+set_boot_ip() {
+    if grep -q BOOTIF=01 /proc/cmdline; then
+        # pxelinux
+        local ip_list
+        ip_list=$(grep -o ' ip=[^ ]*' /proc/cmdline | sed 's| ip=||g' | tr ':' ' ')
+        BOOT_LOCAL_IP=$(echo $ip_list | cut -d" " -f1)
+        BOOT_SERVER_IP=$(echo $ip_list | cut -d" " -f2)
+    else
+        # grub (UEFI) we need to pick up the grub params we added to the kernel command line
+        BOOT_LOCAL_IP=$(grep -o ' my_ip=[^ ]*' /proc/cmdline | sed 's| my_ip=||g')
+        BOOT_SERVER_IP=$(grep -o ' server_ip=[^ ]*' /proc/cmdline | sed 's| server_ip=||g')
+    fi
+    # Put on kernel command line from system configuration
+    BOOT_PREFIXLEN=$(grep -o ' my_prefixlen=[^ ]*' /proc/cmdline | sed 's| my_prefixlen=||g')
+    [[ $BOOT_LOCAL_IP && $BOOT_PREFIXLEN ]] && return 0
+    panic "Failed to determine IP address we should use"
+}
+
+stop_network() {
+    echo Stop $BOOT_IF with IP $BOOT_LOCAL_IP/$BOOT_PREFIXLEN
+
+    ip addr del $BOOT_LOCAL_IP/$BOOT_PREFIXLEN dev $BOOT_IF
+    ip link set $BOOT_IF down
+}
+
+start_network() {
+    echo Configuring $BOOT_IF with IP $BOOT_LOCAL_IP/$BOOT_PREFIXLEN
+
+    ip addr add $BOOT_LOCAL_IP/$BOOT_PREFIXLEN dev $BOOT_IF
+    ip link set $BOOT_IF up
+    mkdir -p /etc/sysconfig/network
+    cat << EOF > /etc/sysconfig/network/ifcfg-$BOOT_IF
+BOOTPROTO=static
+IPADDR=$BOOT_LOCAL_IP
+PREFIXLEN=$BOOT_PREFIXLEN
+STARTMODE=auto
+EOF
+
+    # It takes a time for the network to get up
+    sleep 7
+}
+
+get_ssh_key() {
+    local key
+    key=$(grep -o " my_key='[[:alnum:][:punct:]]* [^[:space:]]*" /proc/cmdline | \
+          sed "s| my_key='||g") || true
+    if [[ -z $key ]]; then
+        # On UEFI boots the quoting becomes different
+        key=$(grep -o ' "my_key=[[:alnum:][:punct:]]* [^[:space:]]*' /proc/cmdline | \
+              sed 's| "my_key=||g') || true
+    fi
+    echo "$key"
+}
+
+setup_ssh_access() {
+    local key
+    key="$(get_ssh_key)" || \
+        panic "Connot determine public SSH key on kernel command line"
+    mkdir -p /home/ceeinfra/.ssh /root/.ssh
+    echo "$key" >/home/ceeinfra/.ssh/authorized_keys
+    echo "$key" >/root/.ssh/authorized_keys
+    chmod 0700 /home/ceeinfra/.ssh /root/.ssh
+    chmod 0600 /home/ceeinfra/.ssh/authorized_keys /root/.ssh/authorized_keys
+    chown -R ceeinfra:ceeinfra /home/ceeinfra/.ssh
+    chown -R root:root /root/.ssh
+}
+
+wipe_disks() {
+   echo
+   echo "Wiping all - *NO* exclusion - disks"
+   vgremove --force "$(vgs -o vg_name --noheadings 2>/dev/null)" &>/dev/null || true
+   pvremove --force "$(pvs -o pv_name --noheadings 2>/dev/null)" &>/dev/null || true
+   for i in $(lsblk /dev/sd* /dev/nvme* 2>/dev/null | awk '/disk/{print $1}'); do
+       dd if=/dev/urandom of=/dev/$i bs=4k count=2560 status=none || panic
+       parted -s /dev/$i mklabel gpt || true
+   done
+}

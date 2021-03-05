@@ -1,0 +1,10 @@
+- name: Install the CEE LCM CLI
+  become: yes
+  package:
+    name: "cee-lcm-client"
+    state: latest
+
+- name: Create ceelcmrc
+  template:
+    src: "../templates/ceelcmrc.j2"
+    dest: "/home/ceeinfra/ceelcmrc"

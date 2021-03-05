@@ -1,0 +1,48 @@
+{
+    "command": "/usr/bin/notifier-requeuer",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer.conf",
+            "dest": "/etc/notifier/notifier-requeuer.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer-logging.conf",
+            "dest": "/etc/notifier/notifier-requeuer-logging.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer-event-type-mapping.yml",
+            "dest": "/etc/notifier/notifier-requeuer-event-type-mapping.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer-kafka-consumer.yml",
+            "dest": "/etc/notifier/notifier-requeuer-kafka-consumer.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer-kafka-producer.yml",
+            "dest": "/etc/notifier/notifier-requeuer-kafka-producer.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-requeuer-kafka-client.yml",
+            "dest": "/etc/notifier/notifier-requeuer-kafka-client.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/lib/notifier/data",
+            "owner": "root:{{ notifier_group_name }}",
+            "recurse": true
+        }
+    ]
+}

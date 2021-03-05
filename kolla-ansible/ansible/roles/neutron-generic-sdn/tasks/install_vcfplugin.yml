@@ -1,0 +1,17 @@
+---
+- name: Copy installation_info to controller
+  become: yes
+  template:
+    src: "installation_info.j2"
+    dest: "/etc/kolla/neutron-server/installation_info"
+    owner: root
+    group: root
+    mode: "0660"
+  when:
+    - inventory_hostname in groups['neutron-server']
+
+- name: Restart neutron-server container
+  become: true
+  command: "docker restart neutron_server"
+  when:
+    - inventory_hostname in groups['neutron-server']

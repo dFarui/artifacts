@@ -1,0 +1,25 @@
+---
+# Deploy/pull/reconfigure/upgrade Docker registry.
+#
+# Follows kolla-ansible service deployment patterns.
+#
+# Variables:
+# action: One of deploy, destroy, pull, reconfigure, upgrade
+
+- name: Ensure a local Docker registry is deployed
+  hosts:
+   - localhost
+   - lcm_hosts
+  vars:
+    docker_registry_store: "/srv/www/docker_registry/"
+    docker_registry_action: "{{ cee_action }}"
+  tags:
+    - docker-registry
+  tasks:
+    - name: Ensure registry store folder exists
+      become: true
+      file:
+        path: "{{docker_registry_store}}"
+        state: directory
+    - include_role:
+        name: docker-registry

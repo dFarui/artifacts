@@ -1,0 +1,17 @@
+---
+resource_map:
+  allowedCpus:
+    cgroup_resource: CPUSET_CPUS
+    system_conf: CPUAffinity
+  allowedMemoryNodes:
+    cgroup_resource: CPUSET_MEMS
+  cpuWeight:
+    slice_directive: CPUWeight
+  cpuQuota:
+    slice_directive: CPUQuota
+  memoryMax:
+    slice_directive: MemoryMax
+  tasksMax:
+    slice_directive: TasksMax
+  ioWeight:
+    slice_directive: IOWeight

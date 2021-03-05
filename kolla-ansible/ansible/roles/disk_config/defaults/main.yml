@@ -1,0 +1,6 @@
+installroot: '/installroot'
+mkfstools:
+ - dosfstools
+ - e2fsprogs
+ - btrfsprogs
+ - xfsprogs

@@ -1,0 +1,19 @@
+---
+- name: Load the docker registry image
+  become: yes
+  shell:
+    cmd: |
+      docker load --input "{{ docker_registry_source }}"
+  when:
+    - docker_registry_action != 'destroy'
+
+- name: Pulling Docker registry container image
+  become: yes
+  docker_image:
+    name: "{{ item.value.image }}"
+    repository: "{{ item.value.image }}"
+    state: present
+  with_dict: "{{ docker_registry_services }}"
+  when:
+    - item.value.enabled
+    - docker_registry_action != 'destroy'

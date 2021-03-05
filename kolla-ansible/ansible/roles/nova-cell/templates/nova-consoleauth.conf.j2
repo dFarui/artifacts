@@ -1,0 +1,4 @@
+[cache]
+backend = oslo_cache.memcache_pool
+enabled = True
+memcache_servers = {% for host in groups['memcached'] %}{{ 'api' | kolla_address(host) | put_address_in_context('memcache') }}:{{ memcached_port }}{% if not loop.last %},{% endif %}{% endfor %}

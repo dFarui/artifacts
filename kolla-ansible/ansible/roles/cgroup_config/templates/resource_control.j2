@@ -1,0 +1,7 @@
+{% if item.dimensions is defined %}
+{% for key, value in item.dimensions.items() %}
+{% if key in resource_map and 'cgroup_resource' in resource_map[key] %}
+{{ resource_map[key]['cgroup_resource'] }}={{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}

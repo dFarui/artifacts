@@ -1,0 +1,7 @@
+# This play installis the required packages for networking
+# and configures interfaces, bonds, vlans, bridges in the system
+# according to the configuration model
+#
+---
+- include: install.yml
+- include: configure.yml

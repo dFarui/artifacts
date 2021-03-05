@@ -1,0 +1,10 @@
+[Unit]
+Description=Run CEE log rotation
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart={{ logrotate_systemd_timer_invoke_script_path }}
+Nice=10
+IOSchedulingClass=idle
+IOSchedulingPriority=7

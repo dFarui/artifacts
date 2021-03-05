@@ -1,0 +1,130 @@
+---
+- name: Reload cee_logrotate systemd timer unit file
+  become: yes
+  systemd:
+    name: "{{ logrotate_systemd_timer_unit_name }}.timer"
+    daemon_reload: yes
+  listen:
+    - Restart CEE logrotate systemd timer
+
+- name: Restart cee_logrotate systemd timer unit
+  become: yes
+  systemd:
+    name: "{{ logrotate_systemd_timer_unit_name }}.timer"
+    state: restarted
+  listen:
+    - Restart CEE logrotate systemd timer
+
+- name: Enable cee_logrotate systemd timer unit
+  become: yes
+  systemd:
+    name: "{{ logrotate_systemd_timer_unit_name }}.timer"
+    enabled: yes
+  listen:
+    - Restart CEE logrotate systemd timer
+
+- name: Check rsyslog-log-aggregator configuration
+  vars:
+    service_name: "rsyslog-log-aggregator"
+    service: "{{ rsyslog_services[service_name] }}"
+  become: yes
+  kolla_docker:
+    action: "start_container"
+    common_options: "{{ docker_common_options }}"
+    detach: False
+    environment:
+      KOLLA_BOOTSTRAP:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+    image: "{{ service.image }}"
+    labels:
+      BOOTSTRAP:
+    name: "bootstrap_rsyslog"
+    restart_policy: no
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    privileged: "{{ service.privileged }}"
+
+- name: Check rsyslog-log-generator configuration
+  vars:
+    service_name: "rsyslog-log-generator"
+    service: "{{ rsyslog_services[service_name] }}"
+  become: yes
+  kolla_docker:
+    action: "start_container"
+    common_options: "{{ docker_common_options }}"
+    detach: False
+    environment:
+      KOLLA_BOOTSTRAP:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+    image: "{{ service.image }}"
+    labels:
+      BOOTSTRAP:
+    name: "bootstrap_rsyslog"
+    restart_policy: no
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+    privileged: "{{ service.privileged }}"
+
+- name: Recreate rsyslog container
+  vars:
+    service_name: "{{ 'rsyslog-log-aggregator' if rsyslog_is_log_aggregator else 'rsyslog-log-generator' }}"
+    service: "{{ rsyslog_services[service_name] }}"
+  become: yes
+  kolla_docker:
+    action: "recreate_or_restart_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes }}"
+    dimensions: "{{ service.dimensions }}"
+    privileged: "{{ service.privileged }}"
+    pid_mode: "{{ service.pid_mode }}"
+    labels:
+      service-component: "{{ service_name }}"
+  when:
+    - kolla_action != "config"
+  listen:
+    - Restart systemd syslog.socket
+
+- name: Stop rsyslog container, will be started by systemd
+  vars:
+    service_name: "{{ 'rsyslog-log-aggregator' if rsyslog_is_log_aggregator else 'rsyslog-log-generator' }}"
+    service: "{{ rsyslog_services[service_name] }}"
+  become: yes
+  kolla_docker:
+    action: "stop_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes }}"
+    dimensions: "{{ service.dimensions }}"
+    privileged: "{{ service.privileged }}"
+    pid_mode: "{{ service.pid_mode }}"
+    labels:
+      service-component: "{{ service_name }}"
+  when:
+    - kolla_action != "config"
+  listen:
+    - Restart systemd syslog.socket
+
+- name: Reload systemd syslog service unit file
+  become: yes
+  systemd:
+    name: "syslog.service"
+    daemon_reload: yes
+  listen:
+    - Restart systemd syslog.socket
+
+- name: Enable systemd syslog service unit
+  become: yes
+  systemd:
+    name: "syslog.service"
+    enabled: yes
+  listen:
+    - Restart systemd syslog.socket
+
+- name: Restart systemd syslog socket unit
+  become: yes
+  systemd:
+    name: "syslog.socket"
+    state: restarted
+  listen:
+    - Restart systemd syslog.socket

@@ -1,0 +1,14 @@
+---
+LLDPD_VERSION: 1.0.5
+configfile: /etc/lldpd.conf
+
+TX_INTERNAL: '{{ hostvars[inventory_hostname].my_host_config.lldp.msgTxInterval }}'
+TX_HOLD: '{{ hostvars[inventory_hostname].my_host_config.lldp.msgTxHold }}'
+
+portnames: ""
+lldp_ports: []
+ovs_ports: []
+ovs_enabled_ports: []
+
+#ports whose lldp status is not 'disabled'
+lldp_enabled_ports: '{{ hostvars[inventory_hostname]["my_lldp_ports"] }}'

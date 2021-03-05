@@ -1,0 +1,20 @@
+[DEFAULT]
+address = "{{ interface_addresses.control }}"
+port = "{{ lcm_api_port }}"
+domain_name = "{{ domain }}"
+lcm_system= "{{ lcm_system }}"
+auth_method = "{{ lcm_api_auth_strategy }}"
+
+[api_database]
+connection={{ lcm_database_driver }}://{{ lcm_database_user }}:{{ lcm_database_password }}@{{ lcm_api_internal_vip_address | ipwrap }}/{{ lcm_database }}?
+
+{% if lcm_api_auth_strategy == 'keystone' -%}
+[keystone_authtoken]
+auth_url = "{{ lcm_api_auth_url }}"
+username = "{{ lcm_api_server_username }}"
+password = "{{ lcm_api_server_password }}"
+user_domain_name = "{{ lcm_api_user_domain_name }}"
+project_name = service
+project_domain_name = "{{ lcm_api_project_domain_name }}"
+cafile = "{{ kolla_internal_fqdn_cacert }}"
+{% endif -%}

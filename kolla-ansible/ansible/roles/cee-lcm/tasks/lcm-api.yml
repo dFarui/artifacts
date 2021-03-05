@@ -1,0 +1,49 @@
+---
+- name: Install the cee-lcm api package
+  become: yes
+  package:
+    name: "cee-lcm-api"
+    state: latest
+
+- name: Install the cee-trace api package
+  become: yes
+  package:
+    name: "cee-trace-api"
+    state: latest
+
+- name: Create lcm host data conf file
+  become: yes
+  template:
+    src: "../templates/cee-lcm.conf.j2"
+    dest: "/etc/cee/cee-lcm.conf"
+
+- name: Create trace-api conf file
+  become: yes
+  template:
+    src: "../templates/cee-trace-wsgi.conf.j2"
+    dest: "/etc/apache2/conf.d/cee-trace-wsgi.conf"
+
+- name: Create lcm-api conf file
+  become: yes
+  template:
+    src: "../templates/cee-lcm-wsgi.conf.j2"
+    dest: "/etc/apache2/conf.d/cee-lcm-wsgi.conf"
+  notify: Restart Apache2
+
+- name: Create lcm server conf file
+  become: yes
+  template:
+    src: "../templates/cee-lcm-server.conf.j2"
+    dest: "/etc/cee/cee-lcm-server.conf"
+
+- name: Force systemd to reload configs
+  become: yes
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and restart lcm-api service
+  become: yes
+  service:
+    name=lcm-api
+    state=restarted
+    enabled=yes

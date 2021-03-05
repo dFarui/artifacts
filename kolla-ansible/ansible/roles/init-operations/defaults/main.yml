@@ -1,0 +1,22 @@
+---
+hostname_full: "{{ ansible_fqdn }}"
+base_dir: "/var/lib/cee"
+source_dir: "/opt/cee"
+git_import_dir: "{{ source_dir }}/source"
+git_repo: "{{ base_dir }}/system/{{ system_name }}"
+git_temp_dir: "{{ base_dir }}/temp"
+
+# Branches
+source_branch: source
+system_branch: system
+
+initial_tag_timestamp: 00000000T000000Z
+
+config_target_dir: "{{ git_repo }}"
+config_scratch_dir: "{{ git_repo }}/.config"
+ansible_target_dir: "{{ git_repo }}/orchestrator"
+ansible_scratch_dir: "{{ git_repo }}/.orchestrator"
+
+# Location to save the output of config model generator
+persistent_info: system/persisted_info
+ansible_subdir: ansible

@@ -1,0 +1,17 @@
+---
+# Common vars
+
+common_packages:
+  - aaa_base-extras
+  - bash-completion
+  - dmidecode
+  - ethtool
+  - glibc-locale-base
+  - glibc-locale
+  - less
+  - mstflint
+  - pciutils
+  - python3-PyMySQL
+  - supportutils
+  - systemd-bash-completion
+  - vim-data

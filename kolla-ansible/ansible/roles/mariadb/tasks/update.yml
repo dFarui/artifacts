@@ -1,0 +1,14 @@
+---
+- include_tasks: gather_group_facts.yml
+
+- include_tasks: healthcheck.yml
+
+- include_tasks: firewall.yml
+
+- include_tasks: lookup_cluster.yml
+
+- include_tasks: config.yml
+
+- include_tasks: update_service.yml
+
+- include_tasks: healthcheck.yml

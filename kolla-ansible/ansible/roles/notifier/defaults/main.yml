@@ -1,0 +1,179 @@
+---
+project_name: "notifier"
+
+
+notifier_services:
+  notifier-emitter:
+    container_name: "notifier_emitter"
+    group: "notifier-emitter"
+    enabled: "{{ enable_notifier | bool }}"
+    image: "{{ notifier_emitter_image_full }}"
+    volumes: "{{ notifier_emitter_default_volumes + notifier_emitter_extra_volumes }}"
+    dimensions: "{{ notifier_emitter_dimensions }}"
+  notifier-requeuer:
+    container_name: "notifier_requeuer"
+    group: "notifier-requeuer"
+    enabled: "{{ enable_notifier | bool }}"
+    image: "{{ notifier_requeuer_image_full }}"
+    volumes: "{{ notifier_requeuer_default_volumes + notifier_requeuer_extra_volumes }}"
+    dimensions: "{{ notifier_requeuer_dimensions }}"
+  notifier-controller:
+    container_name: "notifier_controller"
+    group: "notifier-controller"
+    enabled: "{{ enable_notifier | bool }}"
+    image: "{{ notifier_controller_image_full }}"
+    volumes: "{{ notifier_controller_default_volumes + notifier_controller_extra_volumes }}"
+    dimensions: "{{ notifier_controller_dimensions }}"
+    haproxy:
+      notifier-controller:
+        enabled: "{{ enable_notifier | bool }}"
+        mode: "http"
+        external: false
+        port: "{{ notifier_controller_port }}"
+        listen_port: "{{ notifier_controller_listen_port }}"
+#      notifier_controller_external:
+#        enabled: "{{ enable_notifier | bool }}"
+#        mode: "http"
+#        external: true
+#        port: "{{ notifier_controller_port }}"
+#        listen_port: "{{ notifier_controller_listen_port }}"
+
+####################
+# Notifier
+####################
+notifier_group_name: "notifier"
+
+
+####################
+# Docker emitter
+####################
+notifier_emitter_install_type: "{{ kolla_install_type }}"
+notifier_emitter_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ notifier_emitter_install_type }}-notifier-emitter"
+notifier_emitter_tag: "{{ openstack_release }}"
+notifier_emitter_image_full: "{{ notifier_emitter_image }}:{{ notifier_emitter_tag }}"
+notifier_emitter_dimensions: "{{ default_container_dimensions }}"
+
+notifier_emitter_default_volumes:
+  - "{{ node_config_directory }}/notifier-emitter/:{{ container_config_directory }}/"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "notifier:/var/lib/notifier/data"
+  - "kolla_logs:/var/log/kolla/"
+notifier_emitter_extra_volumes: "{{ default_extra_volumes }}"
+
+
+####################
+# Docker requeuer
+####################
+notifier_requeuer_install_type: "{{ kolla_install_type }}"
+notifier_requeuer_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ notifier_requeuer_install_type }}-notifier-requeuer"
+notifier_requeuer_tag: "{{ openstack_release }}"
+notifier_requeuer_image_full: "{{ notifier_requeuer_image }}:{{ notifier_requeuer_tag }}"
+notifier_requeuer_dimensions: "{{ default_container_dimensions }}"
+
+notifier_requeuer_default_volumes:
+  - "{{ node_config_directory }}/notifier-requeuer/:{{ container_config_directory }}/"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "notifier:/var/lib/notifier/data"
+  - "kolla_logs:/var/log/kolla/"
+notifier_requeuer_extra_volumes: "{{ default_extra_volumes }}"
+
+
+####################
+# Docker controller
+####################
+notifier_controller_install_type: "{{ kolla_install_type }}"
+notifier_controller_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ notifier_controller_install_type }}-notifier-controller"
+notifier_controller_tag: "{{ openstack_release }}"
+notifier_controller_image_full: "{{ notifier_controller_image }}:{{ notifier_controller_tag }}"
+notifier_controller_dimensions: "{{ default_container_dimensions }}"
+
+notifier_controller_default_volumes:
+  - "{{ node_config_directory }}/notifier-controller/:{{ container_config_directory }}/"
+  - "/etc/localtime:/etc/localtime:ro"
+  - "notifier:/var/lib/notifier/data"
+  - "kolla_logs:/var/log/kolla/"
+notifier_controller_extra_volumes: "{{ default_extra_volumes }}"
+
+
+####################
+# Notifier Keystone
+####################
+notifier_keystone_auth: "{{ openstack_auth }}"
+notifier_keystone_auth_url: "{{ notifier_keystone_auth.auth_url }}/v3"
+notifier_keystone_admin_username: "{{ notifier_keystone_auth.username }}"
+notifier_keystone_admin_password: "{{ notifier_keystone_auth.password }}"
+notifier_keystone_project_name: "{{ notifier_keystone_auth.project_name }}"
+notifier_keystone_domain_name: "{{ notifier_keystone_auth.domain_name }}"
+notifier_keystone_user_domain_name: "{{ notifier_keystone_auth.user_domain_name }}"
+
+
+notifier_keystone_username: "notifier"
+notifier_keystone_default_role: "notifier"
+
+notifier_controller_admin_endpoint: "{{ admin_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ notifier_controller_port }}/v1"
+notifier_controller_internal_endpoint: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ notifier_controller_port }}/v1"
+notifier_controller_public_endpoint: "{{ public_protocol }}://{{ kolla_external_fqdn | put_address_in_context('url') }}:{{ notifier_controller_port }}/v1"
+
+notifier_keystone_services:
+  - name: "notifier"
+    type: "notification"
+    description: "Ericsson Event Management"
+    endpoints:
+      - {'interface': 'admin', 'url': '{{ notifier_controller_admin_endpoint }}'}
+      - {'interface': 'internal', 'url': '{{ notifier_controller_internal_endpoint }}'}
+      - {'interface': 'public', 'url': '{{ notifier_controller_public_endpoint }}'}
+
+notifier_keystone_users:
+  - project: "service"
+    user: "{{ notifier_keystone_username }}"
+    password: "{{ notifier_keystone_password }}"
+    role: "admin"
+
+notifier_keystone_roles:
+  - "{{ notifier_keystone_default_role }}"
+
+
+####################
+# Notifier Flask
+####################
+notifier_controller_listen_address: "{{ api_interface_address }}"
+
+
+####################
+# Notifier RPC
+####################
+
+rpc_transport_url: "{{ rpc_transport_url }}"
+
+notifier_rpc_user: "notifier"
+notifier_rpc_password: "{{ notifier_rabbitmq_password }}"
+notifier_rpc_group_name: "{{ om_rpc_group }}"
+notifier_rpc_vhost: "notifier_vhost"
+
+notifier_rpc_rabbitmq_users:
+  - user: "{{ notifier_rpc_user }}"
+    password: "{{ notifier_rpc_password }}"
+    vhost: "{{ notifier_rpc_vhost }}"
+
+notifier_rpc_transport_url: "{{ om_rpc_transport }}://{% for host in groups[om_rpc_group] %}{{ notifier_rpc_user }}:{{ notifier_rpc_password }}@{{ 'api' | kolla_address(host) | put_address_in_context('url') }}:{{ om_rpc_port }}{% if not loop.last %},{% endif %}{% endfor %}/{{ notifier_rpc_vhost }}"
+
+notifier_rpc_server: server1
+notifier_rpc_topic: notifier
+
+
+####################
+# Notifier Database
+####################
+notifier_database_user: "{% if use_preconfigured_databases | bool and use_common_mariadb_user | bool %}{{ database_user }}{% else %}notifier{% endif %}"
+notifier_database_address: "{{ database_address | put_address_in_context('url') }}:{{ database_port }}"
+notifier_database_name: "notifier"
+notifier_database_connection: "mysql+pymysql://{{ notifier_database_user }}:{{ notifier_database_password }}@{{ notifier_database_address }}/{{ notifier_database_name }}"
+
+
+####################
+# Notifier Kafka
+####################
+notifier_kafka_bootstrap_servers: "{% for host in groups[om_rpc_group] %}{{ 'api' | kolla_address(host) | put_address_in_context('url') }}:{{ kafka_port }}{% if not loop.last %},{% endif %}{% endfor %}"
+notifier_requeuer_listen_topics: kafka_notifications
+kafka_admin_username: "{{ om_notify_user }}"
+kafka_admin_password: "{{ om_notify_password }}"

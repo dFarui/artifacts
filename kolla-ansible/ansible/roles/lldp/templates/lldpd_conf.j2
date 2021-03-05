@@ -1,0 +1,16 @@
+configure system chassisid {{ chassisid }}
+configure system hostname {{ inventory_hostname }}
+configure lldp tx-interval {{ TX_INTERNAL }}
+configure lldp tx-hold {{ TX_HOLD }}
+configure lldp portidsubtype macaddress
+{% if interfaces != ""  %}
+configure system interface pattern {{ interfaces }}
+configure system interface permanent {{ interfaces }}
+{% endif %}
+{% if ( ports | length ) != 0 %}
+{% for port in ports %}
+configure ports {{ port.name }} lldp status {{ port.lldp.adminStatus }}
+{% endfor %}
+{% else %}
+configure lldp status disabled
+{% endif %}

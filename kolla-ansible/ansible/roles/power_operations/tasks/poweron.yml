@@ -1,0 +1,5 @@
+---
+- name: Powering on the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'on'

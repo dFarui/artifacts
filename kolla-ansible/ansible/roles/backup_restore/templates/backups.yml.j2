@@ -1,0 +1,31 @@
+---
+backup_temp: "/tmp/backup"
+backup_path: "{{ backup_path }}"
+encrypt_backups: True
+encryption_password: "TopSecret"
+destination_uri: "ftps://ceeinfra:r00tme@compute1"
+
+mariadb_backup_database_user: "{{ mariadb_backup_database_user }}"
+backup_db_credentials:
+  user: "{{ backup_db_user }}"
+  password: "{{ backup_db_password }}"
+
+brf:
+  domains:
+    - name: "openstack"
+      exclude_cmha: True
+      default_type: "incremental"
+      incrementals: 6
+      mariadb:
+        databases:
+    - name: lcm
+      default_type: "full"
+      directories:
+        - "/var/lib/cee/system/{{ system_name }}/config"
+        - "/var/lib/cee/system/{{ system_name }}/system"
+      mariadb:
+        databases:
+    - name: monitoring
+      default_type: "full"
+      mariadb:
+        databases:

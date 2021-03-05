@@ -1,0 +1,6 @@
+# Variables for network configuration
+---
+nic_mappings: []
+file_marker: '# LCM-MANAGED - Managed by LCM - Do not edit'
+libvirt_qemu_user: qemu
+udev_prefix_nic_mapping: 90

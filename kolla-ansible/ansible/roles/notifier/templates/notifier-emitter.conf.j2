@@ -1,0 +1,23 @@
+[DEFAULT]
+transport_url={{ notifier_rpc_transport_url }}
+role=emitter
+logging_cfg_path=/etc/notifier/notifier-emitter-logging.conf
+emitter_endpoint=notifier.emitter.endpoints.EmitterEndpoint
+emitter_handlers=HTTPS:notifier.emitter.handler.AIOHTTPSClient
+sync_subscriber_interval=10
+
+[rpc]
+messaging_executor_mode=threading
+messaging_server_name={{ notifier_rpc_server }}
+messaging_topic_name=notifier
+
+[emitter]
+delta_emitter_time=60
+kafka_interval=0.5
+kafka_bootstrap_servers={{ notifier_kafka_bootstrap_servers }}
+kafka_group_id=notifier
+kafka_auto_offset_reset=smallest
+kafka_enable_auto_commit=False
+event_buffer_size=30
+gateway_certfile=/etc/notifier/notifier-emitter-https.pem
+kafka_optional_config=security.protocol: SASL_PLAINTEXT, sasl.mechanism: PLAIN, sasl.username: {{ kafka_admin_username }}, sasl.password: {{ kafka_admin_password }}

@@ -1,0 +1,15 @@
+---
+- name: Configure BSP switches
+  hosts: localhost
+  connection: localhost
+  tasks:
+    - name: Configure BSP switches - if applicable - to install CEE
+      vars:
+        oobm_type: "{{ oobmManagers[0].oobm.oobmType if (oobmManagers is defined) else '' }}"
+      command: |
+        setup_bsp -s {{ system_name }}
+      register: setup_bsp_result
+      when: oobm_type == 'bsp'
+
+    - fail: msg="Configuration of BSP Switches failed, see log output for more details"
+      when: setup_bsp_result.rc is defined and setup_bsp_result.rc != 0

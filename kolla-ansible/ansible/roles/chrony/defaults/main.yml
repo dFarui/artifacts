@@ -1,0 +1,3 @@
+keyfile: "/etc{%- if ansible_distribution not in ['CentOS', 'RedHat', 'SLES'] -%} /chrony {%- endif -%}/chrony.keys"
+chrony_packages:
+ - chrony

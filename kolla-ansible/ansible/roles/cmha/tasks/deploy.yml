@@ -1,0 +1,18 @@
+---
+- include_tasks: config_agent.yml
+  when: inventory_hostname in groups['cmha-agent']
+
+- include_tasks: register.yml
+  when: inventory_hostname in groups['cmha-service'] or
+        inventory_hostname in groups['cmha-restapi']
+
+- include_tasks: config.yml
+  when: inventory_hostname in groups['cmha-service'] or
+        inventory_hostname in groups['cmha-restapi']
+
+- include_tasks: bootstrap.yml
+  when: inventory_hostname in groups['cmha-service'] or
+        inventory_hostname in groups['cmha-restapi']
+
+- name: Flush handlers
+  meta: flush_handlers

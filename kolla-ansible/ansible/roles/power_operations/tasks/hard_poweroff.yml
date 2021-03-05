@@ -1,0 +1,5 @@
+---
+- name: Powering off the node
+  oobm:
+    oobm_args: "{{ oobm_args }}"
+    power: 'off'

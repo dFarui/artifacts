@@ -1,0 +1,11 @@
+---
+- name: Import backup
+  backup_restore:
+    action: "import"
+    uri: "{{ source_uri }}"
+    location: "{{ backup_path }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+  delegate_to: localhost
+  when: inventory_hostname == groups[brf_group][0]

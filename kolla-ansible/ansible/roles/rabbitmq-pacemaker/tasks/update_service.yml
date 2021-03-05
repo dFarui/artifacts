@@ -1,0 +1,63 @@
+---
+- name: Create node name mapping for {{ project_name }} using {{ ansible_hostname }} node(s)
+  delegate_to: "{{ ansible_hostname }}"
+  shell: "docker exec {{ project_name }} crm_node -n"
+  register: resource_node_name_mapping
+  failed_when: resource_node_name_mapping.rc | bool
+
+- name: Create resource name mapping for {{ project_name }} using {{ ansible_play_batch | join(', ') }} node(s)
+  delegate_to: "{{ ansible_hostname }}"
+  pacemaker:
+    action: get_resource_name
+    parameter:
+      hostname: "{{ resource_node_name_mapping.stdout }}"
+      name: ms_rabbitmq
+  register: primitive_name
+
+- name: Stop {{ project_name }} resource for {{ ansible_play_batch | join(', ') }}
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: stop_resource
+    name: "{{ primitive_name.stdout }}"
+
+- name: Check if {{ project_name }} resource is stopped for {{ ansible_play_batch | join(', ') }}
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: get_resource_status
+    name: "{{ primitive_name.stdout }}"
+  register: primitive_state
+  until:
+    - primitive_state.stdout.find("Stopped") != -1
+  retries: 30
+  delay: 5
+
+- name: Remove unmanaged {{ project_name }} container on {{ ansible_play_batch | join(', ') }}
+  become: True
+  kolla_docker:
+    action: "remove_container"
+    name: "{{ project_name }}"
+
+- name: Update {{ project_name }} resource param(s) for {{ ansible_play_batch | join(', ') }}
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: update_resource_param
+    name: "{{ primitive_name.stdout }}"
+    parameter:
+      image: "{{ rabbitmq_image_full }}"
+
+- name: Start {{ project_name }} resource on {{ ansible_play_batch | join(', ') }}
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: start_resource
+    name: "{{ primitive_name.stdout }}"
+
+- name: Check if {{ project_name }} resource is started for {{ ansible_play_batch | join(', ') }}
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  pacemaker:
+    action: get_resource_status
+    name: "{{ primitive_name.stdout }}"
+  register: primitive_state
+  until:
+    - primitive_state.stdout.find("Started") != -1
+  retries: 30
+  delay: 5

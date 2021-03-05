@@ -1,0 +1,6 @@
+---
+- hosts: lcm_hosts
+  any_errors_fatal: false
+  roles:
+    - role: base-config
+      tags: base-config

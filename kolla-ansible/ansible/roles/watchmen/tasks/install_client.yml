@@ -1,0 +1,6 @@
+---
+- name: Install Watchmen client on host
+  become: yes
+  package:
+    name: "{{ watchmen_client_package_name }}"
+    state: latest

@@ -1,0 +1,15 @@
+Alias /preseed /srv/www/preseed
+
+<Directory "/srv/www/preseed">
+    SetEnv VIRTUALENV
+    Options Indexes FollowSymLinks
+    Require all granted
+</Directory>
+
+Alias /repos /srv/www/repos
+
+<Directory "/srv/www/repos">
+    SetEnv VIRTUALENV
+    Options Indexes FollowSymLinks
+    Require all granted
+</Directory>

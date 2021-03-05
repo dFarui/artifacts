@@ -1,0 +1,18 @@
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir={{ zookeeper_volume_path }}/zookeeper/data
+clientPort={{ zookeeper_client_port }}
+{% for host in groups['zookeeper'] %}
+server.{{ loop.index }}={{ 'api' | kolla_address(host) | put_address_in_context('url') }}:{{ zookeeper_peer_port }}:{{ zookeeper_quorum_port }}
+authProvider.{{ loop.index }}=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+{% endfor %}
+requireClientAuthScheme=sasl
+jaasLoginRenew=3600000
+# Server-server auth for Zookeeper
+quorum.auth.enableSasl=true
+quorum.auth.learnerRequireSasl=true
+quorum.auth.serverRequireSasl=true
+quorum.auth.learner.saslLoginContext=QuorumLearner
+quorum.auth.server.saslLoginContext=QuorumServer
+quorum.cnxn.threads.size=20

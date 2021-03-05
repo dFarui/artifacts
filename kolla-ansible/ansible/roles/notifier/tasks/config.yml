@@ -1,0 +1,205 @@
+---
+- name: Ensuring config directories exist
+  file:
+    path: "{{ node_config_directory }}/{{ item.key }}"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ notifier_services }}"
+
+#---------------------
+# notifier-common
+#---------------------
+
+- name: Copying over config.json files for services
+  become: true
+  template:
+    src: "{{ role_path }}/templates/{{ item.key }}.json.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/config.json"
+    mode: "0660"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ notifier_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+#- name: "Getting {{ keystone_admin_project }} ID for Notifier conf"
+#  kolla_toolbox:
+#    module_name: "os_project"
+#    module_args:
+#      name: "{{ keystone_admin_project }}"
+#      domain: "{{ openstack_auth.domain_name }}"
+#      region_name: "{{ openstack_region_name }}"
+#      auth: "{{ notifier_keystone_auth }}"
+#      interface: "{{ openstack_interface }}"
+#  register: get_admin_project_id_result
+
+- name: Copying over service.conf files for services
+  template:
+    src: "{{ role_path }}/templates/{{ item.key }}.conf.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/{{ item.key }}.conf"
+    mode: "0660"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ notifier_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- name: Copying over logging.conf files for services
+  template:
+    src: "{{ role_path }}/templates/{{ item.key }}-logging.conf.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/{{ item.key }}-logging.conf"
+    mode: "0660"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ notifier_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+#---------------------
+# notifier-controller
+#---------------------
+
+- name: Copying over api.conf files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-api.conf.j2"
+    dest: "{{ node_config_directory }}/notifier-controller/notifier-api.conf"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-controller'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-controller'].group]
+  notify:
+    - Restart notifier-controller container
+
+- name: Copying over api.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-api.yml"
+    dest: "{{ node_config_directory }}/notifier-controller/notifier-api.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-controller'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-controller'].group]
+  notify:
+    - Restart notifier-controller container
+
+- name: Copying over api-logging.conf files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-api-logging.conf.j2"
+    dest: "{{ node_config_directory }}/notifier-controller/notifier-api-logging.conf"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-controller'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-controller'].group]
+  notify:
+    - Restart notifier-controller container
+
+#---------------------
+# notifier-requeuer
+#---------------------
+
+- name: Copying over event-type-mapping.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-requeuer-event-type-mapping.yml.j2"
+    dest: "{{ node_config_directory }}/notifier-requeuer/notifier-requeuer-event-type-mapping.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-requeuer'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-requeuer'].group]
+  notify:
+    - Restart notifier-requeuer container
+
+- name: Copying over kafka-consumer.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-requeuer-kafka-consumer.yml.j2"
+    dest: "{{ node_config_directory }}/notifier-requeuer/notifier-requeuer-kafka-consumer.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-requeuer'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-requeuer'].group]
+  notify:
+    - Restart notifier-requeuer container
+
+- name: Copying over kafka-producer.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-requeuer-kafka-producer.yml.j2"
+    dest: "{{ node_config_directory }}/notifier-requeuer/notifier-requeuer-kafka-producer.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-requeuer'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-requeuer'].group]
+  notify:
+    - Restart notifier-requeuer container
+
+- name: Copying over kafka-client.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-requeuer-kafka-client.yml.j2"
+    dest: "{{ node_config_directory }}/notifier-requeuer/notifier-requeuer-kafka-client.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-requeuer'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-requeuer'].group]
+  notify:
+    - Restart notifier-requeuer container
+
+#---------------------
+# notifier-emitter
+#---------------------
+
+- name: Copying over https.pem files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-emitter-https.pem.j2"
+    dest: "{{ node_config_directory }}/notifier-emitter/notifier-emitter-https.pem"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-emitter'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-emitter'].group]
+  notify:
+    - Restart notifier-emitter container
+
+- name: Copying over kafka-consumer.yml files for services
+  template:
+    src: "{{ role_path }}/templates/notifier-emitter-kafka-consumer.yml.j2"
+    dest: "{{ node_config_directory }}/notifier-emitter/notifier-emitter-kafka-consumer.yml"
+    mode: "0660"
+  become: true
+  when:
+    - notifier_services['notifier-emitter'].enabled | bool
+    - inventory_hostname in groups[notifier_services['notifier-emitter'].group]
+  notify:
+    - Restart notifier-emitter container
+
+
+- name: Ensuring config directory exists on notifier hosts
+  become: true
+  file:
+    path: "/etc/notifier"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0750"
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ notifier_services }}"
+
+
+- include_tasks: check-containers.yml
+  when: kolla_action != "config"

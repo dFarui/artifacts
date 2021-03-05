@@ -1,0 +1,115 @@
+---
+- name: Ensuring config directories exist
+  file:
+    path: "{{ node_config_directory }}/{{ item.key }}"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ pacemaker_services }}"
+
+- name: Copying over config.json files for services
+  template:
+    src: "{{ item.key }}.json.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/config.json"
+    mode: "0660"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+  with_dict: "{{ pacemaker_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- name: Register corosync related variables as hostvars
+  changed_when: false
+  set_fact:
+    corosync: "{{ corosync }}"
+  when:
+    - enable_pacemaker | bool
+    - inventory_hostname in groups["pacemaker"]
+
+- name: Copying over config files for services
+  template:
+    src: "{{ item.key }}.conf.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/{{ item.key }}.conf"
+    mode: "0660"
+  become: true
+  when:
+    - item.value.enabled | bool
+    - inventory_hostname in groups[item.value.group]
+    - "(role_path + '/templates/' + item.key + '.conf.j2') is is_file"
+  with_dict: "{{ pacemaker_services }}"
+  notify:
+    - Restart {{ item.key }} container
+
+- name: Check Pacemaker authkey existance
+  become: true
+  changed_when: false
+  stat:
+    path: "{{ pacemaker_authkey_location }}"
+  register: authkey_file
+  when:
+    - enable_pacemaker | bool
+    - inventory_hostname in groups["pacemaker"]
+
+- name: Handle Pacemaker authkey
+  block:
+    - name: Fetch existing Pacemaker authkey
+      become: true
+      changed_when: false
+      shell: 'base64 {{ pacemaker_authkey_location }}'
+      register: authkey_content
+      when:
+        - enable_pacemaker | bool
+        - inventory_hostname in groups["pacemaker"]
+        - authkey_file.stat.exists | bool
+
+    - name: Generate Pacemaker authkey
+      delegate_to: "{{ groups['pacemaker'][0] }}"
+      run_once: True
+      changed_when: False
+      shell: 'dd if=/dev/urandom bs=4096 count=1 | base64'
+      register: authkey_generated
+      when:
+        - enable_pacemaker | bool
+        - not (groups['pacemaker'] | map('extract', hostvars, 'authkey_file') | map(attribute='stat') | list | first).exists | bool
+
+    - name: Register generated Pacemaker authkey
+      delegate_to: "{{ groups['pacemaker'][0] }}"
+      run_once: True
+      add_host:
+        name: "PACEMAKER"
+        authkey: "{{ authkey_generated.stdout }}"
+      when:
+        - enable_pacemaker | bool
+        - authkey_generated.stdout is defined
+
+    - name: Register obtained Pacemaker authkey
+      delegate_to: "{{ groups['pacemaker'][0] }}"
+      changed_when: false
+      run_once: True
+      add_host:
+        name: "PACEMAKER"
+        authkey: "{{ groups['pacemaker'] | map('extract', hostvars, 'authkey_content') | map(attribute='stdout') | list | first }}"
+      when:
+        - enable_pacemaker | bool
+        - authkey_generated.stdout is not defined
+
+    - name: Create Pacemaker authkey file
+      copy:
+        content: "{{ hostvars['PACEMAKER']['authkey'] | b64decode }}"
+        dest: "{{ pacemaker_authkey_location }}"
+        mode: "0660"
+      become: True
+      when:
+        - enable_pacemaker | bool
+        - inventory_hostname in groups["pacemaker"]
+  when: kolla_action not in ["update", "upgrade"]
+
+- include_tasks: check-containers.yml
+  when: kolla_action != "config"

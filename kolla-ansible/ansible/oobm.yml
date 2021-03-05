@@ -1,0 +1,14 @@
+---
+- hosts: physical_hosts:virtual_hosts
+  roles:
+    - discover
+  tasks:
+    - name: Run oobm action
+      oobm:
+        power: "{{ power |d(None) }}"
+        getmac: "{{ getmac |d(false) }}"
+        bootdev: "{{ bootdev |d(None) }}"
+        oobm_args: "{{ oobm_args }}"
+      register: res
+    - debug:
+        var: res

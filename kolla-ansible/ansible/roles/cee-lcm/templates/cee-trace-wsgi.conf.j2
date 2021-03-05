@@ -1,0 +1,18 @@
+WSGISocketPrefix /var/run/wsgi
+Listen {{ trace_port }}
+
+<VirtualHost {{ lcm_api_internal_vip_address }}:{{ trace_port }}>
+    <Directory /usr/bin>
+        <FilesMatch "cee-trace-wsgi">
+            Require all granted
+        </FilesMatch>
+    </Directory>
+    WSGIDaemonProcess cee-trace-api processes=1 threads=6 user={{ ansible_user_id }}
+    WSGIProcessGroup cee-trace-api
+    WSGIScriptAlias / /usr/bin/cee-trace-wsgi
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization On
+    WSGIChunkedRequest On
+    ErrorLogFormat "%M"
+    ErrorLog {{ trace_error_log }}
+</VirtualHost>

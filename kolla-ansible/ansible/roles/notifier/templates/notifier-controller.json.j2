@@ -1,0 +1,42 @@
+{
+    "command": "/usr/bin/notifier-controller",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/notifier-controller.conf",
+            "dest": "/etc/notifier/notifier-controller.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-controller-logging.conf",
+            "dest": "/etc/notifier/notifier-controller-logging.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-api.conf",
+            "dest": "/etc/notifier/notifier-api.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-api-logging.conf",
+            "dest": "/etc/notifier/notifier-api-logging.conf",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/notifier-api.yml",
+            "dest": "/etc/notifier/notifier-api.yml",
+            "owner": "root:{{ notifier_group_name }}",
+            "perm": "0640"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/var/lib/notifier/data",
+            "owner": "root:{{ notifier_group_name }}",
+            "recurse": true
+        }
+    ]
+}

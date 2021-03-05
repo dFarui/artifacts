@@ -1,0 +1,15 @@
+#
+#
+- name: Load the hostname and ip address details from persistent_store
+  include_vars:
+    file: "{{persistent_store}}/ip_address.yml"
+    name: ip_info
+
+- name: Update /etc/hosts
+  become: yes
+  template:
+    src: "../templates/hosts.j2"
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: 0644

@@ -1,0 +1,48 @@
+{
+    "command": "/usr/sbin/rsyslogd -n",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/rsyslog.conf",
+            "dest": "/etc/rsyslog.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% if rsyslog_log_behavior.write_local_logs or rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-00-00-local-logging-rules.conf",
+            "dest": "/etc/rsyslog.d/00-00-00-local-logging-rules.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-00-local-logging-write.conf",
+            "dest": "/etc/rsyslog.d/00-01-00-local-logging-write.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-01-local-logging-forward.conf",
+            "dest": "/etc/rsyslog.d/00-01-01-local-logging-forward.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs or rsyslog_log_behavior.forward_logs %},
+        {
+            "source": "{{ container_config_directory }}/00-01-02-local-kernel-logging.conf",
+            "dest": "/etc/rsyslog.d/00-01-02-local-kernel-logging.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %}{% if rsyslog_log_behavior.write_local_logs and enable_audit | bool %},
+        {
+            "source": "{{ container_config_directory }}/00-02-00-local-audit-logging.conf",
+            "dest": "/etc/rsyslog.d/00-02-00-local-audit-logging.conf",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}"
+        }{% endif %},
+        {
+            "source": "{{ container_config_directory }}/00-03*.conf",
+            "dest": "/etc/rsyslog.d/",
+            "owner": "{{ rsyslog_config_file_owner }}:{{ rsyslog_config_file_group }}",
+            "perm": "{{ rsyslog_config_file_mode }}",
+            "optional": true
+        }
+    ]
+}

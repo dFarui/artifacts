@@ -1,0 +1,37 @@
+---
+- hosts:
+   - gluster_hosts
+  gather_facts: true
+  tasks:
+   - name: Umount gluster volumes
+     mount:
+       path: "{{gluster_mounts[item].mountpoint}}"
+       state: absent
+     with_items: "{{gluster_mounts}}"
+   - name: Remove gluster volumes
+     gluster_volume:
+       name: "{{item}}"
+       state: absent
+     with_items:
+       - "{{ gluster_volumes.keys() |list }}"
+     run_once: true
+   - name: Umount bricks
+     mount:
+       path: "{{gluster_bricks[item].mountpoint}}/{{item}}"
+       state: absent
+     with_items: "{{gluster_bricks}}"
+   - name: Destroy brick
+     shell: "dd if=/dev/urandom of={{gluster_bricks[item].blockdev}} bs=1M count=4"
+     with_items: "{{gluster_bricks}}"
+   - name: Stop gluster service
+     service:
+       name: glusterd
+       state: stopped
+   - name: Ensure glusterfs package is removed
+     package:
+       name: glusterfs
+       state: absent
+   - name: Remove gluster config files
+     file:
+       path: "/var/lib/glusterd/"
+       state: absent

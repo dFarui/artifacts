@@ -1,0 +1,3 @@
+ansible_cfg_path: "/etc/ansible/ansible.cfg"
+cee_user_name: ceeinfra
+cee_group_name: ceeinfra

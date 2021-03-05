@@ -1,0 +1,18 @@
+This role is specifically created to mount glusterfs volumes on CEE LCM nodes.
+It is not intended to be a generic role to cover various configuration options of glusterfs.
+The current implementation is based on the following assumptions:
+ - The volumes are mounted on hosts that are also act as glusterfs cluster members
+ - Although the role allows specifying server to mount the volume from, the default setting is to mount from localhost
+
+The role uses the following variables:
+  - gluster_mounts
+      This variable is a dictinary. The keys of the dictionary are name identifiers of the volumes. The volume name must
+      be a valid glusterfs volume name
+      The values are dictionaries, the possible keys in the sub dictionaries are:
+         mountpoint:   The mount point the volume is mounted at
+
+      Example:
+         gluster_mounts:
+           infra:
+             mountpoint: /mnt
+

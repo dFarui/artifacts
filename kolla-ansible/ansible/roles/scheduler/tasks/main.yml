@@ -1,0 +1,4 @@
+---
+- name: Prepare and setup scheduler service
+  include_tasks: "{{ kolla_action }}.yml"
+  when: kolla_action is defined and kolla_action == "deploy"

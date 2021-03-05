@@ -1,0 +1,14 @@
+---
+- name: Force systemd to reload configs
+  become: yes
+  systemd:
+    daemon_reload: yes
+
+- name: Ensure the slices are in active state
+  become: yes
+  systemd:
+    name: "{{ item.name }}.slice"
+    enabled: yes
+    state: restarted
+  with_items: "{{ control_groups }}"
+  when: item.name != "system"

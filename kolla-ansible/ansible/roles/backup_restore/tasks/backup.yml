@@ -1,0 +1,103 @@
+---
+- name: Make sure that {{ backup_temp }} directory exists
+  file:
+    dest: "{{ backup_temp }}"
+    state: "directory"
+    mode: "0777"
+
+- name: Make sure that {{ backup_path }} directory exists
+  file:
+    dest: "{{ backup_path }}"
+    state: "directory"
+    mode: "0777"
+  delegate_to: "localhost"
+
+- name: Set variable
+  set_fact:
+    backup_type: "{{ 'full' if ( full | bool ) else 'incremental' }}"
+  when: full is defined
+
+- name: Start directories backup
+  backup_restore:
+    action: "backup"
+    location: "{{ backup_temp }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_mode: "directory"
+    backup_type: "{{ backup_type | default(domain_data.0.default_type) }}"
+    backup_options:
+      directories: "{{ domain_data.0.directories }}"
+      full_backupname: "{{ full_backupname | default('') }}"
+      incrementals: "{{ domain_data.0.incrementals | default('0') | int }}"
+      userdata: "{{ userdata | default('') }}"
+      schedule_id: "{{ schedule_id | default('') }}"
+      config_location: "{{ backup_path }}"
+    backup_db_info: "{{ backup_db_info }}"
+    encrypted: "{{ encrypt_backups }}"
+    encryption_password: "{{ encryption_password }}"
+  when:
+    - domain_data.0.directories is defined
+    - inventory_hostname == groups[brf_group][0]
+  register: backup_info
+
+- name: Set backup_id for multiple modes
+  set_fact:
+    backup_id: "{{ backup_info.id | default('') }}"
+
+- name: Start MariaDB backup
+  backup_restore:
+    action: "backup"
+    location: "{{ backup_temp }}"
+    append: "{{ backup_id }}"
+    backup_mode: "mysql"
+    backup_type: "{{ backup_type | default(domain_data.0.default_type) }}"
+    backup_options:
+      mariadb: "{{ domain_data.0.mariadb }}"
+      mariadb_image: "{{ mariadb_image }}"
+      db_host: "{{ inventory_hostname }}"
+      db_user: "{{ mariadb_backup_database_user }}"
+      db_pass: "{{ mariadb_backup_database_password }}"
+      full_backupname: "{{ full_backupname | default('') }}"
+      incrementals: "{{ domain_data.0.incrementals | default('0') | int }}"
+      userdata: "{{ userdata | default('') }}"
+      schedule_id: "{{ schedule_id | default('') }}"
+      exclude_cmha: "{{ domain_data.0.exclude_cmha | default(False) }}"
+      config_location: "{{ backup_path }}"
+    clustername: "{{ cluster_name }}"
+    backupdomain: "{{ brf_domain }}"
+    backup_db_info: "{{ backup_db_info }}"
+    encryption_password: "{{ encryption_password }}"
+  when:
+    - domain_data.0.mariadb is defined
+    - inventory_hostname == groups[brf_group][0]
+  register: backup_info
+
+- name: Copy backup files to backup storage
+  fetch:
+    src: "{{ backup_temp}}/{{ item }}"
+    dest: "{{ backup_path }}/"
+    flat: yes
+  when: inventory_hostname == groups[brf_group][0]
+  with_items: "{{ backup_info.backup_list }}"
+
+- name: Remove files from temporary location
+  file:
+    path: "{{ backup_temp}}/{{ item }}"
+    state: absent
+  when: inventory_hostname == groups[brf_group][0]
+  with_items: "{{ backup_info.backup_list }}"
+
+- name: Export backup if requested
+  include_tasks: "export.yml"
+  vars:
+    backupname: "{{ backup_info.backupname }}"
+  when: export is defined and export | bool
+
+- name: Delete old backup
+  include_tasks: "delete.yml"
+  vars:
+    backupname: "{{ backup_info.options.oldest }}"
+  when:
+    - inventory_hostname == groups[brf_group][0]
+    - domain_data.0.fulls is defined
+    - backup_info.options.fulls | int > domain_data.0.fulls | int

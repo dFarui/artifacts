@@ -1,0 +1,8 @@
+{% if item.dimensions is defined %}
+[Manager]
+{% for key, value in item.dimensions.items() %}
+{% if key in resource_map and 'system_conf' in resource_map[key] %}
+{{ resource_map[key]['system_conf'] }}={{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}

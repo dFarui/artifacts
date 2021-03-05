@@ -1,0 +1,11 @@
+- name: Tag and push the images to private local registry
+  delegate_to: localhost
+  run_once: true
+  become: yes
+  shell:
+    cmd: |
+      docker tag "{{ item.imageName }}:{{ item.tag }}" "{{ local_docker_registry }}/{{ item.imageName }}:{{ item.tag }}"
+      docker push "{{ local_docker_registry }}/{{ item.imageName }}:{{ item.tag }}"
+  when: item.containerImage == image.name
+  with_items:
+    - '{{ service["serviceComponentTypes"] | d([]) }}'

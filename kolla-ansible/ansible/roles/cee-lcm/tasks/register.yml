@@ -1,0 +1,10 @@
+---
+- import_role:
+    name: service-ks-register
+  vars:
+    service_ks_register_auth: "{{ lcm_api_auth }}"
+    service_ks_register_region_name: "{{ lcm_api_region_name }}"
+    service_ks_register_endpoint_region: "{{ lcm_api_region_name }}"
+    service_ks_register_services: "{{ lcm_ks_services }}"
+    service_ks_register_users: "{{ lcm_ks_users }}"
+  tags: always

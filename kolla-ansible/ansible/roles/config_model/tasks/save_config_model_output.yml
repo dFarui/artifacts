@@ -1,0 +1,27 @@
+# Save the output from a successful Config Model Generator run.
+# in transient temp branches
+---
+
+- name: Get {{ system_branch }} reference
+  shell: >
+    git rev-parse {{ system_branch | quote }}
+  args:
+    chdir: "{{ git_repo }}"
+  register: system_tag
+
+- name: Save the config model generator output
+  vars:
+    commit_msg: "Saved output from CMG run on {{ system_tag.stdout }}"
+  shell: >
+    git add -A &&
+    git commit --allow-empty -m "{{ commit_msg }}"
+
+- name: Lay down deployment tags
+  include_role:
+    name: git-operations
+    tasks_from: tag_branches.yml
+  vars:
+    repo: "{{ git_repo }}"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    branches:
+      - "{{ system_branch }}"

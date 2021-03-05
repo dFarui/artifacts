@@ -1,0 +1,11 @@
+{{ file_marker }}
+
+{% for module in kernel_modules %}
+{%- if module.moduleOptions is defined %}
+{% for option in module.moduleOptions %}
+{% for key,value in option.items() %}
+options {{ module.name }} {{key}}={{value}}
+{% endfor %}
+{% endfor %}
+{%- endif %}
+{%- endfor %}

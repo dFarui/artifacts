@@ -1,0 +1,23 @@
+stdio_handler = "file"
+
+user = "root"
+group = "root"
+
+max_files =  {{ qemu_max_files }}
+max_processes =  {{ qemu_max_processes }}
+
+cgroup_device_acl = [
+"/dev/null", "/dev/full", "/dev/zero",
+"/dev/random", "/dev/urandom",
+"/dev/ptmx", "/dev/kvm", "/dev/kqemu",
+"/dev/rtc", "/dev/hpet", '/dev/net/tun',
+"/dev/vfio/vfio"
+]
+
+{% set mountpoints = [] %}
+{% for page in my_memory_assignment.total_huge_pages | default([]) %}
+{% if page.owner == "nova-libvirt" and (page.count | int) > 0 %}
+{{ mountpoints.append( page.mountpoint ) }}
+{%   endif %}
+{% endfor %}
+hugetlbfs_mount = {{ mountpoints }}

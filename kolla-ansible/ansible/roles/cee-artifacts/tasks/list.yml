@@ -1,0 +1,16 @@
+---
+- name: Fetch all the artifact metadata files
+  find:
+    paths: /srv/www/artifacts/metadata
+    patterns: '*.yaml'
+  register: metadata
+
+- name: Load all metadata files
+  set_fact:
+    artifacts_list: "{{ artifacts_list + [lookup('file', item.path) | from_yaml ] }}"
+  loop: "{{ metadata.files }}"
+
+- name: Create a json file with artifact metadata
+  copy:
+    content: "{{ artifacts_list }}"
+    dest: "{{ artifacts_list_json }}"

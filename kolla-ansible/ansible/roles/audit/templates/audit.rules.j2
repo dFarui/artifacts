@@ -1,0 +1,50 @@
+# {{ ansible_managed }}
+
+# This file contains the auditctl rules that are loaded
+# whenever the audit daemon is started via the initscripts.
+# The rules are simply the parameters that would be passed
+# to auditctl.
+
+# First rule - delete all
+-D
+
+# Make this bigger for busy systems
+-b 16384
+{% for audit_rule_group in audit_rule_groups %}
+{% for audit_rule in audit_rule_group["rules"] %}
+{% if audit_rule["type"] == "watch" and audit_file_path_to_existence[audit_rule["path"]] %}
+{% if loop.index0 == 0 %}{{ audit_rule_group["comment"] | comment(prefix="\n#", postfix="#\n") }}{% endif %}
+{{- audit_rule_type_to_option[audit_rule["type"]] }}
+{{- " " }}{{ audit_rule["path"] }}
+{{- "" }}{{ audit_rule["rule_fields"] | map("regex_replace", "^", " -F ") | list | join("") }}
+{{- " " }}-p {{ audit_rule["permission_access_type"]|map('extract', audit_rule_permission_access_type_to_option) | join("") }}
+{{- " " }}-k {{ audit_rule_group["filter_key"] }}
+{% endif %}
+{% if audit_rule["type"] == "append_rule" %}
+{% if loop.index0 == 0 %}{{ audit_rule_group["comment"] | comment(prefix="\n#", postfix="#\n") }}{% endif %}
+{{- audit_rule_type_to_option[audit_rule["type"]] }}
+{{- " "}}{{ audit_rule["actions"] | join(",") }}
+{{- "" }}{{ audit_rule["rule_fields"] | map("regex_replace", "^", " -F ") | list | join("") }}
+{{- "" }}{{ audit_rule["syscalls"] | map("regex_replace", "^", " -S ") | list | join("") }}
+{{- " " }}-k {{ audit_rule_group["filter_key"] }}
+{% endif %}
+{% if audit_rule["type"] == "batch_file_execution_append_rule" %}
+{% if loop.index0 == 0 %}{{ audit_rule_group["comment"] | comment(prefix="\n#", postfix="#\n") }}{% endif %}
+{% for path in lookup('vars', audit_rule["paths_variable_name"]) %}
+{{- audit_rule_type_to_option[audit_rule["type"]] }}
+{{- " "}}{{ audit_rule["actions"] | join(",") }}
+{{- "" }}{{ audit_rule["syscalls"] | map("regex_replace", "^", " -S ") | list | join("") }}
+{{- " " }}-F path={{ path }}
+{{- " " }}-F perm={{ audit_rule["permission_access_type"]|map('extract', audit_rule_permission_access_type_to_option) | join("") }}
+{{- "" }}{{ audit_rule["rule_fields"] | map("regex_replace", "^", " -F ") | list | join("") }}
+{{- " " }}-F key={{ audit_rule_group["filter_key"] }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+#
+# Ensure the audit configuration is immutable
+#
+# TODO
+# -e 2

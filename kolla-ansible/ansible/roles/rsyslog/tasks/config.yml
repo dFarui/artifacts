@@ -1,0 +1,6 @@
+---
+- include_tasks: config_rsyslog.yml
+
+- include_tasks: config_logrotate.yml
+
+- include_tasks: config_systemd.yml

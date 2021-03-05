@@ -1,0 +1,13 @@
+[Unit]
+Description=Service file to call hugepages script
+Before=openvswitch.service ovs-vswitchd.service docker.service
+After=sysinit.target
+
+[Service]
+Type=oneshot
+Restart=no
+RemainAfterExit=yes
+ExecStart=/usr/bin/hugepages-setup.sh
+
+[Install]
+WantedBy=multi-user.target

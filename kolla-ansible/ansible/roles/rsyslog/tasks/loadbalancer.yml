@@ -1,0 +1,8 @@
+---
+- name: "Configure haproxy for {{ project_name }}"
+  import_role:
+    role: haproxy-config
+  vars:
+    project_services: "{{ rsyslog_services }}"
+  tags: always
+  when: rsyslog_is_log_aggregator

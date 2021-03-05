@@ -1,0 +1,22 @@
+# ------------------------------------------------- #
+# Configuration file for the Watchmen Producer API. #
+# ------------------------------------------------- #
+
+[DEFAULT]
+
+# Watchmen whitelist extra configuration
+extra_whitelist=/etc/watchmen/watchmen-extra-whitelist.yml
+
+# The AMQP server name for Target
+messaging_server_name={{ watchmen_producer_ampq_target_name }}
+
+# The AMQP topic name for Target
+messaging_topic_name={{ watchmen_producer_ampq_topic_name }}
+
+# Region name
+region_name={{ openstack_region_name }}
+
+# The RabbitMQ transport URL
+transport_url={{ watchmen_rabbitmq_transport_url }}
+
+{% include 'rabbitmq_tls.conf.j2' %}

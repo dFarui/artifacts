@@ -1,0 +1,13 @@
+---
+- include_tasks: install.yml
+  when:
+    - enable_audit | bool
+    - inventory_hostname in groups[project_name]
+
+- include_tasks: config.yml
+  when:
+    - enable_audit | bool
+    - inventory_hostname in groups[project_name]
+
+- name: Flush handlers
+  meta: flush_handlers

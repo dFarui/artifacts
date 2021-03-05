@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Run lcm-bootstrap
+    command: >
+      cee-lcm-bootstrap --system "{{system_name}}" --config-tar "{{config_tarfile}}" --job-id "{{job_id}}"
+      {% if (domain | d("cee.tld")) -%} --domain {{domain}}  {%-endif %}
+      {% if (force | d(false)) -%} --force {%-endif %}
+      {% if (verbose | d(false)) -%} --verbose {%-endif %}
+      {% if (uris | d(false)) -%} --tar-uri {{uris}} {%-endif %}

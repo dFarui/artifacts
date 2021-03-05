@@ -1,0 +1,9 @@
+[Unit]
+Description=Uptime Socket
+
+[Socket]
+ListenStream={{ agent_port_number }}
+Accept=yes
+
+[Install]
+WantedBy=sockets.target

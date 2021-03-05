@@ -1,0 +1,87 @@
+---
+- name: Set basic variables
+  set_fact:
+    config_directory: "/etc/cee"
+    mariadb_backup_database_user: "backup"
+
+- name: Install required packages
+  become: yes
+  zypper:
+    name: ["python3-PyYAML", "python3-PyMySQL", "python3-pycryptodome"]
+    state: "present"
+  when: inventory_hostname in groups["mariadb"]
+
+- name: Creating the backup database
+  become: true
+  kolla_toolbox:
+    module_name: mysql_db
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ backup_db_schema }}"
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Creating backup user and setting global permissions
+  become: true
+  kolla_toolbox:
+    module_name: mysql_user
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ backup_db_user }}"
+      password: "{{ backup_db_password }}"
+      host: "%"
+      priv: "*.*:CREATE TABLESPACE,RELOAD,PROCESS,SUPER,LOCK TABLES,REPLICATION CLIENT"
+      append_privs: True
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Setting backup database privileges
+  become: true
+  kolla_toolbox:
+    module_name: mysql_user
+    module_args:
+      login_host: "{{ database_address }}"
+      login_port: "{{ database_port }}"
+      login_user: "{{ database_user }}"
+      login_password: "{{ database_password }}"
+      name: "{{ backup_db_user }}"
+      password: "{{ backup_db_password }}"
+      host: "%"
+      priv: "{{ backup_db_schema }}.*:CREATE,INSERT,SELECT,UPDATE,DELETE,DROP"
+      append_privs: True
+  run_once: True
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Get info about LCM volumes
+  set_fact:
+    backup_volume: "{{ my_disk_assignments.volumes | selectattr('name', 'equalto', 'gluster_backups') | first }}"
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Set config variables
+  set_fact:
+    backup_path: "{{ backup_volume.mount }}"
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Change owner of {{ backup_path }}
+  become: true
+  file:
+    path: "{{ backup_path }}"
+    state: directory
+    recurse: yes
+    owner: "{{ cee_user_name }}"
+    group: "{{ cee_group_name }}"
+    mode: '0755'
+  when: inventory_hostname in groups["lcm_cluster"]
+
+- name: Create backup configuration file
+  become: true
+  template:
+    src: "/var/lib/cee/system/{{ system_name }}/config/services/default/config/backup/backups.yaml"
+    dest: "{{ config_directory }}/backups.yml"
+  when: inventory_hostname in groups["lcm_cluster"]

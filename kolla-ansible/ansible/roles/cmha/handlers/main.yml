@@ -1,0 +1,176 @@
+---
+- name: Restart cmha-restapi container
+  vars:
+    service_name: "cmha-restapi"
+    service: "{{ cmha_services[service_name] }}"
+  become: true
+  kolla_docker:
+    action: "recreate_or_restart_container"
+    common_options: "{{ docker_common_options }}"
+    name: "{{ service.container_name }}"
+    image: "{{ service.image }}"
+    volumes: "{{ service.volumes }}"
+    dimensions: "{{ service.dimensions }}"
+    labels:
+      service-component: "{{ service_name }}"
+  when:
+    - kolla_action != "config"
+
+# The sole purpose of this task is to ensure that the image is fetched, stored
+# and available locally on all the service hosting nodes, therefore when
+# service failover happens the image won't be pulled again.
+- name: Pull CMHA image
+  vars:
+    service_name: "cmha-service"
+    service: "{{ cmha_services[service_name] }}"
+  become: true
+  kolla_docker:
+    action: "pull_image"
+    image: "{{ service.image }}"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  listen: "Restart cmha-service container"
+
+- name: Create CMHA resource
+  vars:
+    service_name: "cmha-service"
+    service: "{{ cmha_services[service_name] }}"
+    volumes: >-
+      {% set volumes = [] -%}
+      {% for volume in service['volumes'] -%}
+        {% if volume -%}
+          {% if volume[0] != '/' and volume.split(':') | length == 2 -%}
+            {% set elem = volume ~ ':rw' -%}
+            {{ volumes.append(elem) -}}
+          {% else -%}
+            {{ volumes.append(volume) -}}
+          {% endif -%}
+        {% endif -%}
+      {% endfor -%}
+      {{ volumes | map('regex_replace', '(.*)', '-v \1') | join(' ') -}}
+    service_dimensions: "{{ service['dimensions'] }}"
+    kolla_environment:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      KOLLA_SERVICE_NAME: "{{ service_name }}"
+    service_environment: >-
+      {% set service_environment = [] -%}
+      {% for key, value in service['environment'].items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {% for key, value in kolla_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {{ service_environment | map('regex_replace', '(.*)', '-e \1') | join(' ') -}}
+    cgroup_parent: "{{ '--cgroup-parent=' ~ service['dimensions']['cgroup_parent'] if 'cgroup_parent' in service['dimensions'] else '' }}"
+    run_opts: "--net=host {{ volumes }} {{ service_environment }} {{ cgroup_parent }} --label service-component={{ service_name }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "p_{{ service_name }}"
+    type: primitive
+    agent: 'ocf:heartbeat:docker'
+    recreate: True
+    parameter:
+      image: "{{ service.image }}"
+      name: "{{ service_name }}"
+      allow_pull: "true"
+      run_opts: "{{ run_opts }}"
+      run_cmd: "kolla_start"
+      query_docker_health: "true"
+      force_kill: "true"
+      reuse: "false"
+    operation:
+      monitor:
+        interval: "30s"
+        start-delay: "20s"
+        timeout: "30s"
+      start:
+        interval: 0
+        timeout: "15s"
+        on-fail: restart
+      stop:
+        interval: 0
+        timeout: "15s"
+    meta:
+      failure-timeout: 120
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  listen: "Restart cmha-service container"
+
+- name: Put CMHA role for its hosting node
+  vars:
+    service_name: "cmha-service"
+    service: "{{ cmha_services[service_name] }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ hostvars[item]['hostname_full'] }}"
+    attribute: "{{ service_name }}-role"
+    value: "true"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  listen: "Restart cmha-service container"
+
+- name: Restrict CMHA instance location
+  vars:
+    service_name: "cmha-service"
+    service: "{{ cmha_services[service_name] }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ service_name }}"
+    resource: "p_{{ service_name }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "rule 100: {{ service_name }}-role eq true"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  listen: "Restart cmha-service container"
+
+- name: Waiting for CMHA to start
+  vars:
+    service_name: "cmha-service"
+    service: "{{ cmha_services[service_name] }}"
+  delegate_to: "{{ groups['pacemaker'][0] }}"
+  run_once: True
+  become: True
+  shell: 'docker exec pacemaker crm resource locate p_{{ service_name }}'
+  register: result
+  until: "'resource p_' ~ service_name ~ ' is running on:' in result.stdout"
+  changed_when: False
+  retries: 12
+  delay: 5
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  listen: "Restart cmha-service container"
+
+- name: Reload uptime service file
+  become: True
+  systemd:
+    name: uptime.socket
+    daemon_reload: yes
+
+- name: Restart uptime service
+  become: True
+  service:
+    name: uptime.socket
+    state: restarted
+
+- name: Enable uptime service
+  become: True
+  service:
+    name: uptime.socket
+    enabled: yes

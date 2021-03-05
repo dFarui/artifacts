@@ -1,0 +1,58 @@
+---
+- hosts: physical_hosts:virtual_hosts
+  gather_facts: no
+  vars:
+    ansible_connection: local
+    host_path: "/var/lib/cee/system/{{system_name}}/system/information/host_power_status.json"
+  tasks:
+      - name: Check the power status
+        oobm:
+            oobm_args: "{{ oobm_args }}"
+            power: status
+        register: pstate
+
+- hosts: physical_hosts:virtual_hosts
+  gather_facts: no
+  serial: 1
+  vars:
+    ansible_connection: local
+    host_path: "/var/lib/cee/system/{{system_name}}/system/information/host_power_status.json"
+  tasks:
+      - name: Save the host status
+        lineinfile:
+            dest: "{{host_path}}"
+            line: "{{ inventory_hostname }}:{{pstate.power}}"
+            create: true
+        with_items:
+            - "{{ inventory_hostname }}"
+
+- hosts: physical_hosts:virtual_hosts
+  gather_facts: no
+  vars:
+    ansible_connection: local
+    host_path: "/var/lib/cee/system/{{system_name}}/system/information/host_power_status.json"
+  tasks:
+      - name: Load the host status
+        debug:
+            msg: "{{ lookup('file', host_path) }}"
+        register: state
+        delegate_to: localhost
+
+      - name: Split the host status
+        set_fact:
+          split_out: "{{ state.msg.split('\n') | list}}"
+        delegate_to: localhost
+
+      - name: Convert to json
+        set_fact:
+            power_status: "{{  power_status| default({})| combine ({item.split(':')[0]: item.split(':')[1]}) }}"
+        with_items:
+          - "{{ split_out }}"
+        delegate_to: localhost
+
+      - name: Create host power status json
+        copy:
+            content: "{{ power_status | to_nice_json }}"
+            dest: "{{host_path}}"
+            mode: 0644
+        delegate_to: localhost

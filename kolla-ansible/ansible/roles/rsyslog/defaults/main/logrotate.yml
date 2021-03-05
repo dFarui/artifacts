@@ -1,0 +1,14 @@
+logrotate_package_name: "logrotate"
+
+logrotate_systemd_timer_unit_name: "cee_logrotate"
+logrotate_systemd_timer_boot_execution_delay: "15min"
+logrotate_systemd_timer_execution_interval: "30min"
+logrotate_systemd_timer_invoke_script_path: "/usr/sbin/logrotate {{ logrotate_cee_config_file_path }}"
+
+logrotate_config_file_mode: "0644"
+logrotate_main_config_file_path: "/etc/logrotate.conf"
+logrotate_main_config_backup_file_path: "/etc/logrotate.conf.bak"
+logrotate_config_include_directory_path: "/etc/logrotate.d"
+logrotate_config_include_directory_mode: "0755"
+
+logrotate_cee_config_file_path: "{{ logrotate_config_include_directory_path }}/cee.nodaily"

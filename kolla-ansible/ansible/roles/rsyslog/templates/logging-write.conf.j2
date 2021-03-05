@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+
+ruleset (name="{{ properties.write_to_dir.rule_set.name }}") {
+{% for template_and_action in properties.write_to_dir.rule_set.templates_and_actions %}
+{{ template_and_action.action | to_rsyslog_action | indent(width=4, indentfirst=True) }}
+{% endfor %}
+}
+
+ruleset (name="{{ properties.write_to_path.rule_set.name }}") {
+{% for template_and_action in properties.write_to_path.rule_set.templates_and_actions %}
+{{ template_and_action.action | to_rsyslog_action | indent(width=4, indentfirst=True) }}
+{% endfor %}
+}

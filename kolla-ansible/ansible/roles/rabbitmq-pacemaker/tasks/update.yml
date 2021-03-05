@@ -1,0 +1,8 @@
+---
+- include_tasks: healthcheck.yml
+
+- include_tasks: config.yml
+
+- include_tasks: update_service.yml
+
+- include_tasks: healthcheck.yml

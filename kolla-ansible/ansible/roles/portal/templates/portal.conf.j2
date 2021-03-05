@@ -1,0 +1,14 @@
+[default]
+listen_host={{ portal_listen_host }}
+listen_port={{ portal_listen_port }}
+
+[lcm_api]
+lcm_api_url_host={{ portal_lcm_api_url }}
+lcm_api_url_port={{ portal_lcm_api_port }}
+lcm_api_auth_strategy={{ lcm_api_auth_strategy | default('keystone') }}
+{% if lcm_api_auth_strategy == 'keystone' -%}
+
+[keystone_authtoken]
+www_authenticate_uri={{ keystone_internal_url }}
+auth_url={{ portal_keystone_admin_url }}
+{% endif -%}

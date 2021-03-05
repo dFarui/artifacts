@@ -1,0 +1,5 @@
+---
+non_numa_huge_pages: "{{ my_memory_assignment.non_numa_huge_pages | default('[]') }}"
+numa_huge_pages: "{{ my_memory_assignment.numa_huge_pages | default('[]')}}"
+systemd_script_dir: /usr/lib/systemd/system
+total_huge_pages: "{{ my_memory_assignment.total_huge_pages | default('[]') }}"

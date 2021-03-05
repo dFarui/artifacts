@@ -1,0 +1,37 @@
+---
+- name: Get System Manufacturer
+  become: true
+  shell: cat /sys/devices/virtual/dmi/id/sys_vendor
+  register: system_manufacturer
+  when:
+    - inventory_hostname in groups.physical_hosts
+
+- name: Get system serial
+  become: true
+  command: cat /sys/devices/virtual/dmi/id/product_serial
+  register: system_serial
+
+- name: remove old package
+  zypper:
+    name: lldpd
+    state: absent
+
+- name: remove old configuration if exists
+  file:
+    path: "{{ configfile }}"
+    state: absent
+
+- name: "Gather ovs_ports from both DPDK and Non-DPDK devices"
+  set_fact:
+    ovs_ports: '{{ (my_ovs_interfaces + my_dpdk_interfaces|d([])) | selectattr("bond_options", "defined") | map(attribute="bond_slaves") | list | first | d([]) }}'
+
+- include: lldp.yml
+  when:
+    - inventory_hostname in groups.physical_hosts
+    - hostvars[inventory_hostname].system_manufacturer.stdout != "QEMU"
+    - hostvars[inventory_hostname].my_host_config.lldp.enabled
+
+- include: lldp_ovs.yml
+  when:
+    - inventory_hostname in groups.physical_hosts
+    - ovs_ports != []

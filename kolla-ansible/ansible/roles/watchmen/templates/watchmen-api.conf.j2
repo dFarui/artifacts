@@ -1,0 +1,48 @@
+# ----------------------------------------------------- #
+# Configuration file for the Watchmen REST API Service. #
+# ----------------------------------------------------- #
+
+[DEFAULT]
+
+# Path to the logging configuration file
+logging_conf={{ watchmen_api_logging_conf }}
+
+# A URL representing the database connection and its full configuration
+database_connection={{ watchmen_database_connection }}
+
+# The address of the watchmen wsgi server
+watchmen_wsgi_address={{ watchmen_api_listen_address }}
+
+# The port where watchmen wsgi server listens
+watchmen_wsgi_port={{ watchmen_api_listen_port }}
+
+# Name of the Keystone role required to access Watchmen Rest resources
+watchmen_role_ids={{ service_ks_register_role_result.results | selectattr('item', 'search', 'watchmen|admin') | list | map(attribute='role') | list | map(attribute='id') | join(',') }}
+
+# List of tenant ids with full access to the Watchmen Events (alarms, alerts)
+watchmen_full_access_tenants={{ get_admin_project_id_result.project.id }}
+
+[keystone]
+
+# Keystone auth url
+auth_url={{ watchmen_keystone_auth_url }}
+
+# Keystone auth username
+auth_username={{ watchmen_keystone_users[0].user }}
+
+# Keystone auth password
+auth_password={{ watchmen_keystone_users[0].password }}
+
+# Keystone auth domain
+auth_domain={{ watchmen_keystone_auth.user_domain_name }}
+
+# Keystone auth project
+auth_project={{ watchmen_keystone_users[0].project }}
+
+# Keystone auth project domain
+auth_project_domain={{ watchmen_keystone_auth.domain_name }}
+
+{% if watchmen_cafile is defined %}
+# A PEM encoded Certificate Authority to use when verifying HTTPs connections.
+cafile={{ watchmen_cafile }}
+{% endif %}

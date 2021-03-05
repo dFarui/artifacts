@@ -1,0 +1,23 @@
+---
+- name: Copying over NBI SSL Configurations
+  copy:
+    src: "{{ copycacerts_src_path }}/{{ item.value }}"
+    dest: "/etc/kolla/neutron-server/{{ item.value }}"
+    mode: "0660"
+  become: true
+  when:
+    - nbi_ssl | bool
+    - inventory_hostname in groups['neutron-server']
+  with_dict: "{{ nbi_certificates }}"
+
+- name: Copying over SBI SSL Configurations
+  copy:
+    src: "{{ copycacerts_src_path }}/{{ item.value }}{{ '-' if not same_cert | bool else ''   }}{{ ansible_hostname if not same_cert | bool else '' }}"
+    dest: "/etc/openvswitch/{{ item.value }}"
+    mode: "0660"
+  become: true
+  when:
+    - sbi_ssl | bool
+    - inventory_hostname in groups['neutron-generic-sdn']
+    - inventory_hostname not in groups['neutron-server']
+  with_dict: "{{ sbi_certificates }}"

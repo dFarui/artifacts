@@ -1,0 +1,32 @@
+---
+- name: "setup ovs lldp tx interval"
+  command: ovs-vsctl set open_vswitch . lldp_options:tx-interval={{ TX_INTERNAL }}
+  when: hostvars[inventory_hostname].my_host_config.lldp.enabled
+
+- name: "setup ovs lldp ttl "
+  vars:
+    ttl: "{{ TX_INTERNAL|int * TX_HOLD|int }}"
+  command: ovs-vsctl set open_vswitch . lldp_options:ttl={{ ttl }}
+  when: hostvars[inventory_hostname].my_host_config.lldp.enabled
+
+- name: "setup ovs lldp chassis id"
+  command: ovs-vsctl set open_vswitch . other_config:chassis-id={{ system_serial.stdout }}
+  when: hostvars[inventory_hostname].my_host_config.lldp.enabled
+
+- name: "collect ovs enabled ports"
+  set_fact:
+    ovs_enabled_ports: "{{ ovs_enabled_ports + [item.name] }}"
+  loop: "{{ lldp_enabled_ports }}"
+  when: item.name in ovs_ports
+
+- name: "setup lldp enabled ports"
+  command: ovs-vsctl set interface {{ item }} lldp:enable=true
+  loop: "{{ ovs_ports }}"
+  when:
+  - item in ovs_enabled_ports
+
+- name: "setup lldp disabled ports"
+  command: ovs-vsctl set interface {{ item }} lldp:enable=false
+  loop: "{{ ovs_ports }}"
+  when:
+  - item not in ovs_enabled_ports

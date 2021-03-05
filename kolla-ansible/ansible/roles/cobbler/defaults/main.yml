@@ -1,0 +1,80 @@
+lcm_user_home: "{{ ansible_env['HOME'] }}"
+
+enable_gateway: false
+
+packages_to_be_removed:
+  - atftp
+
+cobbler_packages:
+  - tftp
+  - xinetd
+  - dhcp-server
+  - syslinux
+  - shim
+  - python3-jsonschema
+  - python3-passlib
+  - cobbler
+
+uefi_bootloader_sources:
+  - { src: "/usr/share/efi/x86_64/shim.efi", filename: "shim.efi" }
+  - { src: "/usr/share/efi/x86_64/grub.efi", filename: "grub.efi" }
+legacy_bootloader_sources:
+  - { src: "/usr/share/syslinux/pxelinux.0", filename: "pxelinux.0" }
+  - { src: "/usr/share/syslinux/menu.c32", filename: "menu.c32" }
+tftp_dir: /srv/tftpboot
+
+# NOTE(GOro): Distribution info should come from the system configuration
+profiles: >-
+  {% set profiles = {} -%}
+  {% set provisionable_hosts =
+       groups['physical_hosts'] + groups['virtual_hosts'] -%}
+  {% for provisionable_host in provisionable_hosts -%}
+    {% set profile = hostvars[provisionable_host]['profile'] -%}
+    {% set kernel = hostvars[provisionable_host]['my_host_config']['kernel'] -%}
+    {% set distribution = distribution_name ~ '-' ~ kernel -%}
+    {{ profiles.update({profile: {
+         'distribution': distribution,
+         'kernel': kernel,
+       }})
+    -}}
+  {% endfor -%}
+  {{ profiles -}}
+distributions: >-
+  {% set distributions = {} -%}
+  {% for profile in profiles.values() -%}
+    {{ distributions.update({profile.distribution: {
+         'kernel': profile.kernel,
+         'arch': 'x86_64',
+         'breed': 'unix'
+       }})
+    -}}
+  {% endfor -%}
+  {{ distributions -}}
+
+host_server_interface: >-
+  {%- set ifname=[] -%}
+  {%- for iface in ansible_interfaces -%}
+     {%- set ifdict=hostvars[inventory_hostname]['ansible_'+iface] -%}
+     {%- if 'ipv4' in ifdict -%}
+         {%- if ifdict['ipv4']['address'] |ipaddr(host_cidr) | ipaddr('bool') -%}
+             {{- ifname.append(iface) -}}
+         {%- endif -%}
+     {%- endif -%}
+     {%- if 'ipv4_secondaries' in ifdict -%}
+         {%- for secif in ifdict['ipv4_secondaries'] -%}
+             {%- if secif['address'] |ipaddr(host_cidr) | ipaddr('bool') -%}
+                 {{- ifname.append(iface) -}}
+             {%- endif -%}
+         {%- endfor -%}
+     {%- endif -%}
+     {%- if 'ipv6' in ifdict -%}
+         {%- for v6addr in ifdict['ipv6'] -%}
+             {%- if v6addr['address'] |ipaddr(host_cidr) | ipaddr('bool') -%}
+                 {{- ifname.append(iface) -}}
+             {%- endif -%}
+         {%- endfor -%}
+     {%- endif -%}
+  {%- endfor -%}
+  {{- ifname[0] -}}
+
+build_discovery_image: false

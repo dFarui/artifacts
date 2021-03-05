@@ -1,0 +1,1 @@
+local_disk_config: "{{ my_disk_assignments|get_partitions(ansible_devices,ansible_local.disk_devlinks) }}"

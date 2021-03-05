@@ -1,0 +1,8 @@
+# Initialise the git repository in system directory
+---
+- hosts: localhost
+  connection: local
+  vars:
+    create_system: True
+  roles:
+    - init-operations

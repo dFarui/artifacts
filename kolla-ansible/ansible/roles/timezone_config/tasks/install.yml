@@ -1,0 +1,9 @@
+#
+# Set timezone
+#
+
+- name: Install timezone
+  become: yes
+  package:
+    name: timezone
+    state: latest

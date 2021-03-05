@@ -1,0 +1,8 @@
+---
+
+- name: Generate Ansible inventory files
+  command: >-
+    cee-config-model
+      --config-directory {{ config_target_dir | quote }}/config
+      --system-name {{ system_name | quote }}
+      --generate

@@ -1,0 +1,4 @@
+sysctl_conf_file: /etc/sysctl.d/60-core.conf
+crashes_top_dir: /var/crash
+remote_crash_user: ceecore
+remote_crash_group: users

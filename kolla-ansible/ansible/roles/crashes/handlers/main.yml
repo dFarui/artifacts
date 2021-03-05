@@ -1,0 +1,13 @@
+#
+# Handler to load sysctl options
+#
+---
+- name: Load core sysctl configuration
+  become: yes
+  shell: sysctl -p "{{ sysctl_conf_file }}"
+
+- name: Restart kdump
+  become: yes
+  service:
+    name: kdump
+    state: restarted

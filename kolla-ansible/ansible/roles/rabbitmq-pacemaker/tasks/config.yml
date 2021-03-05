@@ -1,0 +1,135 @@
+---
+- name: Ensuring config directories exist
+  file:
+    path: "{{ node_config_directory }}/{{ project_name }}"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  become: true
+  when:
+    - inventory_hostname in groups[item.value.group]
+    - item.value.enabled | bool
+  with_dict: "{{ rabbitmq_services }}"
+
+- name: Copying over config.json files for services
+  template:
+    src: "{{ item.key }}.json.j2"
+    dest: "{{ node_config_directory }}/{{ project_name }}/config.json"
+    mode: "0660"
+  become: true
+  when:
+    - inventory_hostname in groups[item.value.group]
+    - item.value.enabled | bool
+  with_dict: "{{ rabbitmq_services }}"
+  notify:
+    - Restart RabbitMQ
+
+- name: Determining the base code path for the Erlang TLS implementation
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  become: true
+  changed_when: false
+  kolla_docker:
+    action: "start_container"
+    command: "erl -noinput -eval 'io:format(\"~s\", [filename:dirname(code:which(inet_tls_dist))])' -s init stop"
+    common_options: "{{ docker_common_options }}"
+    detach: False
+    image: "{{ service.image }}"
+    name: "erl_tls_path"
+    restart_policy: no
+    volumes: "{{ service.volumes|reject('equalto', '')|list }}"
+  register: erl_tls_path
+  run_once: True
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+    - rabbitmq_tls_enable | default | bool
+
+- name: Copying over rabbitmq-env.conf
+  become: true
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ node_config_directory }}/{{ project_name }}/rabbitmq-env.conf"
+    mode: "0660"
+  with_first_found:
+    - "{{ node_custom_config }}/rabbitmq/{{ inventory_hostname }}/rabbitmq-env.conf"
+    - "{{ node_custom_config }}/rabbitmq/rabbitmq-env.conf"
+    - "rabbitmq-env.conf.j2"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  notify:
+    - Restart RabbitMQ
+
+- name: Copying over rabbitmq.conf
+  become: true
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ node_config_directory }}/{{ project_name }}/rabbitmq.conf"
+    mode: "0660"
+  with_first_found:
+    - "{{ node_custom_config }}/rabbitmq/{{ inventory_hostname }}/rabbitmq.conf"
+    - "{{ node_custom_config }}/rabbitmq/rabbitmq.conf"
+    - "rabbitmq.conf.j2"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  notify:
+    - Restart RabbitMQ
+
+- name: Copying over erl_inetrc
+  become: true
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ node_config_directory }}/{{ project_name }}/erl_inetrc"
+    mode: "0660"
+  with_first_found:
+    - "{{ node_custom_config }}/rabbitmq/{{ inventory_hostname }}/erl_inetrc"
+    - "{{ node_custom_config }}/rabbitmq/erl_inetrc"
+    - "erl_inetrc.j2"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  notify:
+    - Restart RabbitMQ
+
+- name: Copying over definitions.json
+  become: true
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ node_config_directory }}/{{ project_name }}/definitions.json"
+    mode: "0660"
+  with_first_found:
+    - "{{ node_custom_config }}/rabbitmq/{{ inventory_hostname }}/definitions.json"
+    - "{{ node_custom_config }}/rabbitmq/definitions.json"
+    - "definitions.json.j2"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  notify:
+    - Restart RabbitMQ
+
+- name: Copying over certificate and key files for RabbitMQ
+  vars:
+    service: "{{ rabbitmq_services['rabbitmq'] }}"
+  copy:
+    src: "{{ copycacerts_src_path }}/{{ item }}"
+    dest: "{{ node_config_directory }}/{{ project_name }}/{{ item }}"
+    mode: "0600"
+  become: true
+  when:
+    - rabbitmq_tls_enable | default | bool
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+  with_items: "{{ rabbitmq_tls_files | map('basename') | unique }}"
+  notify:
+    - Restart RabbitMQ

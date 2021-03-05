@@ -1,0 +1,30 @@
+{
+    "command": "/usr/bin/watchmen-webhook",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/watchmen-webhook.conf",
+            "dest": "/etc/watchmen/watchmen-webhook.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-webhook-logging.conf",
+            "dest": "/etc/watchmen/watchmen-webhook-logging.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-producer.conf",
+            "dest": "/etc/watchmen/watchmen-producer.conf",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        },
+        {
+            "source": "{{ container_config_directory }}/watchmen-extra-whitelist.yml",
+            "dest": "/etc/watchmen/watchmen-extra-whitelist.yml",
+            "owner": "root:{{ watchmen_group_name }}",
+            "perm": "0640"
+        }
+
+    ]
+}

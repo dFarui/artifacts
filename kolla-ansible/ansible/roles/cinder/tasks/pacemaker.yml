@@ -1,0 +1,109 @@
+- name: Pull cinder-volume image
+  vars:
+    service_name: "cinder-volume"
+    service: "{{ cinder_services[service_name] }}"
+  become: true
+  kolla_docker:
+    action: "pull_image"
+    image: "{{ service.image }}"
+  when:
+    - inventory_hostname in groups[service.group]
+    - service.enabled | bool
+
+- name: Create cinder-volume resource
+  vars:
+    service_name: "cinder-volume"
+    container_name: "cinder_volume"
+    service: "{{ cinder_services[service_name] }}"
+    volumes: >-
+      {% set volumes = [] -%}
+      {% for volume in service['volumes'] -%}
+        {% if volume | length > 0 and volume[0] != '/' and volume.split(':') | length == 2 -%}
+          {% set elem = volume ~ ':rw' -%}
+          {{ volumes.append(elem) -}}
+        {% elif volume | length > 0 -%}
+          {{ volumes.append(volume) -}}
+        {% endif -%}
+      {% endfor -%}
+      {{ volumes | map('regex_replace', '(.*)', '-v \1') | join(' ') -}}
+    service_dimensions: "{{ service['dimensions'] }}"
+    kolla_environment:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+      KOLLA_SERVICE_NAME: "{{ service_name }}"
+    service_environment: >-
+      {% set service_environment = [] -%}
+      {% for key, value in kolla_environment.items() -%}
+        {% set elem = key ~ '=' ~ value -%}
+        {{ service_environment.append(elem) -}}
+      {% endfor -%}
+      {{ service_environment | map('regex_replace', '(.*)', '-e \1') | join(' ') -}}
+    privileged : "{{ '--privileged' if 'privileged' in service and service['privileged'] | bool else '' }}"
+    ipc: "{{ '--ipc=' ~ service['ipc_mode'] if 'ipc_mode' in service else '' }}"
+    cgroup_parent: "{{ '--cgroup-parent=' ~ service['dimensions']['cgroup_parent'] if 'cgroup_parent' in service['dimensions'] else '' }}"
+    run_opts: "--net=host {{ privileged }} {{ ipc }} {{ volumes }} {{ service_environment }} {{ cgroup_parent }}"
+  delegate_to: "{{ groups['cinder-volume'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_resource
+    name: "p_{{ service_name }}"
+    type: primitive
+    agent: 'ocf:heartbeat:docker'
+    recreate: True
+    parameter:
+      image: "{{ service.image }}"
+      name: "{{ container_name }}"
+      allow_pull: "true"
+      run_opts: "{{ run_opts }}"
+      run_cmd: "kolla_start"
+      query_docker_health: "false"
+      force_kill: "true"
+      reuse: "false"
+    operation:
+      monitor:
+        interval: "30s"
+        start-delay: "20s"
+        timeout: "30s"
+      start:
+        interval: 0
+        timeout: "15s"
+        on-fail: restart
+      stop:
+        interval: 0
+        timeout: "15s"
+    meta:
+      failure-timeout: 120
+  when:
+    - service.enabled | bool
+
+- name: Put cinder-volume role for its hosting node
+  vars:
+    service_name: "cinder-volume"
+    service: "{{ cinder_services[service_name] }}"
+  delegate_to: "{{ groups['cinder-volume'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: set_node_attribute
+    node: "{{ hostvars[item]['ansible_nodename'] }}"
+    attribute: "{{ service_name }}-role"
+    value: "true"
+  loop: "{{ groups[service_name] }}"
+  when:
+    - service.enabled | bool
+
+- name: Restrict cinder-volume instance location
+  vars:
+    service_name: "cinder-volume"
+    service: "{{ cinder_services[service_name] }}"
+  delegate_to: "{{ groups['cinder-volume'][0] }}"
+  become: True
+  run_once: True
+  pacemaker:
+    action: add_location_constraint
+    name: "location-{{ service_name }}"
+    resource: "p_{{ service_name }}"
+    attribute: "resource-discovery=exclusive"
+    rules: "rule 100: {{ service_name }}-role eq true"
+  when:
+    - service.enabled | bool

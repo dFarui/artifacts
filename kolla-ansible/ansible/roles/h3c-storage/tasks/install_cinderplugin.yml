@@ -1,0 +1,87 @@
+---
+- name: Copy installation_info to cinderVM
+  become: yes
+  template:
+    src: "installation_info.j2"
+    dest: "/etc/kolla/cinder-volume/installation_info"
+    owner: root
+    group: root
+    mode: "0660"
+  when:
+    - inventory_hostname in groups['cinder-volume']
+
+- name: copy cinder volume config backup
+  become: yes
+  become_method: sudo
+  copy:
+    src: /etc/kolla/cinder-volume/config.json
+    remote_src: yes
+
+- name: certificate update
+  become: yes
+  become_method: sudo 
+  copy:
+    src: {{ item }}
+    remote_src: no
+    dest: "/etc/kolla/cinder-volume/{{ item }}"
+    force: yes
+  loop:
+      - ca.pem
+      - clientkey.pem
+      - client.pem
+
+- name: modify cinder volume config
+  become: yes
+  become_method: sudo
+  lineinfile:
+    path: /etc/kolla/cinder-volume/config.json
+    insertafter: '    \"config_files\"\: \['
+    line: "{{ item }}"
+  with_items:
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0777",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/iscsi/initiatorname.iscsi",'
+  - '           "source": "/var/lib/kolla/config_files/initiatorname.iscsi",'
+  - '       {'
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0600",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/cinder/clientkey.pem",'
+  - '           "source": "/var/lib/kolla/config_files/clientkey.pem",'
+  - '       {'
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0600",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/cinder/client.pem",'
+  - '           "source": "/var/lib/kolla/config_files/client.pem",'
+  - '       {'
+  - '       },'
+  - '           "optional": true'
+  - '           "perm": "0600",'
+  - '           "owner": "root",'
+  - '           "dest": "/etc/cinder/ca.pem",'
+  - '           "source": "/var/lib/kolla/config_files/ca.pem",'
+  - '       {'
+
+- name: Restart cinder-volume container in cinderA vm
+  become: true
+  command: "docker exec pacemaker crm restart p_cinder-volume"
+  run_once: True
+  delegate_to: "{{ groups['cinder-volume'][0] }}"
+  when:
+    - inventory_hostname in groups['cinder-volume']
+    - inventory_hostname in groups['swift-container-server']
+
+- name: Restart cinder-volume container in cinderB vm
+  become: true
+  command: "docker exec pacemaker crm restart p_cinder-volume"
+  run_once: True
+#  delegate_to: "{{ groups['cinder-volume'][0] }}"
+  when:
+    - inventory_hostname in groups['cinder-volume']
+    - inventory_hostname not in groups['swift-container-server']
+

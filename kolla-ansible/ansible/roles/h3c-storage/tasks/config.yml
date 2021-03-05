@@ -1,0 +1,50 @@
+---
+- name: Ensuring config directories exist
+  file:
+    path: "{{ node_config_directory }}/cinder-volume"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0770"
+  become: true
+  when:
+    - inventory_hostname in groups['cinder-volume']
+
+- name: Check if policies shall be overwritten
+  local_action: stat path="{{ item }}"
+  run_once: True
+  register: cinder_policy
+  with_first_found:
+    - files: "{{ supported_policy_format_list }}"
+      paths:
+        - "{{ node_custom_config }}/cinder/"
+      skip: true
+
+- name: Set cinder policy file
+  set_fact:
+    cinder_policy_file: "{{ cinder_policy.results.0.stat.path | basename }}"
+    cinder_policy_file_path: "{{ cinder_policy.results.0.stat.path }}"
+  when:
+    - cinder_policy.results
+
+
+- name: Copying over cinder.conf
+  vars:
+    service_name: "cinder-volume"
+    ansible_processor_vcpus: 5
+  merge_configs:
+    sources:
+      - "{{ role_path }}/../cinder/templates/cinder.conf.j2"
+      - "{{ node_custom_config }}/global.conf"
+      - "{{ node_custom_config }}/cinder.conf"
+      - "{{ node_custom_config }}/cinder/cinder-volume.conf"
+      - "{{ node_custom_config }}/cinder/{{ inventory_hostname }}/cinder.conf"
+      - "{{ role_path }}/templates/cinder.conf.j2"
+    dest: "{{ node_config_directory }}/cinder-volume/cinder.conf.bak"
+    mode: "0660"
+  become: true
+  when:
+    - inventory_hostname in groups['cinder-volume']
+
+
+

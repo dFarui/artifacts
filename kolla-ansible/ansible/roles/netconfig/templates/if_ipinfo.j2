@@ -1,0 +1,19 @@
+{% if item.bootproto == 'manual' %}
+BOOTPROTO=none
+{% elif item.bootproto == 'static' %}
+BOOTPROTO=static
+{% if item.address is defined %}
+IPADDR={{ item.address }}
+{% endif %}
+{% if item.netmask is defined %}
+PREFIXLEN={{ item.netmask }}
+{% endif %}
+{% elif item.bootproto == 'dhcp' %}
+BOOTPROTO=dhcp
+{% endif %}
+STARTMODE=auto
+PRE_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_UP_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+PRE_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+POST_DOWN_SCRIPT='wicked:{{ net_path }}/ifscript-{{ item.device }}.sh'
+

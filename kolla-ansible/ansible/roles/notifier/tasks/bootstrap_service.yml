@@ -1,0 +1,20 @@
+---
+- name: Running notifier controller bootstrap container
+  vars:
+    notifier_controller: "{{ notifier_services['notifier-controller'] }}"
+  become: true
+  kolla_docker:
+    action: "start_container"
+    common_options: "{{ docker_common_options }}"
+    detach: False
+    environment:
+      KOLLA_BOOTSTRAP:
+      KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+    image: "{{ notifier_controller.image }}"
+    labels:
+      BOOTSTRAP:
+    name: "bootstrap_notifier_controller"
+    restart_policy: no
+    volumes: "{{ notifier_controller.volumes|reject('equalto', '')|list }}"
+  run_once: True
+  delegate_to: "{{ groups[notifier_controller.group][0] }}"

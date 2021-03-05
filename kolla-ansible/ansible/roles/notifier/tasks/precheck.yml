@@ -1,0 +1,18 @@
+---
+- name: Get container facts
+  become: true
+  kolla_container_facts:
+    name:
+      - notifier_controller
+  register: container_facts
+
+- name: Checking free port for Notifier Controller
+  wait_for:
+    host: "{{ api_interface_address }}"
+    port: "{{ notifier_controller_port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - container_facts['notifier_controller'] is not defined
+    - inventory_hostname in groups['notifier-controller']

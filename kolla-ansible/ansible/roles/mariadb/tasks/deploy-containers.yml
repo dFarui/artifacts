@@ -1,0 +1,6 @@
+---
+- import_tasks: check-containers.yml
+  when: pacemaker_manage_mariadb is not defined or not pacemaker_manage_mariadb | bool
+
+# NOTE(yoctozepto): handlers prerequisite
+- import_tasks: lookup_cluster.yml
