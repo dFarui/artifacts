@@ -132,11 +132,17 @@
       - name: h3c-storage
         flavor: generic_h3c_storageA
 ...
+  - name: openstack_controller
+    serviceComponents:
+      - name: h3c-storage
+        flavor: generic_h3c_storage
       - name: pacemaker
         flavor: pacemaker_main_controller
-      - name: h3c-storage 
+...
+  - name: openstack_computes
+    serviceComponents:
+      - name: h3c-storage
         flavor: generic_h3c_storage
-
 ```
 
 ### software.yaml
