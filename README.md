@@ -178,3 +178,8 @@
 ```
 ## kolla-ansible 
 
+## command
+```shell
+# auto integration storage command 
+ansible-playbook -i orchestrator/ansible/hosts -i system/openstack/inventory.yml -e @system/openstack/globals.yml -e @system/openstack/passwords.yml orchestrator/ansible/h3c-storage-deploy.yaml
+```
