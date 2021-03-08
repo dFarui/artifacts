@@ -1,0 +1,13 @@
+- name: Apply Generic H3C STORAGE
+  gather_facts: false
+  hosts:
+    - cinder-volume
+    - h3c-storage
+    - nova-compute
+    - cinder-backup
+  serial: '{{ kolla_serial|default("0") }}'
+  tags:
+    - h3c-storage
+  roles:
+    - role: h3c-storage
+      when: enable_h3c_storage | bool
