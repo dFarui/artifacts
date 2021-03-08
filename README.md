@@ -28,32 +28,32 @@
 - name: generic_h3c_storageA
     customProperties:
       vendor: h3c
-      user: admin
-      password: Lab@ITTE!312
+      user: XXXX
+      password: XXXX
       onestor_diskpool: DiskPoolA
       onestor_poolname: BlockPoolA
       onestor_nodepool: NodePool
-      onestor_handy_ip: 2409:8080:1:25F::8
-      onestor_block_service_ip: 2409:8080:1:260::8
+      onestor_handy_ip: XXXXX
+      onestor_block_service_ip: XXXXX
       onestor_ip_addr: 
       volume_backend_name: H3C_onestor
       backend_host: cinderA
-      iqn: iqn.2018-01.com.h3c.onestor:e7d7920c198042f390eade58baa08c00
+      iqn: XXXX
 # cinderB storage pool info
 - name: generic_h3c_storageB
     customProperties:
       vendor: h3c
-      user: admin
-      password: Lab@ITTE!312
+      user: XXXX
+      password: XXXX
       onestor_diskpool: DiskPoolB
       onestor_poolname: BlockPoolB
       onestor_nodepool: NodePool
-      onestor_handy_ip: 2409:8080:1:25F::8
-      onestor_block_service_ip: 2409:8080:1:260::8
+      onestor_handy_ip: XXXXX
+      onestor_block_service_ip: XXXXX
       onestor_ip_addr: 
       volume_backend_name: H3C_onestor
       backend_host: cinderB
-      iqn: iqn.2018-01.com.h3c.onestor:e7d7920c198042f390eade58baa08c00
+      iqn: XXXX
 # cic storage info
   - name: generic_h3c_storage
     customProperties:
@@ -64,10 +64,10 @@
       onestor_poolname: 
       onestor_nodepool: 
       onestor_handy_ip:
-      onestor_block_service_ip: 2409:8080:1:260::8
+      onestor_block_service_ip: XXXXX
       volume_backend_name:
       backend_host:  
-      iqn: iqn.2018-01.com.h3c.onestor:e7d7920c198042f390eade58baa08c00
+      iqn: XXXXX
 ```
 
 ### host_profile.yaml
